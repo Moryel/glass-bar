@@ -466,7 +466,7 @@ struct Oynatici: View {
     @ObservedObject var d: Durum
     let c: Calan
     var body: some View {
-        if c.kaynak == Calan.spotify {
+        if c.kaynak == Calan.spotify && d.spotifyOynatici {
             SpotifyOynatici(d: d, c: c)
         } else {
             genel
@@ -505,7 +505,7 @@ struct ParcaCubugu: View {
                 Text(c.ad).fontWeight(.semibold) + Text(c.sanatci.isEmpty ? "" : "  ·  \(c.sanatci)").foregroundColor(.white.opacity(0.6))
                 Spacer()
                 Text("\(Zaman.yaz(Double(d.calanKonum) * c.sure)) / \(Zaman.yaz(c.sure))").monospacedDigit().foregroundStyle(.white.opacity(0.6))
-                    .fixedSize()
+                    .frame(width: 80, alignment: .trailing)
             }
             .font(.system(size: 10))
             .lineLimit(1)

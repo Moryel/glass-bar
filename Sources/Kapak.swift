@@ -86,9 +86,10 @@ struct SpotifyOynatici: View {
              tusGenisligi: Olcu.dar + 2)
 
         HStack(spacing: 6) {
-            Text(Zaman.yaz(Double(d.calanKonum) * c.sure))
+            // Touch Bar'da fixedSize yazının sonunu kestiği için süreler sabit genişlikte
+            Text(Zaman.yaz(Double(d.calanKonum) * c.sure)).frame(width: 34, alignment: .trailing)
             CamKaydirici(deger: $d.calanKonum, ince: true, degisti: { d.calanSar($0) }).frame(height: 10)
-            Text("-" + Zaman.yaz(c.sure * (1 - Double(d.calanKonum))))
+            Text("-" + Zaman.yaz(c.sure * (1 - Double(d.calanKonum)))).frame(width: 38, alignment: .leading)
         }
         .font(.system(size: 10)).monospacedDigit().foregroundStyle(.white.opacity(0.6))
         .padding(.horizontal, 4)

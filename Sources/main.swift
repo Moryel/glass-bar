@@ -248,6 +248,7 @@ final class Temsilci: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NSMen
             oge(t.ad, #selector(seritTusuDegistir(_:)), durum.seritTuslari.contains(t), t.rawValue)
         }))
         m.addItem(oge(L("Yazma önerilerini göster"), #selector(oneriDegistir), durum.oneriAcik))
+        m.addItem(oge(L("Spotify'da kapak ve ses dalgası"), #selector(spotifyDegistir), durum.spotifyOynatici))
         m.addItem(oge(L("Çubukta esc tuşu"), #selector(escDegistir), durum.escGoster))
         let giris = m.addItem(withTitle: L("Mac açılınca başlat"), action: #selector(girisDegistir), keyEquivalent: "")
         giris.target = self
@@ -295,6 +296,7 @@ final class Temsilci: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NSMen
         durum.arkaPlan = .gorsel
     }
     @objc func oneriDegistir() { durum.oneriAcik.toggle() }
+    @objc func spotifyDegistir() { durum.spotifyOynatici.toggle() }
 
     @objc func gosterimSec(_ o: NSMenuItem) {
         if let g = Gosterim(rawValue: o.representedObject as? String ?? "") { durum.gosterim = g; durum.kip = .uygulama }

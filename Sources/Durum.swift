@@ -85,6 +85,8 @@ final class Durum: ObservableObject {
     let genislik = Donanim.genislik
     /// Öndeki uygulamanın kendi Touch Bar tuşlarını göstermek için (GlassBar küçülür).
     var uygulamaTuslari: () -> Void = {}
+    /// Spotify'da kapaklı oynatıcı (kapalıysa Müzik'teki gibi sade parça çubuğu).
+    @Published var spotifyOynatici = Kayit.evet("spotifyOynatici", true) { didSet { Kayit.yaz("spotifyOynatici", spotifyOynatici) } }
 
     private var kapatma: Timer?
     private var siriSuresi: Timer?
@@ -301,7 +303,7 @@ final class Durum: ObservableObject {
     private func calanUygula(_ c: Calan?) {
         if c != calan { calan = c }
         FilmSeridi.ortak.yukle(c?.video == true ? c?.dosya : nil)
-        Kapak.ortak.yukle(c?.kapak)
+        Kapak.ortak.yukle(spotifyOynatici ? c?.kapak : nil)
         if let c, Date().timeIntervalSince(sonSarma) > 1.5 { calanKonum = Float(c.konum / c.sure) }
         if c == nil && kip == .simdi { kip = .uygulama }
     }
