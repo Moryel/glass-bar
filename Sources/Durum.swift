@@ -85,6 +85,9 @@ final class Durum: ObservableObject {
     let genislik = Donanim.genislik
     /// Öndeki uygulamanın kendi Touch Bar tuşlarını göstermek için (GlassBar küçülür).
     var uygulamaTuslari: () -> Void = {}
+    /// Spotify'da Spotiw'in oynatıcısını kullan (Spotiw çalışıyorsa).
+    @Published var spotiwKullan = Kayit.evet("spotiwKullan", true) { didSet { Kayit.yaz("spotiwKullan", spotiwKullan) } }
+    var spotiwAc: () -> Void = {}
 
     private var kapatma: Timer?
     private var siriSuresi: Timer?
