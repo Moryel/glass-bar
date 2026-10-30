@@ -175,10 +175,34 @@ final class Temsilci: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NSMen
     }
 
     // MARK: menü çubuğu
+    /// Uygulama simgesinin tek renkli hâli: çubuk, iki tuş ve dalga (şablon; menü çubuğunda beyaz/siyah olur).
+    static func menuSimgesi() -> NSImage {
+        let simge = NSImage(size: NSSize(width: 26, height: 16), flipped: false) { _ in
+            let serit = NSBezierPath(roundedRect: NSRect(x: 1, y: 3, width: 24, height: 10), xRadius: 5, yRadius: 5)
+            serit.lineWidth = 1.4
+            serit.stroke()
+            for x in [4.0, 8.0] {
+                NSBezierPath(roundedRect: NSRect(x: x, y: 5.5, width: 3, height: 5), xRadius: 1, yRadius: 1).fill()
+            }
+            let dalga = NSBezierPath()
+            for i in 0...24 {
+                let u = Double(i) / 24
+                let nokta = NSPoint(x: 12.5 + u * 10, y: 8 + 2.6 * pow(sin(.pi * u), 2) * sin(u * .pi * 3.2))
+                i == 0 ? dalga.move(to: nokta) : dalga.line(to: nokta)
+            }
+            dalga.lineWidth = 1.2
+            dalga.lineCapStyle = .round
+            dalga.stroke()
+            return true
+        }
+        simge.isTemplate = true
+        simge.accessibilityDescription = "GlassBar"
+        return simge
+    }
+
     func menuKur() {
-        durumOgesi = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        durumOgesi.button?.image = NSImage(systemSymbolName: "sparkles.rectangle.stack", accessibilityDescription: "GlassBar")
-            ?? NSImage(systemSymbolName: "sparkles", accessibilityDescription: "GlassBar")
+        durumOgesi = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        durumOgesi.button?.image = Temsilci.menuSimgesi()
         let m = NSMenu()
         m.delegate = self
         durumOgesi.menu = m
