@@ -82,4 +82,4 @@ Screenshot testing: `open ~/Applications/GlassBar.app --args -tb2kip genis|parla
 
 ---
 
-Made by **Yüksel Özge** · [github.com/Moryel/touch-bar-2](https://github.com/Moryel/touch-bar-2)
+Made by **Yüksel Özge** · [github.com/Moryel/glass-bar](https://github.com/Moryel/glass-bar)
