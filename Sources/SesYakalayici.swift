@@ -9,6 +9,9 @@ import Foundation
 final class SesYakalayici: ObservableObject {
     static let ortak = SesYakalayici()
     static let bantSayisi = 14
+    /// Menüdeki Hassasiyet ve Yumuşaklık; ana iş parçacığında yazılır, ses kuyruğunda okunur.
+    static var aralik: Float = 24
+    static var dusus: Float = 0.8
 
     /// Her yeni ölçümde ana iş parçacığında çağrılır. SwiftUI yayını yerine doğrudan katmanlara çizilir:
     /// saniyede ~23 güncelleme SwiftUI'den geçince işlemci yükü ~%10'a çıkıyordu.
@@ -130,7 +133,8 @@ final class SesYakalayici: ObservableObject {
 }
 
 /// 1024 örneklik pencerelerde FFT; 50 Hz–14 kHz arası logaritmik bantlar, her bant 0…1.
-/// Her bant kendi yakın geçmişteki tepesine göre ölçülür (24 dB aralık): bas hep baskın kalmaz, vuruşlar ve tizler ayrı oynar.
+/// Her bant hem kendi yakın geçmişteki tepesine (Hassasiyet aralığı) hem en güçlü banda göre ölçülür:
+/// vuruşlar ayrı ayrı oynar ama sürekli tizler (hi-hat) hep tepede kalmaz.
 /// Ses açıklığından bağımsızdır; sessizlikte (-75 dB altı) çubuklar iner. Sonuç her iki pencerede bir verilir (~23/sn).
 private final class Cozumleyici {
     private let n = 1024, log2n: vDSP_Length = 10
@@ -140,6 +144,7 @@ private final class Cozumleyici {
     private var ornekler: [Float]
     private var dolu = 0
     private var tepeler = [Float](repeating: -60, count: SesYakalayici.bantSayisi)
+    private var genelTepe: Float = -60
     private var sayac = 0
     private var son = [Float](repeating: 0, count: SesYakalayici.bantSayisi)
     private let kenarlar: [Int]
@@ -195,11 +200,17 @@ private final class Cozumleyici {
             let ort = genlik[a..<b].reduce(0, +) / Float(b - a)
             return 20 * log10(ort + 1e-7)
         }
+        genelTepe = max(db.max() ?? -100, genelTepe - 0.15)
         for i in son.indices {
             tepeler[i] = max(db[i], tepeler[i] - 0.25)
-            let hedef = db[i] < -75 ? 0 : min(1, max(0, (db[i] - (tepeler[i] - 24)) / 24))
+            let aralik = SesYakalayici.aralik, dusus = SesYakalayici.dusus
+            // kendi tepesine göre (vuruşlar) ve en güçlü banda göre (tizler bastan baskın görünmesin) karışık
+            let kendi = min(1, max(0, (db[i] - (tepeler[i] - aralik)) / aralik))
+            let genel = min(1, max(0, (db[i] - (genelTepe - 30)) / 30))
+            // üs, orta seviyeleri bastırır: yalnız güçlü anlar yukarı çıkar
+            let hedef = db[i] < -75 ? 0 : pow(kendi * 0.55 + genel * 0.45, 1.8)
             // yükselirken hızlı, düşerken yavaş (orijinal ekolayzırlar gibi)
-            son[i] = hedef > son[i] ? son[i] + (hedef - son[i]) * 0.6 : son[i] * 0.8 + hedef * 0.2
+            son[i] = hedef > son[i] ? son[i] + (hedef - son[i]) * 0.6 : son[i] * dusus + hedef * (1 - dusus)
         }
         return son
     }

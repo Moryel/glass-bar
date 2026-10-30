@@ -87,6 +87,23 @@ final class Durum: ObservableObject {
     var uygulamaTuslari: () -> Void = {}
     /// Spotify'da kapaklı oynatıcı (kapalıysa Müzik'teki gibi sade parça çubuğu).
     @Published var spotifyOynatici = Kayit.evet("spotifyOynatici", true) { didSet { Kayit.yaz("spotifyOynatici", spotifyOynatici) } }
+    @Published var kapakGoster = Kayit.evet("kapakGoster", true) { didSet { Kayit.yaz("kapakGoster", kapakGoster) } }
+    @Published var spotifyYeri = SpotifyYeri(rawValue: Kayit.yazi("spotifyYeri")) ?? .masaustu { didSet { Kayit.yaz("spotifyYeri", spotifyYeri.rawValue) } }
+    @Published var dalgaStili = DalgaStili(rawValue: Kayit.yazi("dalgaStili")) ?? .cubuk { didSet { Kayit.yaz("dalgaStili", dalgaStili.rawValue) } }
+    @Published var dalgaRengi = DalgaRengi(rawValue: Kayit.yazi("dalgaRengi")) ?? .kapak { didSet { Kayit.yaz("dalgaRengi", dalgaRengi.rawValue) } }
+    @Published var dalgaGenisligi = DalgaGenisligi(rawValue: Kayit.yazi("dalgaGenisligi")) ?? .orta { didSet { Kayit.yaz("dalgaGenisligi", dalgaGenisligi.rawValue) } }
+    @Published var hassasiyet = Hassasiyet(rawValue: Kayit.yazi("hassasiyet")) ?? .normal {
+        didSet { Kayit.yaz("hassasiyet", hassasiyet.rawValue); SesYakalayici.aralik = hassasiyet.aralik }
+    }
+    @Published var yumusaklik = Yumusaklik(rawValue: Kayit.yazi("yumusaklik")) ?? .normal {
+        didSet { Kayit.yaz("yumusaklik", yumusaklik.rawValue); SesYakalayici.dusus = yumusaklik.dusus }
+    }
+
+    /// Spotify çalarken başka bir uygulamadayken de (ayara göre masaüstünde ya da her yerde) Spotify oynatıcısı gösterilsin mi.
+    var spotifyBurada: Bool {
+        guard spotifyOynatici, let c = calan, c.kaynak == Calan.spotify, c.caliyor, paket != Calan.spotify else { return false }
+        return spotifyYeri == .her || (spotifyYeri == .masaustu && paket == "com.apple.finder")
+    }
 
     private var kapatma: Timer?
     private var siriSuresi: Timer?
@@ -306,7 +323,7 @@ final class Durum: ObservableObject {
         Kapak.ortak.yukle(spotifyOynatici ? c?.kapak : nil)
         // ses dalgası yalnız Spotify oynatıcısı görünür ve çalarken Spotify'ın sesini dinler
         SesYakalayici.ortak.ayarla(acik: spotifyOynatici && c?.kaynak == Calan.spotify && c?.caliyor == true
-                                       && (paket == Calan.spotify || kip == .simdi))
+                                       && (paket == Calan.spotify || spotifyBurada || kip == .simdi))
         if let c, Date().timeIntervalSince(sonSarma) > 1.5 { calanKonum = Float(c.konum / c.sure) }
         if c == nil && kip == .simdi { kip = .uygulama }
     }

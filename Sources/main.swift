@@ -73,6 +73,8 @@ final class Temsilci: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NSMen
         durum.yenile()
         durum.uygulamaDegisti(NSWorkspace.shared.frontmostApplication)
         durum.uygulamaTuslari = { [weak self] in self?.kucult() }
+        SesYakalayici.aralik = durum.hassasiyet.aralik
+        SesYakalayici.dusus = durum.yumusaklik.dusus
         durum.arkaResmiYenile()
 
         cubuk.delegate = self
@@ -248,7 +250,17 @@ final class Temsilci: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NSMen
             oge(t.ad, #selector(seritTusuDegistir(_:)), durum.seritTuslari.contains(t), t.rawValue)
         }))
         m.addItem(oge(L("Yazma önerilerini göster"), #selector(oneriDegistir), durum.oneriAcik))
-        m.addItem(oge(L("Spotify'da kapak ve ses dalgası"), #selector(spotifyDegistir), durum.spotifyOynatici))
+        m.addItem(altMenu(L("Spotify oynatıcısı"), [
+            oge(L("Kapak ve ses dalgası"), #selector(spotifyDegistir), durum.spotifyOynatici),
+            oge(L("Kapağı göster"), #selector(kapakDegistir), durum.kapakGoster),
+            .separator(),
+            secenekMenusu(L("Nerede gösterilsin"), "yer", durum.spotifyYeri),
+            secenekMenusu(L("Ses dalgası"), "stil", durum.dalgaStili),
+            secenekMenusu(L("Renk"), "renk", durum.dalgaRengi),
+            secenekMenusu(L("Genişlik"), "genislik", durum.dalgaGenisligi),
+            secenekMenusu(L("Hassasiyet"), "hassasiyet", durum.hassasiyet),
+            secenekMenusu(L("Yumuşaklık"), "yumusaklik", durum.yumusaklik),
+        ]))
         m.addItem(oge(L("Çubukta esc tuşu"), #selector(escDegistir), durum.escGoster))
         let giris = m.addItem(withTitle: L("Mac açılınca başlat"), action: #selector(girisDegistir), keyEquivalent: "")
         giris.target = self
@@ -297,6 +309,25 @@ final class Temsilci: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NSMen
     }
     @objc func oneriDegistir() { durum.oneriAcik.toggle() }
     @objc func spotifyDegistir() { durum.spotifyOynatici.toggle() }
+    @objc func kapakDegistir() { durum.kapakGoster.toggle() }
+
+    private func secenekMenusu<T: Secenek>(_ baslik: String, _ anahtar: String, _ secili: T) -> NSMenuItem {
+        altMenu(baslik, T.allCases.map { oge($0.ad, #selector(spotifyAyari(_:)), $0 == secili, anahtar + ":" + $0.rawValue) })
+    }
+
+    @objc func spotifyAyari(_ o: NSMenuItem) {
+        let p = (o.representedObject as? String ?? "").split(separator: ":").map(String.init)
+        guard p.count == 2 else { return }
+        switch p[0] {
+        case "yer": durum.spotifyYeri = SpotifyYeri(rawValue: p[1]) ?? durum.spotifyYeri
+        case "stil": durum.dalgaStili = DalgaStili(rawValue: p[1]) ?? durum.dalgaStili
+        case "renk": durum.dalgaRengi = DalgaRengi(rawValue: p[1]) ?? durum.dalgaRengi
+        case "genislik": durum.dalgaGenisligi = DalgaGenisligi(rawValue: p[1]) ?? durum.dalgaGenisligi
+        case "hassasiyet": durum.hassasiyet = Hassasiyet(rawValue: p[1]) ?? durum.hassasiyet
+        case "yumusaklik": durum.yumusaklik = Yumusaklik(rawValue: p[1]) ?? durum.yumusaklik
+        default: break
+        }
+    }
 
     @objc func gosterimSec(_ o: NSMenuItem) {
         if let g = Gosterim(rawValue: o.representedObject as? String ?? "") { durum.gosterim = g; durum.kip = .uygulama }

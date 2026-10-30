@@ -743,6 +743,9 @@ struct UygulamaAlani: View {
             }
             .simultaneousGesture(LongPressGesture(minimumDuration: 0.6).onEnded { _ in d.uygulamaTuslari() })
             }
+            if d.spotifyBurada, let c = d.calan {
+                Oynatici(d: d, c: c)
+            } else {
             switch d.paket {
             case "com.apple.Safari": Safari(d: d)
             case "com.apple.Notes": Notlar(d: d)
@@ -777,6 +780,7 @@ struct UygulamaAlani: View {
                         .padding(.leading, 6)
                     Spacer(minLength: 0)
                 }
+            }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
