@@ -9,7 +9,7 @@
 >
 > I haven't been able to measure any direct impact on battery life; in my use, CPU usage stays around 1%.
 >
-> — Yüksel
+> — Yüksel Özge
 
 13" M2 MacBook Pro'nun Touch Bar'ı için yerel macOS uygulaması. Dizilim ve özellikler orijinalle aynı (esc · uygulama alanı · Control Strip, genişletilmiş şerit, parlaklık/ses kaydırıcıları, fn ile F1–F12); görünüm Liquid Glass, Siri iOS 27'deki gibi koyu cam küre + renkli ses dalgası.
 
@@ -46,3 +46,7 @@ Dokununca tuş büyür (%10), parmağın altında ışık yanar, oradan bir ış
 Ekran görüntüsü denemesi: `open ~/Applications/GlassBar.app --args -tb2kip genis|parlaklik|ses|siri|fn|emoji|simdi` (basılı görünüm için ayrıca `-tb2basili YES`), sonra `screencapture -b cubuk.png`.
 
 **Yakında:** Spotify entegrasyonu — hesapla bağlanıp çalma listeleri, arama, Sıradakine Ekle ve Spotify Connect cihaz seçimi Touch Bar'dan.
+
+---
+
+Made by **Yüksel Özge** · [github.com/Moryel/touch-bar-2](https://github.com/Moryel/touch-bar-2)
