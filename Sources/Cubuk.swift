@@ -109,7 +109,7 @@ struct Seritli<Icerik: View>: View {
 
 /// Camın arkasındaki ışık: salınım Core Animation'da (Katman.swift), dokunuş ışığı SwiftUI'da.
 /// Camın arkası (menüde "Arka plan"): kapalıyken yalnız dokunuşta hafif beyaz parıltı; ışık stillerinde yavaşça
-/// dolaşan üç renk lekesi; duvar kağıdı/görselde kısılmış görsel şeridi. Siri dinlerken ışık Siri'nin renklerine döner.
+/// dolaşan üç renk lekesi; duvar kağıdı/görselde kısılmış görsel şeridi. Siri dinlerken ışık Siri'nin renklerine döner; arka plan kapalıysa hiç ışık yok.
 struct Ortam: View {
     let renk: Color
     let siri: Bool
@@ -124,7 +124,7 @@ struct Ortam: View {
                     .blur(radius: 1.5)
                     .overlay(Color.black.opacity(0.4))
                 if siri { OrtamKatmani(renkler: SiriRenk.hepsi.dropFirst().map { NSColor($0) }).opacity(0.7) }
-            } else if stil != .kapali || siri {
+            } else if stil != .kapali {
                 OrtamKatmani(renkler: siri ? SiriRenk.hepsi.dropFirst().map { NSColor($0) } : (stil.renkler ?? [NSColor(renk)]))
             }
             dokunus
