@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TouchBar2 Tasarım Rehberi</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Düzen: tek sütun okuma metni; Touch Bar şemaları gerçek oranda, siyah OLED şeridi gibi tam genişlik, dar ekranda kendi içinde kayar. */
+:root {
+  --bg: #F3F4F7; --kart: #FFFFFF; --fg: #15171C; --soluk: #5A5F6B; --cizgi: #D9DCE3;
+  --vurgu: #3D5AD6; --vurgu-zemin: #E6EAFB; --uyari: #9A5B00;
+  --f-govde: "Instrument Sans", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --f-sayi: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0D0E11; --kart: #15171C; --fg: #ECEDF1; --soluk: #9A9EAA; --cizgi: #2A2D35;
+  --vurgu: #93A3FF; --vurgu-zemin: #1C2240; --uyari: #F2B04C; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0D0E11; --kart: #15171C; --fg: #ECEDF1; --soluk: #9A9EAA; --cizgi: #2A2D35;
+  --vurgu: #93A3FF; --vurgu-zemin: #1C2240; --uyari: #F2B04C; color-scheme: dark }
+
+body { background: var(--bg); color: var(--fg); font: 400 15.5px/1.6 var(--f-govde); }
+.sayfa { max-width: 1120px; margin: 0 auto; padding-block: 48px 80px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 56px; }
+.metin { max-width: 68ch; }
+h1 { font-size: clamp(30px, 5vw, 44px); line-height: 1.08; letter-spacing: -0.025em; margin: 0 0 14px; font-weight: 700; text-wrap: balance; }
+h2 { font-size: 22px; letter-spacing: -0.01em; margin: 0 0 6px; font-weight: 650; text-wrap: balance; }
+h3 { font-size: 15px; margin: 0; font-weight: 600; }
+p { margin: 0 0 10px; }
+.giris p { color: var(--soluk); font-size: 17px; }
+.etiket { font: 500 11.5px var(--f-sayi); letter-spacing: 0.06em; text-transform: uppercase; color: var(--vurgu); margin-bottom: 10px; display: block; }
+.alt { color: var(--soluk); margin-bottom: 20px; }
+code, .sayi { font-family: var(--f-sayi); font-size: 0.88em; font-variant-numeric: tabular-nums; }
+code { background: var(--vurgu-zemin); padding: 1px 6px; border-radius: 5px; }
+a { color: var(--vurgu); }
+
+.dosyalar { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.dosya { display: grid; gap: 2px; padding: 12px 16px; border: 1px solid var(--cizgi); border-radius: 12px; background: var(--kart); min-width: 0; }
+.dosya b { font-weight: 600; }
+.dosya span { color: var(--soluk); font-size: 13.5px; }
+
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+.tablo { overflow-x: auto; border: 1px solid var(--cizgi); border-radius: 12px; background: var(--kart); }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--cizgi); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--soluk); font-weight: 600; }
+td.sayi { white-space: nowrap; }
+tr.bu td { background: var(--vurgu-zemin); }
+
+.ekranlar { display: grid; gap: 26px; }
+.ekran { display: grid; gap: 8px; min-width: 0; }
+.ekran-bas { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.ekran-bas .sayi { color: var(--soluk); }
+.ekran p { color: var(--soluk); font-size: 14px; margin: 0; max-width: 90ch; }
+.cubuk-kap { overflow-x: auto; background: #000; border-radius: 10px; padding: 10px; border: 1px solid var(--cizgi); }
+.cubuk-kap svg { display: block; width: 100%; min-width: 900px; height: auto; }
+
+.izgara { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+.kutu { border: 1px solid var(--cizgi); border-radius: 12px; padding: 16px 18px; background: var(--kart); min-width: 0; }
+.kutu h3 { margin-bottom: 8px; }
+.kutu ul { margin: 0; padding-left: 18px; }
+.kutu li { margin-bottom: 4px; }
+.kutu.yok h3 { color: var(--uyari); }
+
+.cam { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 24px; align-items: center; }
+.cam-ornek { background: #000; border-radius: 14px; padding: 28px 20px; display: flex; gap: 14px; justify-content: center; align-items: center; border: 1px solid var(--cizgi); }
+.tus { height: 52px; min-width: 84px; padding: 0 20px; border-radius: 26px; display: grid; place-items: center; color: #fff; font: 500 20px var(--f-govde);
+  background: linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.05) 55%, rgba(255,255,255,.10));
+  box-shadow: inset 0 1.4px 0 rgba(255,255,255,.42), inset 0 0 0 1.2px rgba(255,255,255,.14), 0 2px 5px rgba(0,0,0,.55); }
+.tus.basili { transform: scale(1.1);
+  background: radial-gradient(60px 40px at 35% 35%, rgba(255,255,255,.55), transparent 70%), linear-gradient(180deg, rgba(255,255,255,.26), rgba(255,255,255,.10) 55%, rgba(255,255,255,.16));
+  box-shadow: inset 0 1.4px 0 rgba(255,255,255,.87), inset 0 0 0 1.8px rgba(255,255,255,.4), 0 2px 5px rgba(0,0,0,.55), 0 0 12px rgba(255,255,255,.35); }
+.cam-ornek small { color: #9A9EAA; font: 11px var(--f-sayi); display: block; text-align: center; margin-top: 8px; }
+
+ol.teslim { margin: 0; padding-left: 22px; }
+ol.teslim li { margin-bottom: 8px; }
+
+@media (max-width: 720px) { .cam { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+</head>
+<body>
+<div class="sayfa">
+  <header class="giris metin">
+    <span class="etiket">Figma için · 13" M2 MacBook Pro</span>
+    <h1>TouchBar2 Tasarım Rehberi</h1>
+    <p>TouchBar2, MacBook Pro'nun Touch Bar'ını orijinal dizilime sadık kalıp Liquid Glass görünümüyle yeniden çizen bir uygulama. Bu sayfa, yeni görünümü Figma'da tasarlayacak kişi için. Ölçüler, bu Mac'in Touch Bar'ından alınan ekran görüntülerinden ve uygulamanın kendi kodundan çıkarıldı.</p>
+    <div class="dosyalar">
+      <div class="dosya"><b>TouchBar2-sablon.svg</b><span>11 ekranın tamamı, gerçek ölçüde. Figma'ya sürükle-bırak; her tuş ayrı katman.</span></div>
+      <div class="dosya"><b>Figma çerçevesi</b><span class="sayi">1004 × 30 · dışa aktarma 2x</span></div>
+    </div>
+  </header>
+
+  <section class="metin" style="max-width:none">
+    <span class="etiket">1 · Çerçeve</span>
+    <h2>Önce modeli seç</h2>
+    <p class="alt">Touch Bar iki boyda. Bu Mac yeni olanı kullanıyor; esc fiziksel bir tuş ve çubuğun üstünde değil.</p>
+    <div class="tablo"><table>
+      <thead><tr><th>Model</th><th>Piksel</th><th>Tasarım (pt)</th><th>esc</th></tr></thead>
+      <tbody>
+        <tr class="bu"><td>2019 sonu ve sonrası (13" M1/M2, 16" 2019) — bu Mac</td><td class="sayi">2008 × 60</td><td class="sayi">1004 × 30</td><td>Fiziksel tuş</td></tr>
+        <tr><td>2016–2019</td><td class="sayi">2170 × 60</td><td class="sayi">1085 × 30</td><td>Çubukta, solda, 64 pt</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section>
+    <span class="etiket">2 · Ekranlar</span>
+    <h2>Çizilecek 11 ekran</h2>
+    <p class="alt metin">Gri kutular TouchBar2'nin bugünkü tuş yerleri. Biçim serbest; ölçüler ve yerler sabit kalırsa tasarım koda birebir aktarılabilir.</p>
+    <div class="ekranlar"><div class="ekran"><div class="ekran-bas"><h3>1. Uygulama alanı + daraltılmış Control Strip</h3><span class="sayi">1004 × 30 pt</span></div>
+<p>Solda uygulamanın simgesi (dokununca uygulamanın kendi çubuğu) ve emoji; yazı alanı odaktaysa sağda 375 pt&#x27;lik üç öneri kutusu ve gizleme tuşu (›).</p><div class="cubuk-kap"><svg viewBox="0 0 1004 30" width="1004" height="30" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Uygulama alanı + daraltılmış Control Strip"><g id="Uygulama alanı + daraltılmış Control Strip" transform="translate(0,0)">
+<rect id="Çubuk" width="1004" height="30" rx="5" fill="#000"/>
+<g id="Uygulama">
+<rect x="3.0" y="2.0" width="40.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="23.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">Uyg.</text>
+</g>
+<g id="Emoji">
+<rect x="47.0" y="2.0" width="40.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="67.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">Emoji</text>
+</g>
+<g id="&gt;">
+<rect x="322.0" y="2.0" width="32.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="338.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">&gt;</text>
+</g>
+<g id="Öneri 1">
+<rect x="358.0" y="2.0" width="125.0" height="26" rx="13.0" fill="#24303E" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="420.5" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="8.5" fill="#C9CBD3" text-anchor="middle">Öneri 1</text>
+</g>
+<g id="Öneri 2">
+<rect x="483.0" y="2.0" width="125.0" height="26" rx="13.0" fill="#24303E" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="545.5" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="8.5" fill="#C9CBD3" text-anchor="middle">Öneri 2</text>
+</g>
+<g id="Öneri 3">
+<rect x="608.0" y="2.0" width="125.0" height="26" rx="13.0" fill="#24303E" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="670.5" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="8.5" fill="#C9CBD3" text-anchor="middle">Öneri 3</text>
+</g>
+<g id="‹">
+<rect x="737.0" y="2.0" width="32.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="753.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">‹</text>
+</g>
+<g id="Şimdi Oynatılan">
+<rect x="773.0" y="2.0" width="52.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="799.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">▶︎ Şimdi</text>
+</g>
+<g id="Parlaklık">
+<rect x="829.0" y="2.0" width="40.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="849.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">☀︎</text>
+</g>
+<g id="Ses">
+<rect x="873.0" y="2.0" width="40.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="893.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">Ses</text>
+</g>
+<g id="Sessiz">
+<rect x="917.0" y="2.0" width="40.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="937.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">Sessiz</text>
+</g>
+<g id="Siri">
+<rect x="961.0" y="2.0" width="40.0" height="26" rx="13.0" fill="#1B1F45" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="981.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">Siri</text>
+</g>
+</g></svg></div></div>
+<div class="ekran"><div class="ekran-bas"><h3>2. Genişletilmiş Control Strip</h3><span class="sayi">1004 × 30 pt</span></div>
+<p>‹ ile açılır, ✕ ile kapanır. Gruplar kalan yeri eşit paylaşır.</p><div class="cubuk-kap"><svg viewBox="0 0 1004 30" width="1004" height="30" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Genişletilmiş Control Strip"><g id="Genişletilmiş Control Strip" transform="translate(0,0)">
+<rect id="Çubuk" width="1004" height="30" rx="5" fill="#000"/>
+<g id="✕">
+<rect x="3.0" y="2.0" width="32.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="19.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">✕</text>
+</g>
+<g id="Parlaklık −|Parlaklık +">
+<rect x="39.0" y="2.0" width="204.5" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<line x1="141.2" y1="7.0" x2="141.2" y2="23.0" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="90.1" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="8.5" fill="#C9CBD3" text-anchor="middle">Parlaklık −</text>
+<text x="192.4" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="8.5" fill="#C9CBD3" text-anchor="middle">Parlaklık +</text>
+</g>
+<g id="Mission Control">
+<rect x="247.5" y="2.0" width="40.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="267.5" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">MC</text>
+</g>
+<g id="Uygulamalar">
+<rect x="291.5" y="2.0" width="40.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="311.5" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">Uyg.</text>
+</g>
+<g id="Klavye −|Klavye +">
+<rect x="335.5" y="2.0" width="204.5" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<line x1="437.8" y1="7.0" x2="437.8" y2="23.0" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="386.6" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="8.5" fill="#C9CBD3" text-anchor="middle">Klavye −</text>
+<text x="488.9" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="8.5" fill="#C9CBD3" text-anchor="middle">Klavye +</text>
+</g>
+<g id="Önceki|Oynat|Sonraki">
+<rect x="544.0" y="2.0" width="204.5" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<line x1="612.2" y1="7.0" x2="612.2" y2="23.0" stroke="#5A5D66" stroke-width="0.6"/>
+<line x1="680.3" y1="7.0" x2="680.3" y2="23.0" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="578.1" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="8.5" fill="#C9CBD3" text-anchor="middle">Önceki</text>
+<text x="646.2" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="8.5" fill="#C9CBD3" text-anchor="middle">Oynat</text>
+<text x="714.4" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="8.5" fill="#C9CBD3" text-anchor="middle">Sonraki</text>
+</g>
+<g id="Sessiz|Ses −|Ses +">
+<rect x="752.5" y="2.0" width="204.5" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<line x1="820.7" y1="7.0" x2="820.7" y2="23.0" stroke="#5A5D66" stroke-width="0.6"/>
+<line x1="888.8" y1="7.0" x2="888.8" y2="23.0" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="786.6" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="8.5" fill="#C9CBD3" text-anchor="middle">Sessiz</text>
+<text x="854.8" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="8.5" fill="#C9CBD3" text-anchor="middle">Ses −</text>
+<text x="922.9" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="8.5" fill="#C9CBD3" text-anchor="middle">Ses +</text>
+</g>
+<g id="Siri">
+<rect x="961.0" y="2.0" width="40.0" height="26" rx="13.0" fill="#1B1F45" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="981.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">Siri</text>
+</g>
+</g></svg></div></div>
+<div class="ekran"><div class="ekran-bas"><h3>3. Parlaklık kaydırıcısı</h3><span class="sayi">1004 × 30 pt</span></div>
+<p>360 pt&#x27;lik kutu parlaklık tuşunun hemen solunda (sağ kenarı tuşun ortasından 28 pt solda); tuşun yerinde ✕. Basılı tutup kaydırırken ✕ yok. Uçtaki simgeler bir adım azaltır/artırır. Çubuğun geri kalanı kararır.</p><div class="cubuk-kap"><svg viewBox="0 0 1004 30" width="1004" height="30" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Parlaklık kaydırıcısı"><g id="Parlaklık kaydırıcısı" transform="translate(0,0)">
+<rect id="Çubuk" width="1004" height="30" rx="5" fill="#000"/>
+<g id="− simge · kaydırıcı · + simge">
+<rect x="461.0" y="2.0" width="360.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="641.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="8.5" fill="#C9CBD3" text-anchor="middle">− simge · kaydırıcı · + simge</text>
+</g>
+<g id="✕">
+<rect x="833.0" y="2.0" width="32.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="849.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">✕</text>
+</g>
+</g></svg></div></div>
+<div class="ekran"><div class="ekran-bas"><h3>4. Ses kaydırıcısı</h3><span class="sayi">1004 × 30 pt</span></div>
+<p>360 pt&#x27;lik kutu ses tuşunun hemen solunda (sağ kenarı tuşun ortasından 28 pt solda); tuşun yerinde ✕. Basılı tutup kaydırırken ✕ yok. Uçtaki simgeler bir adım azaltır/artırır. Çubuğun geri kalanı kararır.</p><div class="cubuk-kap"><svg viewBox="0 0 1004 30" width="1004" height="30" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ses kaydırıcısı"><g id="Ses kaydırıcısı" transform="translate(0,0)">
+<rect id="Çubuk" width="1004" height="30" rx="5" fill="#000"/>
+<g id="− simge · kaydırıcı · + simge">
+<rect x="505.0" y="2.0" width="360.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="685.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="8.5" fill="#C9CBD3" text-anchor="middle">− simge · kaydırıcı · + simge</text>
+</g>
+<g id="✕">
+<rect x="877.0" y="2.0" width="32.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="893.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">✕</text>
+</g>
+</g></svg></div></div>
+<div class="ekran"><div class="ekran-bas"><h3>5. F1–F12</h3><span class="sayi">1004 × 30 pt</span></div>
+<p>fn basılıyken ya da ayarda seçiliyken; 12 eşit tuş.</p><div class="cubuk-kap"><svg viewBox="0 0 1004 30" width="1004" height="30" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="F1–F12"><g id="F1–F12" transform="translate(0,0)">
+<rect id="Çubuk" width="1004" height="30" rx="5" fill="#000"/>
+<g id="F1">
+<rect x="3.0" y="2.0" width="79.5" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="42.8" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="8.5" fill="#C9CBD3" text-anchor="middle">F1</text>
+</g>
+<g id="F2">
+<rect x="86.5" y="2.0" width="79.5" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="126.2" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="8.5" fill="#C9CBD3" text-anchor="middle">F2</text>
+</g>
+<g id="F3">
+<rect x="170.0" y="2.0" width="79.5" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="209.8" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="8.5" fill="#C9CBD3" text-anchor="middle">F3</text>
+</g>
+<g id="F4">
+<rect x="253.5" y="2.0" width="79.5" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="293.2" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="8.5" fill="#C9CBD3" text-anchor="middle">F4</text>
+</g>
+<g id="F5">
+<rect x="337.0" y="2.0" width="79.5" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="376.8" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="8.5" fill="#C9CBD3" text-anchor="middle">F5</text>
+</g>
+<g id="F6">
+<rect x="420.5" y="2.0" width="79.5" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="460.2" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="8.5" fill="#C9CBD3" text-anchor="middle">F6</text>
+</g>
+<g id="F7">
+<rect x="504.0" y="2.0" width="79.5" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="543.8" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="8.5" fill="#C9CBD3" text-anchor="middle">F7</text>
+</g>
+<g id="F8">
+<rect x="587.5" y="2.0" width="79.5" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="627.2" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="8.5" fill="#C9CBD3" text-anchor="middle">F8</text>
+</g>
+<g id="F9">
+<rect x="671.0" y="2.0" width="79.5" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="710.8" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="8.5" fill="#C9CBD3" text-anchor="middle">F9</text>
+</g>
+<g id="F10">
+<rect x="754.5" y="2.0" width="79.5" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="794.2" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="8.5" fill="#C9CBD3" text-anchor="middle">F10</text>
+</g>
+<g id="F11">
+<rect x="838.0" y="2.0" width="79.5" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="877.8" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="8.5" fill="#C9CBD3" text-anchor="middle">F11</text>
+</g>
+<g id="F12">
+<rect x="921.5" y="2.0" width="79.5" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="961.2" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="8.5" fill="#C9CBD3" text-anchor="middle">F12</text>
+</g>
+</g></svg></div></div>
+<div class="ekran"><div class="ekran-bas"><h3>6. Siri dinliyor</h3><span class="sayi">1004 × 30 pt</span></div>
+<p>Uygulama alanının ortasında 300 × 26 pt koyu cam hap; arkadaki tuşlar bulanıklaşır. Kenar ışıltısı yok (iOS 27).</p><div class="cubuk-kap"><svg viewBox="0 0 1004 30" width="1004" height="30" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Siri dinliyor"><g id="Siri dinliyor" transform="translate(0,0)">
+<rect id="Çubuk" width="1004" height="30" rx="5" fill="#000"/>
+<g id="Siri hapı · ses dalgası">
+<rect x="218.0" y="2.0" width="300.0" height="26" rx="13.0" fill="#1B1F45" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="368.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="8.5" fill="#C9CBD3" text-anchor="middle">Siri hapı · ses dalgası</text>
+</g>
+<g id="‹">
+<rect x="737.0" y="2.0" width="32.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="753.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">‹</text>
+</g>
+<g id="Şimdi Oynatılan">
+<rect x="773.0" y="2.0" width="52.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="799.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">▶︎ Şimdi</text>
+</g>
+<g id="Parlaklık">
+<rect x="829.0" y="2.0" width="40.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="849.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">☀︎</text>
+</g>
+<g id="Ses">
+<rect x="873.0" y="2.0" width="40.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="893.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">Ses</text>
+</g>
+<g id="Sessiz">
+<rect x="917.0" y="2.0" width="40.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="937.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">Sessiz</text>
+</g>
+<g id="Siri">
+<rect x="961.0" y="2.0" width="40.0" height="26" rx="13.0" fill="#1B1F45" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="981.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">Siri</text>
+</g>
+</g></svg></div></div>
+<div class="ekran"><div class="ekran-bas"><h3>7. Şimdi Oynatılan</h3><span class="sayi">1004 × 30 pt</span></div>
+<p>Şeritteki Şimdi Oynatılan tuşuyla açılır.</p><div class="cubuk-kap"><svg viewBox="0 0 1004 30" width="1004" height="30" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Şimdi Oynatılan"><g id="Şimdi Oynatılan" transform="translate(0,0)">
+<rect id="Çubuk" width="1004" height="30" rx="5" fill="#000"/>
+<g id="✕">
+<rect x="3.0" y="2.0" width="32.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="19.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">✕</text>
+</g>
+<g id="Kaynak">
+<rect x="39.0" y="2.0" width="40.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="59.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">Kaynak</text>
+</g>
+<g id="Önceki|Oynat|Sonraki">
+<rect x="83.0" y="2.0" width="102.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<line x1="117.0" y1="7.0" x2="117.0" y2="23.0" stroke="#5A5D66" stroke-width="0.6"/>
+<line x1="151.0" y1="7.0" x2="151.0" y2="23.0" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="100.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">◀◀</text>
+<text x="134.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">▶︎</text>
+<text x="168.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">▶▶</text>
+</g>
+<g id="Parça adı · sanatçı · süre / ince kaydırıcı">
+<rect x="189.0" y="2.0" width="768.0" height="26" rx="7" fill="#1A1B20" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="573.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="8.5" fill="#C9CBD3" text-anchor="middle">Parça adı · sanatçı · süre / ince kaydırıcı</text>
+</g>
+<g id="Siri">
+<rect x="961.0" y="2.0" width="40.0" height="26" rx="13.0" fill="#1B1F45" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="981.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">Siri</text>
+</g>
+</g></svg></div></div>
+<div class="ekran"><div class="ekran-bas"><h3>8. Video film şeridi</h3><span class="sayi">1004 × 30 pt</span></div>
+<p>QuickTime videosu: 16 küçük resim; oynatma başı sürüklenince cam merceğe dönüşür.</p><div class="cubuk-kap"><svg viewBox="0 0 1004 30" width="1004" height="30" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Video film şeridi"><g id="Video film şeridi" transform="translate(0,0)">
+<rect id="Çubuk" width="1004" height="30" rx="5" fill="#000"/>
+<g id="✕">
+<rect x="3.0" y="2.0" width="32.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="19.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">✕</text>
+</g>
+<g id="Kaynak">
+<rect x="39.0" y="2.0" width="40.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="59.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">Kaynak</text>
+</g>
+<g id="−15|Oynat|+15">
+<rect x="83.0" y="2.0" width="102.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<line x1="117.0" y1="7.0" x2="117.0" y2="23.0" stroke="#5A5D66" stroke-width="0.6"/>
+<line x1="151.0" y1="7.0" x2="151.0" y2="23.0" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="100.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">−15</text>
+<text x="134.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">▶︎</text>
+<text x="168.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">+15</text>
+</g>
+<g id="Film şeridi (16 küçük resim, 24 pt yükseklik)">
+<rect x="189.0" y="2.0" width="694.0" height="26" rx="7" fill="#1A1B20" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="536.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="8.5" fill="#C9CBD3" text-anchor="middle">Film şeridi (16 küçük resim, 24 pt yükseklik)</text>
+</g>
+<g id="0:24 / 0:59">
+<text x="922.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="8.5" fill="#C9CBD3" text-anchor="middle">0:24 / 0:59</text>
+</g>
+<g id="Siri">
+<rect x="961.0" y="2.0" width="40.0" height="26" rx="13.0" fill="#1B1F45" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="981.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">Siri</text>
+</g>
+</g></svg></div></div>
+<div class="ekran"><div class="ekran-bas"><h3>9. Emoji</h3><span class="sayi">1004 × 30 pt</span></div>
+<p>Kategoriler solda; şerit parmakla kaydırılır, emoji başına 34 pt.</p><div class="cubuk-kap"><svg viewBox="0 0 1004 30" width="1004" height="30" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Emoji"><g id="Emoji" transform="translate(0,0)">
+<rect id="Çubuk" width="1004" height="30" rx="5" fill="#000"/>
+<g id="✕">
+<rect x="3.0" y="2.0" width="32.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="19.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">✕</text>
+</g>
+<g id="7 kategori × 30">
+<rect x="39.0" y="2.0" width="210.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="144.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="8.5" fill="#C9CBD3" text-anchor="middle">7 kategori × 30</text>
+</g>
+<g id="Emoji şeridi (kaydırılır)">
+<rect x="253.0" y="2.0" width="748.0" height="26" rx="7" fill="#1A1B20" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="627.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="8.5" fill="#C9CBD3" text-anchor="middle">Emoji şeridi (kaydırılır)</text>
+</g>
+</g></svg></div></div>
+<div class="ekran"><div class="ekran-bas"><h3>10. Masaüstü alanları</h3><span class="sayi">1004 × 30 pt</span></div>
+<p>Ayardan seçilir; içinde bulunulan masaüstü vurgulu.</p><div class="cubuk-kap"><svg viewBox="0 0 1004 30" width="1004" height="30" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Masaüstü alanları"><g id="Masaüstü alanları" transform="translate(0,0)">
+<rect id="Çubuk" width="1004" height="30" rx="5" fill="#000"/>
+<g id="Mission Control">
+<rect x="3.0" y="2.0" width="40.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="23.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">MC</text>
+</g>
+<g id="Masaüstü 1">
+<rect x="47.0" y="2.0" width="226.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="160.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="8.5" fill="#C9CBD3" text-anchor="middle">Masaüstü 1</text>
+</g>
+<g id="Masaüstü 2">
+<rect x="277.0" y="2.0" width="226.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="390.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="8.5" fill="#C9CBD3" text-anchor="middle">Masaüstü 2</text>
+</g>
+<g id="Masaüstü 3">
+<rect x="507.0" y="2.0" width="226.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="620.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="8.5" fill="#C9CBD3" text-anchor="middle">Masaüstü 3</text>
+</g>
+<g id="‹">
+<rect x="737.0" y="2.0" width="32.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="753.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">‹</text>
+</g>
+<g id="Şimdi Oynatılan">
+<rect x="773.0" y="2.0" width="52.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="799.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">▶︎ Şimdi</text>
+</g>
+<g id="Parlaklık">
+<rect x="829.0" y="2.0" width="40.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="849.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">☀︎</text>
+</g>
+<g id="Ses">
+<rect x="873.0" y="2.0" width="40.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="893.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">Ses</text>
+</g>
+<g id="Sessiz">
+<rect x="917.0" y="2.0" width="40.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="937.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">Sessiz</text>
+</g>
+<g id="Siri">
+<rect x="961.0" y="2.0" width="40.0" height="26" rx="13.0" fill="#1B1F45" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="981.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">Siri</text>
+</g>
+</g></svg></div></div>
+<div class="ekran"><div class="ekran-bas"><h3>11. Eski modeller (2016–2019): 1085 pt, esc çubukta</h3><span class="sayi">1085 × 30 pt</span></div>
+<p>esc 64 pt solda; geri kalan dizilim aynı, uygulama alanı 81 pt daha geniş.</p><div class="cubuk-kap"><svg viewBox="0 0 1085 30" width="1085" height="30" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Eski modeller (2016–2019): 1085 pt, esc çubukta"><g id="Eski modeller (2016–2019): 1085 pt, esc çubukta" transform="translate(0,0)">
+<rect id="Çubuk" width="1085" height="30" rx="5" fill="#000"/>
+<g id="esc">
+<rect x="3.0" y="2.0" width="64.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="35.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="8.5" fill="#C9CBD3" text-anchor="middle">esc</text>
+</g>
+<g id="Uygulama">
+<rect x="71.0" y="2.0" width="40.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="91.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">Uyg.</text>
+</g>
+<g id="Uygulama alanı">
+<rect x="115.0" y="2.0" width="699.0" height="26" rx="7" fill="#1A1B20" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="464.5" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="8.5" fill="#C9CBD3" text-anchor="middle">Uygulama alanı</text>
+</g>
+<g id="‹">
+<rect x="818.0" y="2.0" width="32.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="834.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">‹</text>
+</g>
+<g id="Şimdi Oynatılan">
+<rect x="854.0" y="2.0" width="52.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="880.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">▶︎ Şimdi</text>
+</g>
+<g id="Parlaklık">
+<rect x="910.0" y="2.0" width="40.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="930.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">☀︎</text>
+</g>
+<g id="Ses">
+<rect x="954.0" y="2.0" width="40.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="974.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">Ses</text>
+</g>
+<g id="Sessiz">
+<rect x="998.0" y="2.0" width="40.0" height="26" rx="13.0" fill="#2C2D33" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="1018.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">Sessiz</text>
+</g>
+<g id="Siri">
+<rect x="1042.0" y="2.0" width="40.0" height="26" rx="13.0" fill="#1B1F45" stroke="#5A5D66" stroke-width="0.6"/>
+<text x="1062.0" y="18.0" font-family="-apple-system, Helvetica, sans-serif" font-size="7.5" fill="#C9CBD3" text-anchor="middle">Siri</text>
+</g>
+</g></svg></div></div></div>
+  </section>
+
+  <section>
+    <span class="etiket">3 · Ölçüler</span>
+    <h2>Tuşlar, yazı, simgeler</h2>
+    <p class="alt">Çubuk 30 pt yüksek. Fare imleci olmadığı için üzerine gelme (hover) durumu yok.</p>
+    <div class="tablo"><table>
+      <thead><tr><th>Öğe</th><th>Değer</th><th>Not</th></tr></thead>
+      <tbody>
+        <tr><td>Tuş yüksekliği</td><td class="sayi">26 pt</td><td>Üstte ve altta 2'şer pt. Orijinal Touch Bar 30 pt'nin tamamını kullanıyor.</td></tr>
+        <tr><td>Simgeli tuş</td><td class="sayi">40 pt</td><td>Parlaklık, ses, Siri, Mission Control.</td></tr>
+        <tr><td>Dar tuş</td><td class="sayi">32 pt</td><td>✕, ‹, ›. Parmak için en dar sınır 30 pt.</td></tr>
+        <tr><td>Tuşlar arası</td><td class="sayi">4 pt</td><td>Çubuğun iki ucunda 3 pt boşluk.</td></tr>
+        <tr><td>Köşe</td><td class="sayi">13 pt</td><td>Tam kapsül. Film şeridi kutusu 7 pt.</td></tr>
+        <tr><td>Yazı</td><td class="sayi">SF Pro 12–13 pt</td><td>Tek satır; ikinci satıra yer yok.</td></tr>
+        <tr><td>Simge</td><td class="sayi">SF Symbols 14–17 pt</td><td>Çizim yerine sembol adı ver, örneğin <code>sun.max.fill</code>.</td></tr>
+        <tr><td>Kaydırıcı kutusu</td><td class="sayi">360 pt</td><td>Basılan tuşun hemen solunda.</td></tr>
+        <tr><td>Öneri kutuları</td><td class="sayi">3 × 125 pt</td><td>Solunda 32 pt'lik gizleme tuşu.</td></tr>
+      </tbody>
+    </table></div>
+    <p style="margin-top:12px;color:var(--soluk);font-size:14px">SF Pro ve SF Symbols ücretsiz: <a href="https://developer.apple.com/fonts/">developer.apple.com/fonts</a> · <a href="https://developer.apple.com/sf-symbols/">developer.apple.com/sf-symbols</a></p>
+  </section>
+
+  <section>
+    <span class="etiket">4 · Ekran</span>
+    <h2>OLED, siyah ve eğik açı</h2>
+    <div class="izgara" style="margin-top:14px">
+      <div class="kutu"><h3>Zemin saf siyah</h3><p>Kasa siyah; siyah olmayan zemin çubuğun kenarlarını belli eder.</p></div>
+      <div class="kutu"><h3>Yalnız koyu tema</h3><p>Geniş beyaz alanlar karanlıkta göz alır. Beyazı yazı ve küçük vurgulara bırak.</p></div>
+      <div class="kutu"><h3>Aşağıdan bakılır</h3><p>Çubuk klavyenin üstünde, eğik görülür. İnce çizgi ve soluk gri yazı kaybolur; kontrastı biraz yüksek tut.</p></div>
+      <div class="kutu"><h3>Renkleri sayıyla ver</h3><p>Onaltılık kod ve saydamlık: <code>#0A84FF</code>, “beyaz %18”.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <span class="etiket">5 · Liquid Glass</span>
+    <h2>Camı katman katman tarif et</h2>
+    <div class="cam" style="margin-top:14px">
+      <div class="metin">
+        <p>Figma'nın cam efekti Touch Bar'da birebir aynı görünmez. Koda aktarabilmem için camı katmanlarıyla yaz. TouchBar2'nin bugünkü değerleri:</p>
+        <div class="tablo"><table><tbody>
+          <tr><td>Dolgu</td><td class="sayi">beyaz %18 → %5 → %10</td><td>yukarıdan aşağı geçiş</td></tr>
+          <tr><td>Üst parlama</td><td class="sayi">beyaz %28 → saydam</td><td>üst yarıda</td></tr>
+          <tr><td>Kenar</td><td class="sayi">0,7 pt · beyaz %42 → %8 → %20</td><td>yukarıdan aşağı</td></tr>
+          <tr><td>Gölge</td><td class="sayi">siyah %55 · 2,5 pt · 1 pt aşağı</td><td></td></tr>
+          <tr><td>Basılı</td><td class="sayi">%110 büyür · dış ışık beyaz %35, 6 pt</td><td>parmağın altında ışık, yayılan halka</td></tr>
+        </tbody></table></div>
+      </div>
+      <div>
+        <div class="cam-ornek"><div class="tus">esc</div><div class="tus basili">esc</div></div>
+        <small style="color:var(--soluk);font:11.5px var(--f-sayi);display:block;text-align:center;margin-top:8px">normal · basılı (2× büyütülmüş)</small>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <span class="etiket">6 · Durumlar ve hareket</span>
+    <h2>Her tuşun dört hâli, her geçişin sayısı</h2>
+    <div class="izgara" style="margin-top:14px">
+      <div class="kutu"><h3>Durumlar</h3><ul><li>Normal</li><li>Basılı</li><li>Açık / seçili (sessiz, Night Shift)</li><li>Devre dışı</li></ul></div>
+      <div class="kutu"><h3>Hareket</h3><p>Smart Animate fikir verir; koda geçmek için süre ve yay ayarı lazım. Bugünkü değerler:</p>
+        <ul class="sayi" style="font-size:13px"><li>basma: 0,30 sn · sönüm 0,58</li><li>bırakma: 0,48 sn · sönüm 0,42</li><li>panel geçişi: 0,45 sn · sönüm 0,80</li><li>arka plan ışığı: 7–12 sn salınım</li></ul></div>
+      <div class="kutu yok"><h3>Tasarlanamayanlar</h3><p>Bunları macOS ya da uygulamalar çiziyor:</p>
+        <ul><li>Touch ID ve parola istemi</li><li>Safari/YouTube videosu küçük resimleri</li><li>Fotoğraflar şeridi, Mesajlar tepkileri</li><li>Renk seçici</li></ul></div>
+    </div>
+  </section>
+
+  <section class="metin">
+    <span class="etiket">7 · Teslim</span>
+    <h2>Geri gönderilecekler</h2>
+    <ol class="teslim">
+      <li>Figma dosyasının bağlantısı ya da her ekranın <span class="sayi">2x</span> PNG'si (<span class="sayi">2008 × 60</span>).</li>
+      <li>Her tuşun dört durumu, ayrı bileşen olarak.</li>
+      <li>Renklerin onaltılık kod + saydamlık listesi; camın katman değerleri.</li>
+      <li>Kullanılan SF Symbols adları ve yazı boyutları.</li>
+      <li>Animasyonlar için süre, yay ayarı ve neyin nereden nereye gittiği.</li>
+    </ol>
+  </section>
+</div>
+
+</body>
+</html>

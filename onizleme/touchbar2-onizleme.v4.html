@@ -1,0 +1,743 @@
+<meta charset="utf-8">
+<title>TouchBar2 Liquid Glass</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Düzen: ortada gerçek ölçekli Touch Bar sahnesi, altında denetimler, sonra kaynaklardan ilkeler ızgarası.
+   Tek görünüm: Touch Bar OLED siyahı üzerinde koyu tasarım, iki temada da aynı. */
+:root {
+  color-scheme: dark;
+  --zemin: #07080c;
+  --yuzey: #11131a;
+  --yuzey2: #181b24;
+  --cizgi: #252937;
+  --yazi: #eceef4;
+  --soluk: #9095a6;
+  --vurgu: #6aa8ff;
+  --var: #5fd38d;
+  --kismen: #f2b84b;
+  --yok: #ff7a7a;
+  --f-baslik: "Inter Tight", -apple-system, "SF Pro Display", system-ui, sans-serif;
+  --f-govde: -apple-system, "SF Pro Text", "Inter Tight", system-ui, sans-serif;
+  --f-kod: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { background: var(--zemin); color: var(--yazi); }
+body {
+  font-family: var(--f-govde); font-size: 15px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 32px 64px;
+}
+.sayfa { max-width: 1120px; margin: 0 auto; display: grid; gap: 40px; }
+header { display: grid; gap: 8px; }
+.ust { font: 500 12px/1 var(--f-kod); letter-spacing: .12em; text-transform: uppercase; color: var(--soluk); }
+h1 { font: 700 clamp(30px, 5vw, 46px)/1.05 var(--f-baslik); letter-spacing: -.02em; margin: 0; text-wrap: balance; }
+.giris { color: var(--soluk); max-width: 68ch; margin: 0; }
+h2 { font: 600 22px/1.2 var(--f-baslik); letter-spacing: -.01em; margin: 0; text-wrap: balance; }
+
+/* ---------- sahne: MacBook klavye kasası ---------- */
+.sahne {
+  background: linear-gradient(180deg, #2a2c31, #1d1f23);
+  border-radius: 18px; padding: 22px 0 26px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 30px 60px -30px rgba(0,0,0,.8);
+  overflow-x: auto; overflow-y: hidden;
+}
+.olcek { width: calc(1004px * var(--k)); height: calc(30px * var(--k)); margin: 0 auto; position: relative; }
+.cerceve { /* çubuğun kasadaki yuvası */
+  position: absolute; inset: calc(-5px * var(--k)) calc(-6px * var(--k));
+  border-radius: calc(9px * var(--k)); background: #0b0b0d;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,.9), 0 1px 0 rgba(255,255,255,.07);
+}
+.cubuk {
+  position: absolute; left: 0; top: 0; width: 1004px; height: 30px;
+  transform: scale(var(--k)); transform-origin: 0 0;
+  background: #000; border-radius: 5px; overflow: hidden;
+  font: 500 13px/1 var(--f-govde); color: #fff; user-select: none; -webkit-user-select: none;
+  touch-action: none;
+}
+.sahne-alt { display: flex; justify-content: space-between; gap: 12px; padding: 14px 20px 0; color: #8b8f99; font: 12px/1.3 var(--f-kod); flex-wrap: wrap; }
+.touchid { width: calc(30px * var(--k)); }
+
+/* ortam ışığı: camın arkasında kırılacak bir şey olsun */
+#ortam { position: absolute; inset: 0; width: 100%; height: 100%; }
+.dim { position: absolute; inset: 0; background: rgba(0,0,0,.35); opacity: 0; transition: opacity .3s; pointer-events: none; }
+[data-varyant="clear"] .dim { opacity: 1; }
+
+.icerik { position: absolute; inset: 0; display: flex; gap: 4px; padding: 2px 3px; align-items: center; }
+.panel { display: flex; gap: 4px; align-items: center; flex: 1; min-width: 0; height: 26px;
+  transition: transform .35s cubic-bezier(.2,.8,.2,1), filter .35s, opacity .35s; }
+.panel.gizli { position: absolute; left: 3px; right: 3px; transform: scale(.92); filter: blur(2.5px); opacity: 0; pointer-events: none; }
+.bosluk { flex: 1; }
+
+/* ---------- cam tuş ---------- */
+.cam {
+  --x: 50%; --y: 50%; --p: 0; --tx: 0px; --sx: 1; --sy: 1; --s: 1;
+  position: relative; height: 26px; min-width: 40px; padding: 0 12px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border-radius: 13px; color: #fff; cursor: pointer; flex: none;
+  transform: translateX(var(--tx)) scale(var(--s)) scale(var(--sx), var(--sy));
+  transition: transform .62s cubic-bezier(.3,1.65,.5,1);
+  z-index: 0;
+}
+.cam.dar { min-width: 32px; padding: 0; width: 32px; }
+.cam.simge { width: 40px; padding: 0; }
+.cam.genis { flex: 1; justify-content: flex-start; color: rgba(255,255,255,.55); font-weight: 400; }
+.cam.basili { --s: 1.1; z-index: 2; transition: transform .25s cubic-bezier(.3,1.5,.5,1); }
+.cam.takip { transition: none; }
+.cam svg { width: 15px; height: 15px; position: relative; z-index: 3; }
+.cam > span { position: relative; z-index: 3; white-space: nowrap; }
+
+/* katmanlar: dolgu + bulanıklık · üst parlama · parmak ışığı · halka · kenar */
+.cam::before, .grup::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255,255,255,calc(.17 + .09 * var(--p))), rgba(255,255,255,calc(.05 + .05 * var(--p))) 55%, rgba(255,255,255,calc(.10 + .06 * var(--p))));
+  -webkit-backdrop-filter: blur(5px) saturate(190%) brightness(1.1);
+  backdrop-filter: blur(5px) saturate(190%) brightness(1.1);
+  box-shadow:
+    inset 0 .8px 0 rgba(255,255,255,calc(.5 + .4 * var(--p))),      /* üstte ışık yakalayan kenar */
+    inset 0 -.8px 0 rgba(255,255,255,calc(.18 + .3 * var(--p))),    /* alt kenarda kırılan ışık */
+    inset 0 0 0 .7px rgba(255,255,255,calc(.14 + .3 * var(--p))),
+    inset 0 -6px 8px -6px rgba(255,255,255,.12),                     /* camın kalınlığı */
+    0 1px 2.5px rgba(0,0,0,var(--golge, .55)),
+    0 0 calc(10px * var(--p)) rgba(255,255,255,calc(.3 * var(--p)));
+  z-index: -1;
+}
+.cam::after, .grup::after { /* üst yarıdaki speküler parlama */
+  content: ""; position: absolute; left: 4px; right: 4px; top: .8px; height: 10px; border-radius: 12px 12px 6px 6px;
+  background: linear-gradient(180deg, rgba(255,255,255,.3), transparent);
+  pointer-events: none; z-index: 1;
+}
+.isik { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 2; mix-blend-mode: plus-lighter;
+  background: radial-gradient(calc(14px + 26px * var(--p)) circle at var(--x) var(--y), rgba(255,255,255,calc(.75 * var(--p))), rgba(255,255,255,calc(.18 * var(--p))) 45%, transparent 70%);
+  overflow: hidden; }
+.halka { position: absolute; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%;
+  border: 2.5px solid rgba(255,255,255,.7); filter: blur(1.2px); animation: halka .6s ease-out forwards; }
+@keyframes halka { to { transform: scale(var(--b, 12)); opacity: 0; } }
+
+.cam.ton::before { background: linear-gradient(180deg, rgba(64,140,255,.9), rgba(40,104,230,.75)); }
+.cam.turuncu::before { background: linear-gradient(180deg, rgba(245,166,35,.7), rgba(220,130,20,.5)); }
+
+/* grup: tek cam kapsül, içinden kabaran damla */
+.grup { position: relative; display: flex; height: 26px; border-radius: 13px; flex: none; }
+.grup .cam { border-radius: 13px; min-width: 38px; }
+.grup .cam::before { opacity: 0; transform: scale(.6); transition: opacity .2s, transform .45s cubic-bezier(.3,1.6,.5,1); inset: -1px -3px; }
+.grup .cam::after { opacity: 0; }
+.grup .cam.basili::before { opacity: 1; transform: scale(1); }
+.grup .cam.basili { --s: 1.04; }
+.grup .cam + .cam { box-shadow: -0.6px 0 0 rgba(255,255,255,.13); }
+.grup .cam + .cam.basili, .grup .cam.basili + .cam { box-shadow: none; }
+.nokta { width: 13px; height: 13px; border-radius: 50%; position: relative; z-index: 3;
+  background: radial-gradient(circle at 50% 25%, rgba(255,255,255,.5), transparent 55%), var(--n); }
+
+/* kaydırıcı ve mercek topuz */
+.kaydirici { position: relative; flex: 1; height: 26px; cursor: pointer; margin: 0 14px; --v: .6; }
+.ray, .dolu { position: absolute; top: 10px; height: 6px; border-radius: 3px; }
+.ray { left: 0; right: 0; background: rgba(255,255,255,.13); box-shadow: inset 0 0 0 .5px rgba(0,0,0,.5); }
+.dolu { left: 0; width: calc(var(--v) * 100%); background: linear-gradient(90deg, rgba(64,140,255,.8), #408cff); }
+.topuz { position: absolute; top: 2px; width: 34px; height: 22px; border-radius: 11px;
+  left: clamp(0px, calc(var(--v) * 100% - 17px), calc(100% - 34px));
+  transition: transform .55s cubic-bezier(.3,1.65,.5,1); overflow: hidden;
+  background: linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,.2));
+  box-shadow: inset 0 0 0 .7px rgba(255,255,255,.7), inset 0 1px 0 rgba(255,255,255,.95), 0 1px 3px rgba(0,0,0,.6); }
+.topuz .mercek { position: absolute; top: -2px; height: 26px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+.topuz .mercek .ray, .topuz .mercek .dolu { top: 10px; }
+.kaydirici.surukle .topuz { transform: scale(1.3, 1.18); transition: transform .25s cubic-bezier(.3,1.5,.5,1);
+  background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.03));
+  box-shadow: inset 0 0 0 1.1px rgba(255,255,255,.8), inset 0 1px 0 rgba(255,255,255,.95), inset 0 -4px 6px -3px rgba(255,255,255,.35), 0 1px 3px rgba(0,0,0,.35), 0 0 6px rgba(255,255,255,.35); }
+.kaydirici.surukle .mercek { opacity: 1; }
+
+/* Siri */
+.siri-kure { width: 21px; height: 21px; border-radius: 50%; position: relative; z-index: 3; overflow: hidden;
+  background: radial-gradient(circle, #1a1f45, #05060f 75%); box-shadow: 0 0 3px rgba(154,92,255,.4); }
+.siri-kure i { position: absolute; inset: 15%; border-radius: 50%; mix-blend-mode: plus-lighter; filter: blur(1.5px); animation: don 6s linear infinite; }
+.siri-kure i:nth-child(1) { background: radial-gradient(ellipse 60% 30% at 35% 40%, #ff5ea8, transparent); }
+.siri-kure i:nth-child(2) { background: radial-gradient(ellipse 60% 30% at 65% 50%, #407dff, transparent); animation-duration: 7.5s; animation-direction: reverse; }
+.siri-kure i:nth-child(3) { background: radial-gradient(ellipse 60% 30% at 50% 65%, #995cff, transparent); animation-duration: 9s; }
+.siri-kure b { position: absolute; inset: 30%; border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,.6), transparent 70%); }
+@keyframes don { to { transform: rotate(360deg); } }
+.hap { position: absolute; left: 50%; top: 2px; width: 300px; height: 26px; margin-left: -150px; border-radius: 13px; z-index: 5;
+  background: linear-gradient(180deg, rgba(28,33,70,.94), rgba(6,7,26,.97));
+  box-shadow: inset 0 0 0 .7px rgba(255,255,255,.3), inset 0 .8px 0 rgba(255,255,255,.5), 0 1px 5px rgba(0,0,0,.85), 0 0 8px rgba(140,111,232,.25);
+  transition: transform .5s cubic-bezier(.3,1.5,.5,1), opacity .3s, filter .4s; cursor: pointer; overflow: hidden; }
+.hap canvas { position: absolute; inset: 3px 16px; width: calc(100% - 32px); height: 20px; }
+.hap.gizli { transform: translateX(380px) scale(.08); opacity: 0; filter: blur(4px); pointer-events: none; }
+.siri-acik .panel:not(.gizli) { filter: blur(5px); opacity: .3; pointer-events: none; }
+
+/* emoji şeridi */
+.serit { flex: 1; overflow: hidden; height: 26px; position: relative; -webkit-mask: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); mask: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); }
+.serit-ic { display: flex; gap: 2px; height: 26px; will-change: transform; }
+.serit .cam { min-width: 34px; width: 34px; padding: 0; font-size: 17px; }
+.serit .cam:not(.basili)::before { opacity: 0; }
+.serit .cam::after { opacity: 0; }
+
+/* erişilebilirlik kipleri */
+[data-seffaflik="az"] .cam::before, [data-seffaflik="az"] .grup::before { background: rgba(58,60,68,.96); -webkit-backdrop-filter: none; backdrop-filter: none; }
+[data-varyant="clear"] .cam::before, [data-varyant="clear"] .grup::before { background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.02)); -webkit-backdrop-filter: blur(1.5px) brightness(1.15); backdrop-filter: blur(1.5px) brightness(1.15); }
+[data-kontrast="yuksek"] .cam::before, [data-kontrast="yuksek"] .grup::before { background: #000; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: inset 0 0 0 1.5px #fff; }
+[data-kontrast="yuksek"] .cam::after, [data-kontrast="yuksek"] .grup::after, [data-kontrast="yuksek"] .isik { display: none; }
+[data-hareket="az"] .cam, [data-hareket="az"] .topuz, [data-hareket="az"] .panel, [data-hareket="az"] .hap { transition-timing-function: ease-out !important; transition-duration: .18s !important; }
+[data-hareket="az"] .halka { display: none; }
+[data-ton="yok"] .cam.ton::before { background: linear-gradient(180deg, rgba(255,255,255,.17), rgba(255,255,255,.05) 55%, rgba(255,255,255,.10)); }
+
+/* ---------- denetimler ---------- */
+.denetim { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px 28px; }
+.secim { display: grid; gap: 8px; align-content: start; }
+.secim > span { font: 500 11px/1 var(--f-kod); letter-spacing: .1em; text-transform: uppercase; color: var(--soluk); }
+.dilim { display: flex; flex-wrap: wrap; gap: 4px; padding: 3px; background: var(--yuzey); border: 1px solid var(--cizgi); border-radius: 12px; }
+.dilim button { flex: 1 1 auto; font: 500 13px/1 var(--f-govde); color: var(--soluk); background: none; border: 0; border-radius: 9px; padding: 9px 10px; cursor: pointer; }
+.dilim button[aria-pressed="true"] { background: var(--yuzey2); color: var(--yazi); box-shadow: inset 0 0 0 1px var(--cizgi), inset 0 1px 0 rgba(255,255,255,.06); }
+.dilim button:focus-visible, .anahtar input:focus-visible + i { outline: 2px solid var(--vurgu); outline-offset: 2px; }
+.anahtarlar { display: grid; gap: 8px; }
+.anahtar { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 14px; }
+.anahtar input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.anahtar i { width: 34px; height: 20px; border-radius: 10px; background: var(--cizgi); position: relative; flex: none; transition: background .2s; }
+.anahtar i::after { content: ""; position: absolute; left: 2px; top: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .25s cubic-bezier(.3,1.5,.5,1); }
+.anahtar input:checked + i { background: var(--vurgu); }
+.anahtar input:checked + i::after { transform: translateX(14px); }
+.ipucu { color: var(--soluk); font-size: 13px; margin: 0; }
+
+/* ---------- ilkeler ---------- */
+.ilkeler-bas { display: grid; gap: 6px; }
+.ilkeler { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1px; background: var(--cizgi); border: 1px solid var(--cizgi); border-radius: 14px; overflow: hidden; }
+.ilke { background: var(--yuzey); padding: 18px 20px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.ilke h3 { font: 600 16px/1.25 var(--f-baslik); margin: 0; display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.ilke p { margin: 0; font-size: 14px; color: #c3c6d1; }
+.ilke .uygulama { color: var(--soluk); font-size: 13px; }
+.rozet { font: 500 10.5px/1 var(--f-kod); letter-spacing: .06em; text-transform: uppercase; padding: 4px 7px; border-radius: 6px; white-space: nowrap; flex: none; }
+.rozet.var { color: var(--var); background: rgba(95,211,141,.1); }
+.rozet.kismen { color: var(--kismen); background: rgba(242,184,75,.1); }
+.rozet.yok { color: var(--yok); background: rgba(255,122,122,.1); }
+.kaynak { font-size: 13px; color: var(--soluk); display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.kaynak a { color: var(--vurgu); text-decoration: none; }
+.kaynak a:hover { text-decoration: underline; }
+code { font: 12.5px var(--f-kod); color: #d6d9e4; background: var(--yuzey2); padding: 1px 5px; border-radius: 4px; }
+
+/* ---------- native Liquid Glass ----------
+   Camı ortaya koyan şeyler korunur, süs kalkar: kapsül şekil, kenarda kırılan ışık (üstte parlak, altta
+   yansıyan, yanlarda sönük), kenara doğru kalınlaşan cam, köşede küçük speküler nokta. Dokununca cam
+   "kalkar": şişer, berraklaşır, kenarı parlar, ışık parmağın altından yayılır. Halka, renkli parıltı yok. */
+.cam::before, .grup::before {
+  background:
+    radial-gradient(120% 140% at 50% 50%, rgba(255,255,255,calc(.07 - .03 * var(--p))) 55%, rgba(255,255,255,calc(.16 + .06 * var(--p))) 100%);
+  -webkit-backdrop-filter: blur(6px) saturate(170%) brightness(1.08); backdrop-filter: blur(6px) saturate(170%) brightness(1.08);
+  box-shadow: inset 0 0 3px rgba(255,255,255,calc(.06 + .1 * var(--p))), 0 .5px 1.5px rgba(0,0,0,.6);
+}
+.cam::after, .grup::after { /* kırılan kenar: 0.8 px'lik degrade halka */
+  content: ""; position: absolute; inset: 0; left: 0; right: 0; top: 0; height: auto; border-radius: inherit; padding: .8px;
+  background: linear-gradient(180deg, rgba(255,255,255,calc(.55 + .35 * var(--p))) 0%, rgba(255,255,255,calc(.10 + .15 * var(--p))) 38%,
+              rgba(255,255,255,calc(.06 + .12 * var(--p))) 62%, rgba(255,255,255,calc(.30 + .3 * var(--p))) 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  pointer-events: none; z-index: 1; display: block; opacity: 1;
+}
+.cam > .parilti, .grup > .parilti { display: none; }
+.isik { mix-blend-mode: plus-lighter;
+  background: radial-gradient(34px circle at var(--x) var(--y), rgba(255,255,255,calc(.32 * var(--p))), rgba(255,255,255,calc(.08 * var(--p))) 50%, transparent 75%); }
+.halka { display: none; }
+.cam { transition: transform .5s cubic-bezier(.3,1.45,.5,1); }
+.cam.basili { --s: 1.08; transition: transform .22s cubic-bezier(.3,1.35,.5,1); }
+.cam.genis { color: rgba(235,235,245,.55); }
+.cam.ton::before { background: radial-gradient(120% 140% at 50% 50%, rgba(10,132,255,.82) 55%, rgba(80,165,255,.95) 100%); }
+.cam.turuncu::before { background: rgba(255,159,10,.8); }
+/* gruplar: tek cam kapsül; dokunulan bölümden küçük bir cam damla kalkar */
+.grup .cam::after { opacity: calc(var(--p)); }
+.grup .cam::before { inset: -1px -2px; opacity: 0; transform: scale(.82); transition: opacity .15s, transform .4s cubic-bezier(.3,1.5,.5,1); }
+.grup .cam.basili::before { opacity: 1; transform: scale(1); }
+.grup .cam.basili { --s: 1.05; }
+.grup .cam + .cam { box-shadow: -0.5px 0 0 rgba(255,255,255,.12); }
+.nokta { width: 12px; height: 12px; background: radial-gradient(circle at 50% 30%, rgba(255,255,255,.35), transparent 60%), var(--n); }
+/* kaydırıcı: beyaz kapsül topuz, sürüklerken berrak merceğe döner */
+.ray { top: 11px; height: 4px; background: rgba(255,255,255,.18); box-shadow: none; }
+.dolu { top: 11px; height: 4px; background: #0a84ff; }
+.topuz { top: 3px; width: 30px; height: 20px; border-radius: 10px; background: #f2f2f7; left: clamp(0px, calc(var(--v) * 100% - 15px), calc(100% - 30px));
+  box-shadow: 0 .5px 2px rgba(0,0,0,.55); transition: transform .45s cubic-bezier(.3,1.45,.5,1), background .2s; }
+.topuz .mercek .ray, .topuz .mercek .dolu { top: 12px; }
+.kaydirici.surukle .topuz { transform: scale(1.32, 1.22); background: rgba(255,255,255,.06);
+  box-shadow: inset 0 .8px 0 rgba(255,255,255,.85), inset 0 -.6px 0 rgba(255,255,255,.4), inset 0 0 0 .6px rgba(255,255,255,.25), inset 0 0 4px rgba(255,255,255,.18), 0 1px 3px rgba(0,0,0,.4); }
+.hap { box-shadow: inset 0 .8px 0 rgba(255,255,255,.4), inset 0 -.6px 0 rgba(255,255,255,.18), inset 0 0 0 .5px rgba(255,255,255,.12), 0 1px 4px rgba(0,0,0,.8); }
+.siri-kure { box-shadow: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cam, .topuz, .panel, .hap { transition-duration: .15s !important; transition-timing-function: ease-out !important; }
+  .halka, .siri-kure i { animation: none; }
+}
+/* Apple SF Symbols — kullanıcının Mac'inde NSImage(systemSymbolName:) ile çizildi, 48 pt medium */
+.sf { display: block; flex: none; position: relative; z-index: 3; background: currentColor; -webkit-mask: var(--m) center / contain no-repeat; mask: var(--m) center / contain no-repeat; }
+.sf[data-sf="backward.fill"] { width: 22.9px; height: 14.3px; --m: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEoAAAAuCAYAAACPtY89AAAAAXNSR0IArs4c6QAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAASqADAAQAAAABAAAALgAAAABxt3b/AAAEL0lEQVRoBe2aS2jUQBzGd1u1rVraqii+8SL1hU/EF1VQEBSF4sGjHmzBXkVUREEQL0VtVfAiPhG1XryILxS8eLCtVsWToqII0lJ8oYKK9ffXzZJ2Z3Yns5mkhwz8SDKZ+X9fv002abKpVNKSBJIEkgSSBHIS6OvrGw4VOTsi7Mh4KI9Q0kwKY2nYAo/hD/yGK1BpVqH4UWiVwDZ4BtJ+wQUYXnz1ECpgZCm0g6qdDkGiYAmE66BLZYC+EwULuByAgQlwHuQI0rXv7Bjiyge1J8NlnXim/6Mr/bx1ES+D3fA1Y6TQYlzeghY7EayA/fCtkHhm/0gLGfspiG6El4bmvGET7BVzZ1J0E7zxihsuq3IrOejBzAy4ZWhq4LBQgqLoHLg3sLjhttugMFEFR0GuILatqKAQHQUnQK6kts1NULiRS20DdNs6882zCor5pdAEvb5atqvhB4WT5dBp60gxL3BQ1FgFTxW1bLvCCwoHk+CirZM884yDosZUuJqnlu0ubVDG9y4oy63+DtgDIxxcCwqWxIPcPe+CnRDpvz9GQWGwHmOHYRrE0vCwGeFmmByHgbxBYW4WplphdRzmRBMP81iIhzrZjquVqIQxVwPH2NcFsYSE/hg4iX4nxBoS+ql+RxTGJLhGOAijIfKGB/G0HQ5ATeQGNILZoDAop9lZWKQZ67wbD/MROQNznYsFFPgXFAaXMO82RPZcSOFzFX2nINKrmcKHsistvQTVziK2IynjrJdlLKd7Rl8W1el0+rNvO7vqBfWNnsHxhC9rLZYVbVDeVa8jFlv9Rd/33xxcW15QTdjqjtmaXOk+xuxBK/8vKM7L54yQ76gb2pHud8j90kK4614quIJ3RKUI6x2so0Q9vApeqvgZ6L+GNVSSf1feFl8xvArZoLySGL3G+kzYC/IlH3nDQxuitSA3nT8iNxBUkNuGieDikQplc5ryMQujpkBbzmg3HdrHLEbZ4WkZdLjxlq2qDMozyKiV8CQ72s2KNqicU88z5l9yKjxgezE0QCxXRzzcR3sBNIHcnA7uxgcpLxKOwM+QP9S8R5Q/FXTl6cZxKOZFgsq+9ojy6wdaR6UWbqrULPuMg/KMojMb7lrqqaaFH5TP7AYUX6hUA/YFDsrnQV52vg6opxruLigxi+Iw2AWmr89VJq2Dyngop+g+MH19rvLgNijfJzse9XPwR+WiQF9RQfk8yFuiSwW0dLujCcpndglOHurcaPpDCcrnYQU6jzRauu5ogxKzOJEfjW2FDzpXA/rHen9kWEvqy5vsRugZoKXbHBGWduA6OKqEZsh3O/GF/aWBixtOoHY1tEC+30b0GJZzOwyT0+E6qFqLW/X/1RGeCbdVBug7FIUHYw0MrQW5//oE8sOKVigzLhDCQPTWwx2QI1lOSznih4ZQOimRJJAkkCQQSwJ/AaXOCdBDfCmZAAAAAElFTkSuQmCC); }
+.sf[data-sf="chevron.left"] { width: 11.2px; height: 15.5px; --m: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAyCAYAAAA0j3keAAAAAXNSR0IArs4c6QAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAJKADAAQAAAABAAAAMgAAAADmZqPkAAACbklEQVRYCe2YP0hXURTHfZoaioqIQgiCICUIhkhEQ4NDQ4uLSIMOOdTSFAltNbTlUAS2uLQUFJiDg4NDQ0OEgxEUNChCFFJKf4gis359DvSDc+979y1yTsvvwJffOff8zv18vT4feOvqalE7gYOdQHaw8fR0pVJppzuOOtBSlmXv09827mCmH22ianwmOW6MLd4e8AB6W3WiPpeLJwxXgR9D75QJnT43ROe3hjyEtrWDKL+SnzJaATyMPkQGdPmIosEIH24LaATtaHqUP6B2M3MC2KfIgC7vUdSHP4JRBegU+qLpUb5A7WbmNLCvkQFdzlOYvXSDMwY0hr5pepTfCgYsC8Bn0PfIgC5vWvKDvaGeRT80PcpvBAOWBeBx9DMyoMtrlvxgb6gTaE/To/xqMGBZAD6HfkUGdHnZkh/sDXUa7Wu6yv+QXwoGLAtgM+i3MqBTMXPBkh/sDewiEmhRiMnzwYBlAUyemZQZ+fVNWfJzewPcREUhD/ZkbsB6AWjqxfeCXqs1P7c/0EWUiqc02nJDlgsAu9GrlCPWnyH5t8YvAPaglygVazQ6/RxBAtiF1lOO/vW6vE11ApbTSIWcYo+3qQ6g8tyk4jWNI96m2oDKX1gq3tDo9TbVCvRJyhHrG6jP21QL0NUSU1v0+r1NHQa6UmJKLhkGvE01A10uMSWXDYPephqBPi4xJZcOQ96mDgF9WGLqIz3fSyqADeh+ialdeqPeJ1UPVC4VUiGXESe9TWVA5XIhFXIpcfR/mLqbcsT6oquhKgzw7YSptep33D8xNFdg6rq7EQ3E0CySN7fcI91BTbpfy2snYHUCfwHYUIgsPJjNgQAAAABJRU5ErkJggg==); }
+.sf[data-sf="chevron.right"] { width: 11.2px; height: 15.5px; --m: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAyCAYAAAA0j3keAAAAAXNSR0IArs4c6QAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAJKADAAQAAAABAAAAMgAAAADmZqPkAAACoklEQVRYCe2YTYjNYRTG584YE6VJkwYRzWJCJI0oajazYKMkZW9jY2UzKxZKKVmwYTMWlJKimGJjQbEwZaHUSJHItyT5Gh/X76hbp9P/1PnPe+6s7qmnOc/7P+/zPL3z8X/ndnV1qnMCZSfQiG5vNptrmN0BXoDJRqMxE92bPkeY3eAnaNVdmv50o6gg5s9aSdTX+/SLoxqpcxh/VUF0+wAykGoWEcP0nE5h+ofwJRGdtBkM+8GUCaLpI8jSNMOIEIYS6p5OYfpp+PKIVtoMhovAHRNE0yeQlWmGESEMF4JbOoXpn8JXR7TSZjBcAG6aIJo+hwylGUaEMOwD13UK07+ED0e00mYw7AVXTBBNX0HWphlGhDCcBy7pFKZ/C18f0UqbwbAHXDBBNH0P2ZhmGBHCsBtM6BSm/wgfiWilzWDYAGdMEE0/QbamGUaFMD2lU5j+M3x7VCttDtMTJoimXyCjaWZRIUyP6RSmlyvNWFQrbQ7TIyaIpt8gm9PMokKYjusUpr8W1UmbI8Ay8MYEadEpbdStSTt6XFegexsMOvo3nPX8ZcKsAnId8UpuDPPznSsUMRoCcg3xapIHfRVb85cwGgZy/fDqKg/m7GTWYfbaS8L6ZdCbfwwVihhtAO+AVxd50FOxNX8Jo03gg5eE9fNgzsJswUze5F7JtaTtf2L+HzNG24C8wb06y4PwpyxF3zuMRoG8ub06XWRQZzMJxoD3IYQEPFlHr2gWs53gu7g6dbzIoM5mAuwCP5wgsny0jl7RLGZ7wIy4OnW4yKDOZgLsA7+cILI8XkevaBYz+Zn5La5OHSoyqLuZENNOkL+sH6yrVzyPadVvlIQ5UCw+GwGM5Q2t6w9k/2y0UvZgPgDkAwX5L+Ex2Jsi3BHpnEAbTuAfqjVlMFbiGTAAAAAASUVORK5CYII=); }
+.sf[data-sf="forward.fill"] { width: 22.9px; height: 14.3px; --m: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEoAAAAuCAYAAACPtY89AAAAAXNSR0IArs4c6QAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAASqADAAQAAAABAAAALgAAAABxt3b/AAAD9klEQVRoBe2aSWgUQRSGMzGJxgVURBFcwOUiCorbJagHFZejh1wiRJSAoggKelIUgksOElAQD4KelHhR9CRGIm54MDFBicFDJKgRjRENcYma8XtiQTOZ7qnueTU9Yj/46ZqqV//765+tpmtKSpJIHEgcSBz4hx1Ip9Ojwfg4l/BXw7g4NfjWRlwFOAe+A4nnYDco852kPECtSnABDAGJp2AHKFUuFZ0OMfUgW3TSuT46s/1M6pzKJoC+J2CVPZPDTIS89BFpuq/RmOtQQgn8700xn+tl+me61JCTGwG/fMR5u7/x4DhQ/wyDUz4bbWKQpMOgMueiXCTYKPTkvKa9FaS0tMA11sNv05R3wBat+tY8Nsqy5Dykb7l1kYBEeMIaZeTcprEogFp3yFSNcB1mznkwLR9FzI9qlEj+Cc6AyflosJor1fKMT8zfD8qtCmYkMS8fo4z0DzR2gVEZ9HoPTSWFaxccG8MqY46GUUZ+B401YTVY5ZsKitcbcM23Kk4SuZpGmWVcoTHbVoNVnmFWvsouvwFMyCWCHBdGyXK+gKPCn0uD1bgwOoxeuGuB73aCMVdGmWX10Ki2MiMoybA5vj6Cf2U2HfS7Nsos7Q6Nxdk0ePvi/nG5AjGy97oIpnuFFbAtvxkfU/8smBK6LpMKHZ8peBBUiFiuhXpFedfZz4M9YMQdkqDPiHRod3UmdEFTCzrAIIgj2im6LZVKtZnixWiUaBsCNaBJHsQUX6m7CbNapH6xGiXa+kD4zwyZqRedGLVA6IrZKL3lRmcaZmo5Zg3H/a0XtIRXQYMFGmsTk6RWsRo1gLbtBTLDr0w/A3VmsBiNeoA4uad1z4iM4dpMzWW8mlpN7WIyqhdRtaAKgbJFiCN6KFpN/bWg2ytgxMbKO1igtmwFGkE94uQtF0fIVqABnESDtO3Du1112L4O97xsqugv1M68iVqzsmmw6nNojlDLYeqGICGMuzaqnRqrgzRYjUHiIuT28D6Q8/YwOa6M6oN7J9C5PQyRZsgZoRw4TLV6lkgiV9soOXA4DSbZarDKg1Ar7kO01KqoJ4k5mkY1w7fQQ6/XVHBJDkVrgO/PpCC1zNMwqhset4eiFIgacsx+DOT1Nx3m52OUHLMfAmOCngyVMYpEiatMmqMhAJ6oRl1i7gwNDVYcIV16Rv46K2LLpAhGtTKnypJeL42iP0Cu+EjCXqC+w4dT/shmE/LXoDoQz88xCr8IUClf9/JvPKc31uB/E6BBnshGMFHv5RGBCQEHfETepX9JBMrQU6hzxEfDTfr/3HkMTao9ASGlQE5U34IB0ALcftVmLIJ6ZeAEeAfklOYW2JyRljxMHEgcSBz47x34DXwI1d5MqKJNAAAAAElFTkSuQmCC); }
+.sf[data-sf="light.max"] { width: 21.7px; height: 12.7px; --m: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEYAAAApCAYAAACIjF8LAAAAAXNSR0IArs4c6QAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAARqADAAQAAAABAAAAKQAAAABWj8K+AAADBUlEQVRoBe2Zz28NURTHO0VDsSCxUSJaiVqi0VBhIREb6R9g242dHRKxs7CxExFs/AUWNn4GXUiIEI1oJEKFaITQdlEpOj6naV8m17nz7p3pvD4v5yTfdO6553y/d759M2/mvrY2C3PAHDAHWtiBNE07wRUwDm6CrhY+3fBTw4gLIBv3wrtbuBJHnmdd4fhPM5xuexMsYpmzhnbMSZxcw4fNYEzDTzpE0IzxuGTGmDEeBzzp6E8MN8ZecB98BJfBGg/3kqRZj9y8z4L34Bk40JCFIPQUZOMhg9VFxel9mSWbPy70rURvAq45fF8Zryq6vqC+eeEZR1iGD0BnEIlTRN+wEGRiwikJGtIvpsgTtBa9QSRlilC9oymTk8sr+j9Dz1HwGyzE6dj10SimyGWthVxSK2I5o+sR2QzeAS3ukixizi76zoAjsQuiR0y5BLT4QbIvlrNwPWJbgPwntLhNcmVh8shGtC5qiyAnpuyJpCtfjuhWMAa0uF5eoT4Dwic1cXIToL8+Q0UViHeDD8CNWRJrK5Kt0aKhaU+S31srWqoDFtED5JkmG9MMOqpeExojWVGOxZR9VesG87OYbWAUSPwCx4ObSxSicxiIGRKfwUAJumpaWVQH6AMbq1HQWdFbD/pB4YdMndmy5oA5YA6YA+aAOWAO/J8OeHfKeGCSOe98kiSzIacMz3LquoH8LRuiOYb2dAgR2nlbtyk8aQjPXA1k8nj/GMiLYF58Z/JEHjHzu4FveyKPO29OdAfr6A5S476/aZxvSO7P46rNUSimxMTBWrNzAMnC+1MMX0jtFEXrHLm5IfkuIC+xofGFwn8217SP2k5NMCen1iMmm1Xbc/rKTMkvEz0egh3kYzbKNlC/yeXSjLnhFuWMZ5i7pc1z/f4k/0ibW4TcJzheeXiekB/3zGnpEZJv3QnthjhEkRDLZo/7g3u2/xuD8xjwOpt0jo8xvgoOAU3LKa87lJvvCzDkuwGTl20I0TsH5JPg+wKRG+8oOEVP0BcJtRbmgDlgDiyKA38BXJVb7LYsFtYAAAAASUVORK5CYII=); }
+.sf[data-sf="light.min"] { width: 20.5px; height: 12.7px; --m: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEIAAAApCAYAAACBZ/9xAAAAAXNSR0IArs4c6QAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAQqADAAQAAAABAAAAKQAAAAAlh+VxAAACv0lEQVRoBe2aP2hUQRDG80w0KmoUYiEWAUXQwmBsrVTQyhSiVoogojaCgpWN1oKSoCCIhYWVKWy0MOKfiEWwsdDSJin8A1aJRJGE8zdBuMu+mcdb7t3tJczAx779dnZm9suy924vXV1uroAr4Ap0qAK1Wi0D/aCnQ0tsfVksfhhMAbEZcL31WTssA4seBH9BaBdSlboqUeIz5F2t5D6ncG2hUgmx0VidxRvu1dGphHhhLMHiDfcVQHM43AsOiPf0k+2ILKWmLHyQ/PvBNHiTZVktZT3RuVlAD0gqolY0Na3R+Mo5Eu0AL8ECmAUjoD3JC1ZDDRfBVyD2GRwucG9uiOC94AsI7W5zkZubTTGnwoLo/wF7motszCbwMSWhUHNAeycwIlVLk/u1FKHYrZhMMR+fW4zA6+DXGmPtoK26LF6tKUaICSLMK1E+cNrPKny7qFdGIos33CNott8lMN+wDb/xvDciROWu5N8EJhtqksdHIOpTLcpZVkGCnTSHwC/wLPFuoITFmrppjoIB8JGaJmndXAFXwBVwBVwBV8AVcAVcgQQKqK/YvEbvopbzoB+8A495bV2gXXbGWuTrwAkg14BjrOMtbc5yQjDxAF7jYH2D91MCHG/oFz4SYwiHm2B7oWPc4Azu96ljrOw06riK753A/woxRgMu32Vy+E0OatGO5L3zDJ4DQK7xWmXD+ax5huSbgdxUhfYboi+cod1HyF9Ts30aqXCyDTcofFXU2ZKB5KquV/GVS6TdIa8JMRU6/e9bfOj+PSQq7v8oGW8aP+3nAeFkrNjYNqfDvUT/Eyh1W41fN3gOWmFyebyteAX1UXwfKkU8qHvUn3KHpQwxWQ7Gy2ArmAA3OGB+0pYy5kvcg0AOSzVHqUBLneSwHKeOuaW03aMO+b+La+AkkJ3wBNwmxrL8BKR2N1fAFUikwD+WxZjeuVxbAwAAAABJRU5ErkJggg==); }
+.sf[data-sf="magnifyingglass"] { width: 18.0px; height: 17.1px; --m: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADoAAAA3CAYAAABdJVn2AAAAAXNSR0IArs4c6QAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAOqADAAQAAAABAAAANwAAAAB4801/AAAEiUlEQVRoBe2aW4hNURiAzzEzDAZDESkeRhSKREgahQehFJM8KMqtlEtJRCRSgyKXh5HrlBeJiFJyDwnlYUYpxYN77tMMw3B8f814WPOvvddeex9zhvPX15n9r/+6Z++1117npFJ5yZ+B/BnI5TOQTrK4TCbTjXjjYRiUQSl0hgb4BE+gFu6k0+l6PtuP0Fx3WArX4Qe4yHeMrsAiKMnpbimwB2yHTxBHPuC8BeRqyC2hqHnwGpKUFwSbnROdUkgxHEuyOyXWQXQdk27YeTIieS+Sn4MJAUU0MXYTrsMjeAVfQSak/iCTVDlIjAKwyTUGZjFhfbYZZEVPk93gHtjkFQNrobdLAdj1hQ3wFmxyi4EuLvESsSFZB7hoqeYn+p3gNXPiJxPaXvgFmpxF6XzVxWqYRJu0CtB9hMmxgjc7E2c6fAFN1iaRIzAGWYeBPPNMeYdieKBzxEHijQI5eaZ8QzE4Yrho5iS4bGbluBHGRovkZk3cctAWHRfcInhYkXAiaLLKI5yzCwnXa0nRjXEOEsWQwCeVhA/QdYgSJ6ot8QuhRsldHTVWqD1JSkHuDVNmhDonYEDSCjMxx/XgNbtbSyLgHCXRU3R/ZaonTwG8BFO8T7TtMpyknIVTrFQyij5xFXl+EvS0EniSonNS2RrVHh3XnCImZ3RVCaXVpZi1VtkaHdTaNFWj6LKp0vJpdTnVYGtUdgZMkQX63xQtn1aXU022RosN7wz3zXdDl+3Db0oCeQvyEluj5n5OmunPO4lXZamU9iiRVz4vsTX6Xok2UNFlUzVACf5G0TmpbI0+VrxHKrpsqrR8sovoJbZGHyrRpii6bKqmKsHvKzp/FffjVHNJwrG8QpmTlH+SAE/ylEAdmCJ7xskJ0TvBezMLx8uSy2KPRJ7VSu7n6GxXoD1Y2AhB91uSZXX/lZw9QdtL2hpWs9c4yQZBE5hS5RXQ0Ylk1WZCjhugj2OI6GYEP6wkFdXC6NHCPYi73JJvY7h3DAuS9gbtXpX/9NwYoVu5Em8ByK6iKbUoilo5JK0gyWwzc/OxbFHK3mysCQJ/effcCjbZl3RP1nhUUGmrAv1NGGF1DhjAbzTchTDZHBAmuSGqkLXu0YBq5L97BqZBYVBmxotgJpyHKBJr1nXeGqEiuUR3w4qgRhirg9sg3728BFmIy1cLLd+9yEO/K/hIJW9R63wcI/vQsHx5KxtVbSW7Ihft60CHQ+BSgp3KbHsIdjjG3ONbu5cfRck9ecOxOM1MHlPyRdKfNxX+tn3XY/ofQOF863k1aDqRcChsg3sgxQeJjN8B2ZHvZ8aS4+YxPkKlCgunZp2MtGJsOhLLzsAQKINSkJ2JRngHz6CWCSV0p4A4a7DdCWFyBIPFxPwVZpiz4zS7ElzkOEaxFi5tfhJoQNa/8pwOkxMYFLR5wXEKoIEl4NLs3jh5csKXRheCtuhH/UdkonP6HUVONGUrgibmQ9isPs7m3670NDovoFm5vNVHVrtqsqVYmqkA7ScA1S02/8wnjZbDbWgE+Z2TLB87/TMN5hvJn4H/7Az8Brxq/cV+wbAxAAAAAElFTkSuQmCC); }
+.sf[data-sf="playpause.fill"] { width: 25.7px; height: 14.3px; --m: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFMAAAAuCAYAAABUDiUfAAAAAXNSR0IArs4c6QAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAU6ADAAQAAAABAAAALgAAAAAHUGtfAAADb0lEQVRoBe2aO2gUQRjH76JJCh+V4gOt5GIaCSLxXQsqiJVdJIpgI6IGjVYSiRhERLGKKEZ7i0BQwUrEGAsFxVdUJFgoWPlAJDF6/v6QgeOY2b0Ne/u6/eDPzH0z8823P2Z2Z48tFHLLCeQEcgI5gdAIlMvlVjQ/tICNGAiALWgQTSLZW3QINSeFB7m0o7voO5q2aArfJ9SP5rjypm03eoZ+I1sc+Z+jPa4Ynn4GKgGbvcG5zXNwBI3k0IwmbAk6fL22tOjbgQSwFvtLp3W2OJ4+BvklOkyfVZ5B6tjI3JtREBuzpUOAviBB6HvGFke+JlcD/pUebWrahV4R/ByK45662Ce/6uZF1Y6Z32HF8YTpBdrk1UrlJBoHaBcqmoYIyqBzua4naBxnf9cEQVksZ8AtNArQzqCDs9I/LJiGx0YqTwB6HS0xzkYpw4YpbtoG+9E7gPagxByllFw9rR4wTb4LqVxALwG63TizXNYTpuHWRuUOQEdQyTizWEYB03DbSUWr9DxaYJxZKqOEKW4t6DjS/bQbOY8Z6pw2ixqm4bOUyg00BtANxpn2Mi6Yhtt6Ko8BehMtM860lnHDFDdt9b1Ib1G9SLeCVFoSYBpweigNoBcA1eHfzxJ3v00STANvNZUHAN1hHI6y7PDH5k4iTMHQVh+MjcosJ04qTF3OClan3qJSY0mG+b5YLP5IDUkSTSrMn+S2L00glWsSYY6SVyer8pEPzPxp7gHoC23daCsgxz36mabEPc3nmsxiLKeY+xLqB6K2d2otbpgjkDsKxA+pJViReFwwtY2PAPFeRS6pr0b9ANJRpwetyRpIrYSoVuY/5hpCp4D4lTKTFgVMHXUOA/FpJglWXFQ9t/ln5ulCOupkHqSY1mNlThL3IjoLxF+apFEsbJjDgDsGxI+NArDyOsOC+ZqgOurcrwzeaHWve+Z0DTC+CSLqiAFk0NdJnShs5vLb+srn7O8Fc8IVbSbgVcoSEC+jWsB7hJtVk97lg5irv8vvih20f6HAH7MnkM0e4lzrmikqPzk0IX3UUKsdsOXG4BLSZ9a1mPq12eLI5/wbi0FatafRQTQP6XhzhVV4mzIRRo76lLEPbULKsdq0JbWShsj7WnWj+U2cLdT1mXY7sn1o9ge/XoEHiOP31yDdcssJ5ARyAjkBPwL/AcnlrAn8l0W5AAAAAElFTkSuQmCC); }
+.sf[data-sf="plus"] { width: 16.1px; height: 14.9px; --m: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADQAAAAwCAYAAABe6Vn9AAAAAXNSR0IArs4c6QAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAANKADAAQAAAABAAAAMAAAAACL92n5AAABqklEQVRoBe1XvUrEQBDOqihaKthY2NvoCWLlM1j7AL6fgo0vYOdpefWhlY2Nhz/crd+IgRB2JheH2SwyAx9JZnb+vknCblW5OAPOQNEMxBg3gRNgp+hClykOTYyAJ4BkBlws41fsGjTwQJ005A3328UWLBWGwgOwaDRT355KflrbijaA4B9gI7TFMmdlGrzdSY5nbygHy5ocPiENezl8fUI5WNbk8Alp2Mvh6xPKwbImx7+b0JrEBrbHW7AfAuvSOsbGkUVnpL/EWyDPJITwwuST1Uh6DDwDJUnnITG1vf/pFF2McTOS2x7EOkPWPUzqNZWdey1o7UHKoQAdfQb7XB1SQ7ec08D6KfJPuBqkhi7hdAPMOefM+oh8j8A5XrcPLjf7DdUO+Ja4o3S9hLuuwvCZMJ5Bd5fQd6kiGqGmRBF/2+T5G6QzUDsLiGir6uc5YtIv2ESkV84koXVQb8iaYW18n5CWQWt/n5A1w9r4PiEtg9b+PiFrhrXxfUI9GKTdaero8dUjRllLseO+BpoyxcNGWVX2qAbF7wJXwDtwDxz1cPelzoAzMAAD33McNvC4M6iEAAAAAElFTkSuQmCC); }
+.sf[data-sf="rectangle.3.group"] { width: 24.5px; height: 16.1px; --m: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAE8AAAA0CAYAAADL0WWEAAAAAXNSR0IArs4c6QAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAT6ADAAQAAAABAAAANAAAAACvSRVQAAAEe0lEQVR4Ae2aSYxMQRjHp8e+hkFCIg62SGwxgoOIJWJJcHDARYSLIJZIhIPDJG4ycXKwjRCH4UI4TQgRQoKEWA4YBwdrrGMSw1ja75PuTnWpevOWet2v9fuSf7+qr6q+5d+v6tWr7pqaVFIGUgZSBqqHgUxXqWaz2UX02QhmgqGgJ3AtPzH4CdwDp0BzJpPJcq1cgbj9oBxyDqfdKpY5gl9aDtYUnzuTTp512pLEeYJfUcYEWpm64/34J9ZR9JsNhoPefsZY+nSgfwVu4PulpU9B7UXea3pJMHn5ReEYeAik7EokhtFgE+inGa0jCVkLjQJpQ2g4DFYCay7Gwd7K3zQ3gy34b/PuamglsB9AlUOGbs5UONquOsuVx9kc0N4d3DKMcam6ijHrl1JrCw59d63tgVZ3Xb1vMNjDoMurVlGQHUCcMhfjy20OdIJs/UTvcqqa/Mh2JYjYkmrHyI8ghnJ9ZQvW3zBuGboLBv0/d5epT1J1Y7TAPlBfwBoVeoYwRWdg4wpQSRyr+SlUvaZtoVNCCwO0uM5GIU5sMf4OlxbNrkpkUVMlk1eUCJXPuiJkXbcT6oER0nf1DPuf7rySf2speREoTxJ51rUlQn6xDvUiT15RVBmpVmIom+zrMcTgNrxJr02yvNMNVkxvYh90l7q8CbjcMMsdJ3upBqCL/uTT28ta9yLvEZHNUaKTl/CzSj3u4nv2XW/idhLFvte0PRPFsIOx5fbfZQpe5B1l9M0uLcTT4TlmG+Ix7c6qlTymTCduFoJGUKq1Rw4jT4CZ+H/PNdHitebJu54ks4sHxW6ucrY2DMjpg2uRE5WP4Ak+w5yIuI7Hlz1P8vIWSEi2DE9yyKur/mqdtlXPjA8CUvJ8kGTr4mva2gaLnvVQ1sBBILItsYfIOtuWWyr+KpL6ESphCJPfFraBdWAicH0Hf8XHNew2QuJlromUwEnn7rSLZCNbmMkgsA0fTPSlzxJwCX9bffQvS5cwie8g0nklilbeew9A4OgS+QvkJgx56wN5iN5Zlpa10c24txBozeMO6EMIE7Qw5FerBvAMRP1nUy9sLAabgSr1aiUp5UDkEbR6RJXPYR+L+sF8xcH1Al/SdOzMUmzVKeXEFINOWxPZrTFkI28zqpj8qu1lKQclzxRkHKe9Uae/KU7nOhfkOQ8qpEFXf4b0baeSydNPX6aFJF0fNlVT6H4KzYlcSwrReRf08775PGhOM+Q6sCbsYVJeMxcC/cmu+ymYcEGe79u84LXrgh+btzEzXzO1mrrApdyyGQs6bU3f6BSb8TB67h55q9Btmvw20c+kD+PWNuYbDSdtjUHvPDntlaerSvpeEh6I7imI+pSUTbK80+rkvUNXJOwtW/Erm2n5x6qfO7VovI+K/AyxAT8vfPT114WA74FSyx5bdARSD46Dp6AddEbAF8Y+BkfAJJvP0HqMyo/fpRQ5nhoROuAkDSSRWnCmROx9x8+aJOUfORYSykhSoAW8Bfo/51GFlg5GPgNNQM4LU0kZSBlIGUgZSAADfwDInWJ1XdKWBgAAAABJRU5ErkJggg==); }
+.sf[data-sf="speaker.slash.fill"] { width: 16.1px; height: 18.6px; --m: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADQAAAA8CAYAAAApK5mGAAAAAXNSR0IArs4c6QAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAANKADAAQAAAABAAAAPAAAAABOB4T4AAADKklEQVRoBe2Zy6tNURzH77k3XI8oDMhEKKWklMfMDEMTcyMMGFKSUh73/gMMmHCNTOSW9ztGSmZEKWViJK9Iievzzf7Vuqu1O+vss9Y5e9f+1feu92/9Puuxz7n7jIy01q5AuwLtCrQr0PQVmJmZ6QySgfkWodHkc+J0PXqLfqCjySfwHDLHXvQOyT6hQ16X/oo4vCDPjp3qz2P5aOaYcOZxs7vLR/XYgteTrucinxQKn6PoYmAeq7rUY9jl3fG4AD0xz06aBAp/c9BVx28oO10eYYUWZliIkkPhcz66hbpZWiCtATMmhcLfYvS0G0nRnh4oJRRBLkcvImHULQ9QAaU79VizeBZ1pxizCr32xnYr5gPqB4qo16L33aIPtOcFqgJFkBvRx0CwMVX5gRyoR4GITqvdjPYVSJ/6VW0wQAqYCHWnYqAO0u9vRaL8QAS22tmB3FB5gYDZgz6jLQOCyg40DYwsBPXwf9Osv/6dOkBrL8cvO9AHJ9xBQGUH+u4AKetD6TtaaKfO2BFVSp/YncoO9FMUnn2h7N4pQT3w+qhYBWooQAo2F9TQgHJBDRXIoLbafaFCx+++GjyLPX5DB1LcOn5VoPYzzn+k1wIoJVRtgHqBOmtHtHikuztVK6AyqHtq8KwMKjvQVy+QmKJ/p8YZFAt13d295HkCsTebMSBun6pQu5JDuA6J8IobZY95QW0zf+S1U3cDPmYdP+ufJVVA6E8giNiqWkIdHhDURL+7Ev2zCUAbmGwf2oSWoLKx62hbinz7RsXOTqfzXA34GyfRA8C/M5P0OaY+tTACXYleoZDpienfqTuBjn3vVNLFIMBlqOxtaWOh9D77WWD1VdVYKL0hCj2mDWq7HQ0q5qHbavCsdsdvLgFe84K0onaqkVBjBD5lFF4aCzVpu1mLFIgOOu/BWDEEFfpxrF5QWlkIJo3CSxsNddyDsaKg1tiRIq8HRWN2Sv/U/UauqbzZgIodFdRNt1ORr+Xx0+9Il9FLpJ3Y4cJYnvoyqBPWp3FpCdQv6scaB2MBF1A3SM3eWFtjU0j0QX0EnUP6Zt9auwLtCrQr0K5Ac1fgHwnNl3z+84nJAAAAAElFTkSuQmCC); }
+.sf[data-sf="speaker.wave.1.fill"] { width: 18.0px; height: 15.5px; --m: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADoAAAAyCAYAAAAN6MhFAAAAAXNSR0IArs4c6QAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAOqADAAQAAAABAAAAMgAAAACwE8IPAAADRklEQVRoBe2ay2sUQRDGe32g5CA+EFHxgSBGUFQE8XFQcpEIuehBEA8qeDAgKEj+g1y8eAoKCqIgogdFT9FADkJEED3kIgiC4gMvCiJoQNn1V5DAdO309Gw7MzuzTMMHU9Xd1d9X3bPb3bvG1KXOQJ2BOgMxGWi1WgvBCJgGH8BNsDKmaXVdIgg8B7q8xDGvusoizBGyEbzVCiP23kjzzB4LzR5itsF8CmxOULA6oS64qjChiNwPy2dgjYdtw1MfVF2IUEQegd0EWBbEMoNOuQtF5El4PgJ9GfANDpGrUERegNltsCCYYUYdcxOKyFE4XgG5vHOd6s880wicD4mr4GynZPJsn+mMInIRZO/nKZIxNoEb4C7YkzY5qWaUgNsJeArsBEuBazmuos739UGTsAIP4TsJNsxGGMK3o9FovAuLGOlFoEugCYoqRyPDW48Q6I8hMW41chiJS5egh+h3Gbhm0BE2N7fM3BcV/TA8B5WvzUwUSuvzoCwiDUv0D3xG2lQYMxzjs1w+ofus1iUwEHsHGi8UlUFmda3yWaZPaFnPh2OWCmPkK21A+SzTJzTVp7IVsRjjAcPIMo6WA1FDP/uE6valsFm+vyAyrcjsVrZlVlLorII3lhJj1inbMqss9LulxJglyrbMKgu1hPiMKgtdrsT9VLZlVllov6XEmI/KtsxKCmVzILcVcsCIltdRQz/7hDZ1h5LYsvHX3/FTSdx8Qr8lde5ind7byoTI8c1ZfEJfOXt2qYJle5yh9R78KZuI/3pHr3dJT+ywiJQ9rRwbdZGrm8SSOKNkSfaU3iCJI2RbKbuf9SrkJDwfK1+bqV/otgYEGSaTT6g4A+auUlwJWkwbb8y2QdI7PtNUDt5z1zW/eT6XvntGLUnIChD3Kxnu1EU+UZ2FKFuBXIw9BIknFmeQLCoYvA+Mg9CSKDSUo2sJhsaT6w45Qg2Be8FBcuiYuVDhiFg5FJ8A18QuQ8lFqAhDbBPIB8VoGYQWwoGX9SJIezdcjXc0LnPMrPzYdBr8jasvwpfb0tXkEXsL3zEwo+t60mYJHwQ/gKsM9IxwFO4Cn2KUvscnv8j1TkGQ/NdoDHwFM2ACbOkdhbWSOgN1BjrJwD+emHO5WbrXMgAAAABJRU5ErkJggg==); }
+.sf[data-sf="speaker.wave.2.fill"] { width: 21.7px; height: 15.5px; --m: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEYAAAAyCAYAAADhna1TAAAAAXNSR0IArs4c6QAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAARqADAAQAAAABAAAAMgAAAABBv2QtAAAEf0lEQVRoBe2aW4hNURjHz2BkDFHujLsXMqMoLxTJg0uJFA8UxQNKnsi7FA88eHEt5JLJXRPlwQOZN2rIJJdch0khlxmXwfh9Zp9pzTdr7bXPOfuc45zOqn97/b+11nf5n7332rP3JBKlVlKgpEBJgSJUoL29vRLsBA/BU7AXVBRhqdFLQoDxoBHoVhvdS5HNRIka8FYrEvA/HAcXWcn+cih6NvgYiOA6TPV7yv6MHtkP0REBFRbTuw4GemKWeca9w8QaAW6AVnAB9PMuyscEElsN2kCUVp1pjgQ5rgKdytRn7OtJcAuQe0fUFocwFy3BlsReXLoOSW6HJUGfKQ5hlliCPMZWnm4tsawjgR5gvyW5KKaMhZEiCFRnCbYxlgLTcUIyvUGtJamopriEmUjAnyqonDU523A69SOoPM1eV8mkSkOFwdlMcBocAeM6g1s6jB8Cui20TO1mirQ14nkaK9cAOcp261o3krFhIJNWU1ZWdt/mgDxGYH8C+gbjzzhWM78l4F0OzJ+MobGLMZE4zfxVypY6xfk2kMquwvSMmvOMwesyi+fdYVUx/6Za8xXeO2yNdwwHc5XTXNAwYUaRwHeVhNxHxriKYWyTmi90rmt+0u67EW1OTvwfjlwCTeSxR+UiW/B6ZTPpNZME/XkWW3QTyr6xqJ1tk/OMkcwJ3hc0qySa4K77nqx5rubX+VTwnTFDfA5yPc5Z00rMYyqu3PSnKJtJ75qEvmwioc0nTK/Q1fkbrLWEnmWxJU0Pkp3gKPeq0BuwTxjl77+h98hEb9EzQrJ7pcbkspOzzNkKUhgup99UJM8zZhttEtV/p7jQ0NcfBSlMUOQHVWx/xU36zSRBP/mQaBlKJApZmHZrRTEZC1mYQUqDL4qbtMIkQV92N2crSGHYUXpS0SRV1WvFTTrUJEH/k8XWaSpIYci+BlR2VtHR0c8q5rC+MctlKE/RzuYT5o9zZX4HVljC37bYkib95aGJne1nctB29Anz3rYonzYuI9lN1qocmuH6Ic6cMt0k9BsU70Z9wtzptiL/hu2kMFylcZQzwHp2I+QE5uq/vsMuu3+ufcIcUQnklVKkvATbqpKQh73DymZS+Z6l2w1t0DxUGH6F8yw4qBflkcsl0UfF30ee8ibP1Vaqga/wemVLj/JLyZuzK+Al+Ay+OPALe6at2pUljquA+aLqBdz5lZGxKUC3ky7/WbOTgXwabdCZpMidwkji+JoDLoNTQD/LdKmN8cNAtwVdJuWKkMVAcFtnkwIPFSZqHcSTzydtKu4juPOFVlTfac8juLxlu6aSikrjEkYufd02pF1UXAvJqByc0ZlF4BkLQ4xFljhPsMn74fw3EpFPtQcsSYaZ4hDmrCXA0lQUCd2uU3FkmysPXUBO31228Sza9F/OZ8njUhbjpe+aX3Cr5Ve0meI4Y0bjuB7Ih8KrYED6medgJQmuA79BWMtYmByUEn8IFFkOfoQoUxV/1ALxiCjzge2fFG8VSAnZSxNhxoIT4ANoAeeA/JFYaiUFSgqUFCh6Bf4Csy7HUf5CTqoAAAAASUVORK5CYII=); }
+.sf[data-sf="speaker.wave.3.fill"] { width: 25.1px; height: 17.4px; --m: url(data:image/png;base64,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); }
+.sf[data-sf="square.grid.3x3.fill"] { width: 18.6px; height: 17.1px; --m: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAA3CAYAAABQOymxAAAAAXNSR0IArs4c6QAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAPKADAAQAAAABAAAANwAAAADfx/p3AAAFOElEQVRoBe2aS6hWVRTH75eVRi/LyF4OisAiIsOioCwJLKtB5qBBhIQ1KKpZEDURnDsqGgQS0aAHFXXJioiKLKwgJAnKCO7F18VraGlY5uP2W+narL3P2fus/dHEr7Pgz15rr7X++3W+c/b+zhkb66WfgX4GTuYZGJQ6PzMzczr+B8FtYC5I449Rtxt8CN4fDAYzlJHAcSYVq8DN4JzIedw4SjEF3iP/kxb/GByS9zC4EZwFUjlCxQ7wNhxfpk6XLY2A74BX3iAwmhDs+WCrl4C4F9LOUXc52FbBsTblcNk0sK6iEQ19yJJT+Yo6KsplCccHFbkauthyWP0UayT6/YntMVdqEC3Laq9Qu6IM7cIhP4c7K3I1NHBohZalAS/QoIrS5sjvru0320V3mQm4BH2Wsb2q7UeUUxrwqVGkz7A5VvdlH4+yeVYfliPKKw04ChwVox/wqKxkbhz9CpuZ+d3oXtXmHCCpsfNyEFkOqztSQ0g2r7TC34R0v/K1hrLF+xt9s9oVZWgXjl3kbavI1dDQD63oLHnoLwFHgFf2EmifobIHXuFNPhG3nVL27EGwH6nk+In4OYGgRiFxOfi+o8Gj+D8F17ZxU/8A6NpPHyZmA7giw7Ea3wQoySGcbwHZrGQl2uznoiA5F1/utPQrl97BXK7Ww3E++tkgbVNOS3vg+EtjcyUc8/AJRypyWhKOQ6njf2+ns92YEGZV9rJXgdwKTzOzvzQSTQUcp2FeDdr21rLCU3BMUmYFjtk4hSN3Ht4Jx/YsgcdBI3LDmAZd8jMBd7RxUv80+K2LAP8WIAf8SKgbgDXgD9Al3xJwTUTgNUi8r4s98R/EXmj5sR9NYrpMudNflHA805WU+Hdhyz2nTkjamBB5zOdtKyT86ElKYp5TDupldfckfo/5uHKkZWnjcX0a7LAXaQy9kmeh/PZrxbYrz/ULagmItxxRemnA8m9DrdgbyjD50p7Ns3w1fbEcUV5pwFHgqBj9gEdlJXPj6FfYzMxho3tVORKqDJMvuTbP6srrKbN5pRWe8DAnMZNqs83bj75X7Ypy0sTuRLeTaFxFNdv30oBfK1K2O9Oc19vDirUhh0n7k8h3i9FNp+zN32xWd9SwcZgNal5zrEspyZf3U18Bj8i5+tkWjgup3+whIEbO1Y+lHNb2nJaWkrAEZE9L+D5iNbZQNoQOyFV0F7gJ5M7DU/g2wLGVsiFwyIntXnADkE1F2m85D8vlPw5H9nLG38vIz0B6aUQD5lI6j4onQNclLS/E13M5Ne6ocMhx70nQ9UJ8nJhX4ZCbTiRwLKDiKSCXdNv+Wi9peSEebnoRSZchHQUTwCufEyhfDATBvhLs9hIQ9w6IFgF7EdgHvLI+dKBGgf0lbwsmLjqHUi8DqJWVtp8kD3MuX2o5rF56Dt9jA5263En/FToq3MtPmDXF3RoMh/xzcYvaFWW276UBX1zRgIbav2fkD7sz1FFR2nbnkxdd4k4eyxGllAZc8kUkxrBv661uQjpV2+5/wRE1aMkjx6ga/YBHdWV1XKUVHubdrs2xurbnKW2e1T25GpPNKw14n2ZXlPb8K+fhxq7JwWXbtXyO1BCSzSsN+IuQ7ldCDls82e5t8qeGSMsxTW3rCSpEtysb26sLtTz0rwPy+sQr8j2kvM4Mgn07kDOqV34gMHp2Y8tL9WNeAuI2geG+7yJR9rHjILeXlY5MgZfBpWGkRqH+VvAx2A/aRA7+O8CLIJowpaF+GfgMHABtIl8qTAL5PrTt/bFS9WU/A/0MnOQz8A9DQPPRqGmXHAAAAABJRU5ErkJggg==); }
+.sf[data-sf="sun.max"] { width: 18.9px; height: 18.9px; --m: url(data:image/png;base64,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); }
+.sf[data-sf="sun.max.fill"] { width: 18.9px; height: 18.9px; --m: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAD0AAAA9CAYAAAAeYmHpAAAAAXNSR0IArs4c6QAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAPaADAAQAAAABAAAAPQAAAAAS0SmVAAAFA0lEQVRoBe2aW6hVRRjH9/aI5vWo4aXwhpxQNChffDCC6iEoEgVTHxIkood8UhG8RL1FLz5EDwqKBIld6KGEsgd70ChIUlE0b3EyLVBDrEyxEj39/rp3zJk9a++ZtWeW+xzWB/+zZ775rrNmzZrLqVRKKnug7IGyB9rsgb6+vvFgcptmBo46yb4JbgPRtoETec5ISXLW3VT7/3kip7ncakNya+ZT7HGoPeLgJWUVnbQrmaqLmZLXCUmnzM9pu0za2S0WkzloTG1CKnxYmqEQw0zwoMnzLQc9aZwsw/Bl0Au+oz7F11FN7pJD/qKDl8nCpzp9LwLnwGXKazOFYzTg4BIw6RSVoMSR/8Qw8DXlob6xIauEvzX0VbwFxvjaCJLD8BBwE9h0Eob36grZKngWLALtJoyJu/RQUDIhwph/p+bE/vkBxqQQWyGy2NYT/sZ2WqvvCbEVLIuTLvBRhnO9Z0kIfzszfB6APyqJU9MoTpT4x44g9G4lmdGx+4vD3354uRL2fqfqiVerVW0WXqKumf/FOp/fY7T1GfWGInpjYc4BE4H0r4DT6P3ObzM6RuNUQ2A/5RfQu2Hw0hdJYCh4G/SCfWC2yyt8vY9rwEFQ311R/J/uUDoKNgHndxf+NPA5OA+2gpEuXx3BI7jXwFXgS38huAF0dUQCIUEQ9AjwIchLX6LYHeLzvsoS7HCQ9XkJ6YTjCGsO6Hwi0F0hmbWQ3Ut70FK58B4iwFUtksjTvD52ItG+q2QznOB+Ag9HDvIa9mbwefojlt2YQ2dFgoSVp97rV1SIRbGTjhWXbWe5zWin7hzeDFWdUM4Hdqdch/epvYJCXnb+BGm2eJXKbWx32ysw/GqRshSMByZpZaiV3j6TmVnG0DrQjLQO7rejoj61mUKktsfNoLE5EpxoYXuLqVMv209S/I31xoxfrYFXWm0TrHqKqr1E1bp/XgtHWv6OsGVcSfss4m2ZO7bhBHXbhx2Dy+U/MG+5Gvrx6JnF4EaTYaPVVr/eoz6piXysprlmoBjVSc5nTYxrq/uqqVMvZ01keme1BbTb1btHmCDsXq/g4DfaJoIUpCc2Fr//2sbx+xi8cTafei/yvzr48Vg4b2eDgXpT8puFPdNxvdOeqg1iuxs48RhRbdvDN3eYPCfZOg5azaihPjREexiqGuKdRyT+DNBJSEyKuhpL0mtk+0bEjN9NEmQKoyT9XoTE92BjYB0bEfBmkHeob0E35iQb99kSnPbRTqLtSXAY+JKuiJ5zGoNJ2wNZbYXwCaAbaEWkY11tQp7Kckzb02AH6AX2078A733wPHA+XfjzwVkg3a+A991ZVkzBfJyOA98Dk3Rq0pJQ0EnpNDAdjG6pgABy9k2lbkvTXdrZQeFM/wN2CNikG81o333TL3Z/tp1RPwNiH02Zbu+VcTIBZL2j2xs14nDw+RZw0Y8wzeueOA5NKzjQ1YqLvoCZOaGZNvKUsd0FPnA5hqdRl2SE6b3SIb4mLZuCEkZ5NFgPXgfeuzJklfhu4KIZeTrTSwdv9rulJ+/9hJHVpZ/5epyj7n2uhqwr8Wvw013oYXwh0LmUHG0Dw7x6qyaE/AJg05JAG0pci5frQJ+7RSH6hcsSoP7XxKaXiw7EuRgoOoii/ZVJF93j98tf0U+64UCRxHV7MXiJGWwK+NuYybSBeHTwZlzLjCSXA/3DjP7lcvWgT7hMsOyBsgeS98B/3TkO4PDDevEAAAAASUVORK5CYII=); }
+.sf[data-sf="sun.min"] { width: 17.4px; height: 17.4px; --m: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADgAAAA4CAYAAACohjseAAAAAXNSR0IArs4c6QAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAOKADAAQAAAABAAAAOAAAAAAun0ppAAAE4klEQVRoBe2aOYgUQRSGnVW88IZV8UK8AjXY1UDEC8TAQAU1UlDBRMw3Ugw9wEADDcTExFVZMFAQ8UBRRAQv8Ay8Axdvxftcv1+615o31dPdMz276zgPfrqO9/73XnVXTVXtdutWk9oI1EbgvxiBtra2HmAi6FN1CZNUI3gEJG/A4qpKkoRuKDNH3lEeUBVJkog+TZ80VEWCSoLsLpkMn1PvW00JTiKhq0GSj3nO7bLJEVz3UoPDdiDIlWJfjt9E/nDQHxwCP8BTsDSRYZlK+JkB7gDJWTCmTEq/OcS75cGRL5TH+bWzaYW/D2h1fKp4Nht2wwJxOIquv1VGLdMqjqa7zpxy4mlSlyKim0a3jfot05Z19SGEnwzpnVwu99O0lV9l9MaAm8Eoah5uKJ81ngE/K8DHwK/m/ox4q78aqVY0yPVpTAEvGMXWvzT+Evqj6VkEFJTmaz/wGTwBV8AxeG7zLCrwDEZhLLiLvuw7VwhoGjgKfoE4uYjCws6NOKF3Aq0DW8BPkFaaMei6uxsFB46kzcroa7czIuF4JlJLNQejGAlKPC1geYTOZdo1554DzaepYDboAaxco2E2c82unlav4+okuNG8ibCqz268LxLa68EO8B1YafbZdEobkY0HX02E36ivSRIQevOBDsFWusbCQ1R7bWTU1yVJLtRBX0naN3kx7O+0J0FpYfkAXDlRSkAQ7HRJgvLkUrhibSDvBRrAkGLK9C8EVrR4pBZIhgLtkFxpKkaEogZYcSa//ggMnvCUfAKro5zQZxeXZ7Sl2d/mUWOr45ArB/IUnApK84BuBiS640l2kYXiFVk48pnyUIe7vUj7HkdPxTPtnSUUsN9l+C74aNDJgfAlhCZaqAquJH2jrd8oV3pTmeA2OGVL+MbpK6X41hhZ/rB7EAXtc11R2yi3QWVfgvYtvETvhjUM6h9Mu/dNG51i1XrTafn/dLMJ0EBeN7qPqOt4VVx4zSPB6eC93+M5J8qCvqZAL3xoLvSM0o9rx9ZOj31RNuhOAuFtne5dG6N0ve0Y+LZRebrozAFWluQpJaxAomt9K+vjzDGIjTOOI7Jf5CBcycLgrlHwffqRPOrARhdaruhEYudZUY6KdBLEVjeqoLw9jTNs1no4jqbhqJgugWnT7NtLbqc99k2isx7YbZre3rSKBZ2WmGBWAp/oc10C8hYe6nVA8/ck8MnmtDFUXJ8ot/kiDdq0up4Hh8EZoB1PlOjQHPvmK56QdaCgQLEkoxJy21uodN1rCyVNgPpcfXPSTcSWdZ7cADK5YbCDn3mdQLXwaHW1PyE05cl7anuB99SfRWCpRoxAtBVbAFrZLtktXUE86OtHeCaIuhc9l+TuBZ7pcOhseAH9BzyzF5zorvM1CGV/9l4KGXG2KXTIU3/wWVaolUELxKccR2FxfgbUkRQ4GQH0m+jK00gDT0ea5Xi4x97X5lEruUlTwsaok79tK9lBuyGk7qeiEX0F7PGmXT+LAvza64Z/8KH4Rw5mwV3AAbWcKUk51A4k3fGkgDFZA370Vy39Purvkzrx909m2cFaBDYAzALDOth15d2R1FzwEkh0xxN5kVX5aCrggYTuKzNHdFunv1H8+0Ii/8V/Op123p6KuvLr9e+/viADkhkJjgNtqi+DhqpJrpZIbQRqI1B0BH4DqrtL+oMUnYQAAAAASUVORK5CYII=); }
+.sf[data-sf="sun.min.fill"] { width: 17.4px; height: 17.4px; --m: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADgAAAA4CAYAAACohjseAAAAAXNSR0IArs4c6QAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAOKADAAQAAAABAAAAOAAAAAAun0ppAAAEOElEQVRoBe2ay0tUURzHGxPMSnuAFlYiWS2yhY+FRGQQLSJqkZsoyE2r/gWjZY8/oBYRLZOiXUEEvSQQKbICLYOwTEPBLAlLC9Tp84UZvZ65r7n3jjOO84Pv3PP4vb7nvs45d1atKkhhBAojsCJGIB6PF4PdoDTvCEOqAQwCyQQ4kVckIdQrZhb5Rbk8L0hCRJemndTnBUGRgN1Lg+EY9bX5RHAPhN4kSH7l2JKz5EhuddDksN0AYkHsw8T1FY8AZeAumAEj4KQvw5BKxGkG/UDSCapDurQ3x/F1RbDIX8o77bWjacV/KRi1xFSxMxrvhhccJ0fRGu+soRZplUBN1mCWsu/bpCiNjPoM3Tj190Zb1NUvOJwynPbHYrFZoy18ldGrBn2JUdR92B7eq7cH4pwGfxJxde83e1staKT1RMO5Lo068J1RHF1wY19Cfwc9x4GS0v26HkyDIdADHuLnA0dXwc8mFGrAR/Rln10hoUbwAMwBL+lG4Wh2M/YZnUSLwGUwC9KVDgxyd3aj5MD9dFkZ+prtVPkcz6VTI6kYuGckG7Qqkrl1JknoQlA2DnYdS3d6PCKRYC3455BomObcePDA4GYYFi623R5j66s7rfeg6ZHkdK+MgXVmX0T1Oj/vSbdYtlM1Ei8B9WCzmzF9WtdlipxCH9OPk2iAE3k6bn+kEJQBDj+Bt+Ab9TanALQ3ufRF0eXon7wOEWAQKM9h6v42slDsAVaZplKJkxSh/YZVMQPlrpSgNBBHr6UhI55261K2JFPOIPb7DKdrqO8y2pLVFIfJjoiOTv434l/zXKuobbu1QWU7gs8NpXHqvUZbsvo7WcjQ0dY/D54J4r0zYg5S1/JqkdgRPIfGs4TWAMdWHE4uslqofF4oZqTk5v8UEV8lomqtqjxnfGfB9VzspYzOQeM+iLp63kcOrnmGfQ/K+Qio8EokQP8cNjWcleEAtvMmdpfofKdXIXFJ3PLSC9ivxXAocgHjLjbjmqwAPyO+NrWebFwcKYs1kjkTMcFLWaRjHxqCVyMiqUVzqFvHPsOQrUoqApJaNGsCn7tCgrpcNW1KR7SebAehnupLNiokqgfPFaDPZG4ySafWk7WZSi6tESMRTbqPgFEe4eaULiVH9PWe3A+c9kVf4Mfcubbzo1XFXtCFvtvsJsXWdwPJaq/T+jq47ds4hCIxL4Kk6INPawh3zqY4fpKMYjkedrYI30OcKmDusWrm5FvSeRxvtfFq12ajFrhJt4SZYyWkzbbAAeYNcWq9VKjGf4BMzEGtMfUHhuQHH8WU3JlXiLKAYwUTSQV8DBqi9O/kizj6qqX3o75PXgNlTrpZbSexcnAAbMlqIpkIDqkWMA4k2uNpy0ScrPmE0ICYWWSKsr75LX+ByIr4p9NTy9lTUVt+Jcv/9CUYQGYbeAQ0qX4NtLlckMIIFEZgBYzAf0GIdQIMIvIEAAAAAElFTkSuQmCC); }
+.sf[data-sf="xmark"] { width: 15.5px; height: 14.6px; --m: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAvCAYAAAChd5n0AAAAAXNSR0IArs4c6QAAADhlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAAqACAAQAAAABAAAAMqADAAQAAAABAAAALwAAAADOc96iAAADsUlEQVRoBe2ZW4hNYRTH52bG3WSamppiTGZcoygkJTXUJJcYDyY1T/NExItLigdRE2XyIJNLKZJbSiJNSSEURWmah8m4jXHLZdxv47c4u3Ns69vf2Xv22fvBWfVrn70u/7W+fXC+/cnJyVr2CWSfwP/9BHp7ewugGV5AGyyI8onQrwpa4Q2chxGB+lO4BlLtOzfLA4n5LKJPNXSlNudzq0+ZP+kUnnYJye03WBpIMM0i9CvhEbjtK47cNGWSaRQ1uZUS9yK4MJkZ3id0R0InaNYWqBNKJXBfU8T3BWoDCRuK0CuHDtBMHt5cQ6ndTXEFPNSU8X2CGruKPQOdMmgHzeTvZp1dxZKByGh4onXA9wFmWyQ8w9SXwj3Q7AfOek8BP0HExkC31glfD8z0o+fkUjcc7oBmP3E2OLmhXRGdAPKbotlbnNP8NCO/GG5pYvhkEY1+9HzlIj4ZXoFmr3FOSUeQvCFwXRNJ+Famo9OnHBpNBfm11ewlzkleDYgPgitaccK31qs+1BgNZ8A7wzDP8Y/XGuIfAJfAZOu1uoz6mGQWvDdM9BR/deoA3BfBRUO+uDen5kf6meZz4KNModhjfJUyENdCOKfkOK5tkQ6uNWOSefDZmch1fcC9/A6dcflTb5s03Vh8TDUfZNuimckvubtjGdirKUMtBtkdp2t7vfRijbGCZSB7I5vtJ8H/ljzK1THgCssqjhLPC3um0AUZcLplyLHEh1ly4g3zpHdavg0nfJMPQ+Od1tCdwbY7U6Z5vUbeYINcPG4G2uoxvJzAmOwygYHxTO3qyiAbTFPib4X+sNGW45KN9pbh1nkM+NfTJs/rW7tAvCja6RPdaLzKYxFXif3z5x/fDo+as8T6RboYGjaCvMVpdgOn8V8kYru0ooTvFNeCSBZDowYwLeI2sWLbIOTsAZMdI5Bv0+hTnAb1ICcbmt3FWZJOA/JyYZ8mkvAd5pqJH+vf7xR1iJv2UXKcU5rOIpwc8mUxh8BkBwiEux9DcBHIaZ9m7TjLnAH9XKnLgyOaaMIX3g4ZwVowvVN0ECv3M7w7l/p8OA4ma3bX+L5HuQbkaFSzTpzB/s/CNQk6BZCZt0iE5UDO9D4ux/6jXPP06Ra9QvB6r18dqAGiB0GzLpxVgUQtRejKdsZ00tJtKdfDCJ4Atz3DMU6vCMeLvunsqydQBwTlHTzV5BRxYiAxn0X00U4jW3zKJNMRXAInoQUqkpHMf6KffDNbQPZgmyCeTWXml5rtkH0CkTyBX82Mx+7Bm+LUAAAAAElFTkSuQmCC); }
+</style>
+
+<div class="sayfa">
+  <header>
+    <div class="ust">TouchBar2 · tasarım önizlemesi · 1004 × 30 pt</div>
+    <h1>TouchBar2 Liquid Glass</h1>
+    <p class="giris">Apple'ın Liquid Glass kaynaklarındaki kuralları gerçek ölçekte Touch Bar'a uygulayan, dokunulabilir bir önizleme. Tuşlara bas, basılı tutup kaydır, kaydırıcıyı sürükle. Aşağıdaki seçeneklerle Regular/Clear varyantlarını ve sistemin erişilebilirlik kiplerini deneyebilirsin.</p>
+  </header>
+
+  <section class="sahne" aria-label="Touch Bar önizlemesi">
+    <div class="olcek" id="olcek">
+      <div class="cerceve"></div>
+      <div class="cubuk" id="cubuk">
+        <canvas id="ortam"></canvas>
+        <div class="dim"></div>
+        <div class="icerik" id="icerik">
+          <div class="cam" id="esc" data-eylem="esc" hidden><span>esc</span></div>
+
+          <!-- uygulama alanı: Safari -->
+          <div class="panel" data-panel="uygulama">
+            <div class="grup">
+              <div class="cam" data-eylem="geri"><i class="sf" data-sf="chevron.left"></i></div>
+              <div class="cam" data-eylem="ileri"><i class="sf" data-sf="chevron.right"></i></div>
+            </div>
+            <div class="cam genis" data-eylem="ara"><i class="sf" data-sf="magnifyingglass"></i><span>Ara veya adres gir</span></div>
+            <div class="grup">
+              <div class="cam" data-eylem="sik"><span class="nokta" style="--n:#ff5f57"></span></div>
+              <div class="cam" data-eylem="sik"><span class="nokta" style="--n:#febc2e"></span></div>
+              <div class="cam" data-eylem="sik"><span class="nokta" style="--n:#28c840"></span></div>
+              <div class="cam" data-eylem="sik"><span class="nokta" style="--n:#3a8bff"></span></div>
+            </div>
+            <div class="cam simge ton" data-eylem="yeni" title="Birincil eylem: tonlu"><i class="sf" data-sf="plus"></i></div>
+          </div>
+
+          <!-- F tuşları -->
+          <div class="panel gizli" data-panel="fn"></div>
+
+          <!-- emoji şeridi -->
+          <div class="panel gizli" data-panel="emoji">
+            <div class="cam simge" data-eylem="kapat"><i class="sf" data-sf="xmark"></i></div>
+            <div class="serit" id="serit"><div class="serit-ic" id="seritIc"></div></div>
+          </div>
+
+          <!-- genişletilmiş Control Strip -->
+          <div class="panel gizli" data-panel="genis">
+            <div class="cam simge" data-eylem="daralt"><i class="sf" data-sf="xmark"></i></div>
+            <div class="bosluk"></div>
+            <div class="grup">
+              <div class="cam" data-eylem="parlak-"><i class="sf" data-sf="sun.min"></i></div>
+              <div class="cam" data-eylem="parlak+"><i class="sf" data-sf="sun.max"></i></div>
+            </div>
+            <div class="cam simge" data-eylem="mc"><i class="sf" data-sf="rectangle.3.group"></i></div>
+            <div class="cam simge" data-eylem="uygulamalar"><i class="sf" data-sf="square.grid.3x3.fill"></i></div>
+            <div class="grup">
+              <div class="cam" data-eylem="klavye-"><i class="sf" data-sf="light.min"></i></div>
+              <div class="cam" data-eylem="klavye+"><i class="sf" data-sf="light.max"></i></div>
+            </div>
+            <div class="grup">
+              <div class="cam" data-eylem="onceki"><i class="sf" data-sf="backward.fill"></i></div>
+              <div class="cam" data-eylem="oynat"><i class="sf" data-sf="playpause.fill"></i></div>
+              <div class="cam" data-eylem="sonraki"><i class="sf" data-sf="forward.fill"></i></div>
+            </div>
+            <div class="grup">
+              <div class="cam" data-eylem="sessiz"><i class="sf" data-sf="speaker.slash.fill"></i></div>
+              <div class="cam" data-eylem="ses-"><i class="sf" data-sf="speaker.wave.1.fill"></i></div>
+              <div class="cam" data-eylem="ses+"><i class="sf" data-sf="speaker.wave.3.fill"></i></div>
+            </div>
+            <div class="cam simge" data-eylem="siri"><span class="siri-kure"><i></i><i></i><i></i><b></b></span></div>
+          </div>
+
+          <!-- parlaklık / ses kaydırıcısı -->
+          <div class="panel gizli" data-panel="kaydirici">
+            <div class="cam simge" data-eylem="daralt"><i class="sf" data-sf="xmark"></i></div>
+            <i class="sf" data-sf="sun.min.fill" style="margin-left:10px;opacity:.7"></i>
+            <div class="kaydirici" id="kaydirici">
+              <div class="ray"></div><div class="dolu"></div>
+              <div class="topuz"><div class="mercek" id="mercek"><div class="ray"></div><div class="dolu"></div></div></div>
+            </div>
+            <i class="sf" data-sf="sun.max.fill" style="margin-right:10px"></i>
+          </div>
+
+          <!-- daraltılmış Control Strip -->
+          <div id="darSerit" style="display:flex;gap:4px">
+            <div class="cam dar" data-eylem="genislet"><i class="sf" data-sf="chevron.left"></i></div>
+            <div class="cam simge" data-eylem="parlaklik" data-kaydir="1"><i class="sf" data-sf="sun.max.fill"></i></div>
+            <div class="cam simge" data-eylem="ses" data-kaydir="1"><i class="sf" data-sf="speaker.wave.2.fill"></i></div>
+            <div class="cam simge" data-eylem="sessiz"><i class="sf" data-sf="speaker.slash.fill"></i></div>
+            <div class="cam simge" data-eylem="siri"><span class="siri-kure"><i></i><i></i><i></i><b></b></span></div>
+          </div>
+        </div>
+        <div class="hap gizli" id="hap" data-eylem="siri"><canvas id="dalga"></canvas></div>
+      </div>
+    </div>
+    <div class="sahne-alt"><span id="durum">Uygulama: Safari · Control Strip daraltılmış</span><span>13" M2 MacBook Pro · fiziksel esc</span></div>
+  </section>
+
+  <section class="denetim" aria-label="Önizleme seçenekleri">
+    <div class="secim">
+      <span>Gösterim</span>
+      <div class="dilim" data-secim="kip">
+        <button aria-pressed="true" data-deger="uygulama">Uygulama</button>
+        <button aria-pressed="false" data-deger="genis">Geniş şerit</button>
+        <button aria-pressed="false" data-deger="kaydirici">Parlaklık</button>
+        <button aria-pressed="false" data-deger="fn">fn</button>
+        <button aria-pressed="false" data-deger="emoji">Emoji</button>
+        <button aria-pressed="false" data-deger="siri">Siri</button>
+      </div>
+      <p class="ipucu">Panel değişince içerik kaybolmaz, büyüyüp netleşerek belirir (Apple: "materialize", solma değil).</p>
+    </div>
+    <div class="secim">
+      <span>Cam varyantı</span>
+      <div class="dilim" data-secim="varyant">
+        <button aria-pressed="true" data-deger="regular">Regular</button>
+        <button aria-pressed="false" data-deger="clear">Clear + karartma</button>
+      </div>
+      <p class="ipucu">Clear yalnız medya üstünde, kalın ve parlak simgelerle ve bir karartma katmanıyla kullanılır. İkisi aynı yerde karıştırılmaz.</p>
+    </div>
+    <div class="secim">
+      <span>Sistem ayarları</span>
+      <div class="anahtarlar">
+        <label class="anahtar"><input type="checkbox" id="aSeffaf" data-ozellik="seffaflik" data-acik="az"><i></i>Şeffaflığı azalt</label>
+        <label class="anahtar"><input type="checkbox" id="aKontrast" data-ozellik="kontrast" data-acik="yuksek"><i></i>Karşıtlığı artır</label>
+        <label class="anahtar"><input type="checkbox" id="aHareket" data-ozellik="hareket" data-acik="az"><i></i>Hareketi azalt</label>
+      </div>
+    </div>
+    <div class="secim">
+      <span>Diğer</span>
+      <div class="anahtarlar">
+        <label class="anahtar"><input type="checkbox" id="aEsc"><i></i>Çubukta esc tuşu</label>
+        <label class="anahtar"><input type="checkbox" id="aTon" checked><i></i>Birincil eylemi tonla (＋)</label>
+        <label class="anahtar"><input type="checkbox" id="aOrtam"><i></i>Ortam ışığı</label>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:grid;gap:18px">
+    <div class="ilkeler-bas">
+      <h2>Kaynaklardan ilkeler ve TouchBar2'deki karşılığı</h2>
+      <p class="giris">Her kart Apple'ın söylediğini, bu önizlemede nasıl uygulandığını ve şu anki Swift kodunda (<code>Cam.swift</code>, <code>Cubuk.swift</code>, <code>Siri.swift</code>) durumunu gösterir.</p>
+    </div>
+    <div class="ilkeler">
+      <article class="ilke"><h3>Mercek (lensing) <span class="rozet kismen">kısmen</span></h3>
+        <p>Eski malzemeler ışığı dağıtıyordu; Liquid Glass ışığı gerçek zamanlı büküp yoğunlaştırır. Ayrım gölgeyle değil, kenarda kırılan ışıkla yapılır.</p>
+        <p class="uygulama">Önizlemede kenarda iki kat ışık çizgisi, camın kalınlığı için iç parıltı ve sürüklenen topuzda altındaki rayı %130 büyüten gerçek bir mercek var. Swift'te topuz yalnızca saydamlaşıyor, altını büyütmüyor.</p></article>
+      <article class="ilke"><h3>İçeriden aydınlanma <span class="rozet var">var</span></h3>
+        <p>Dokunuşa ışıkla cevap verilir: parlama parmağın altından başlar, tuşa yayılır ve yakındaki cam öğelere ulaşır.</p>
+        <p class="uygulama">TouchBar2'de var (<code>SiviBasma</code>, <code>Isik.ortak</code>). Önizleme aynısını yapıyor: parmak ışığı, yayılan halka, ortam ışığının o noktada yanması.</p></article>
+      <article class="ilke"><h3>Jöle esnekliği <span class="rozet var">var</span></h3>
+        <p>Malzeme etkileşimle birlikte hareket eden jel gibi bir esnekliğe sahip; dokununca öğe geçici olarak cama "kalkar", dururken sessiz kalır.</p>
+        <p class="uygulama">Basınca %10 büyüme, parmak yönüne esneme, bırakınca salınarak oturma. Gruplarda camın içinden kabaran damla. Swift'teki yay değerleri önizlemeye taşındı.</p></article>
+      <article class="ilke"><h3>Belirme, solma değil <span class="rozet kismen">kısmen</span></h3>
+        <p>Cam nesneler solarak değil, ışık bükmesi yavaşça artıp azalarak belirir ve kaybolur.</p>
+        <p class="uygulama">Paneller <code>.netles</code> ile büyüyüp netleşiyor, Siri hapı <code>.damla</code> ile geliyor. Ama parlaklık/ses kaydırıcısı hâlâ düz <code>.transition(.opacity)</code> kullanıyor (<code>Cubuk.swift:25</code>); ona da <code>.netles</code> verilmeli.</p></article>
+      <article class="ilke"><h3>Uyarlanan gölge <span class="rozet yok">yok</span></h3>
+        <p>Cam yazının üstüne gelince gölge koyulaşır, düz açık zeminde hafifler. Büyük öğeler daha derin gölge ve daha belirgin kırılma alır.</p>
+        <p class="uygulama">Önizlemede gölge ortam ışığının parlaklığına göre değişiyor (<code>--golge</code>). Swift'te gölge sabit <code>.black.opacity(0.55)</code>; Siri ışığı yanınca hafifletilebilir.</p></article>
+      <article class="ilke"><h3>Ton yalnız birincil eyleme <span class="rozet var">var</span></h3>
+        <p>Ton süs değildir; yalnız birincil öğeyi ve anlamlı durumu vurgular. Her şey tonlanırsa hiçbir şey öne çıkmaz.</p>
+        <p class="uygulama">Önizlemede yalnız Safari'nin "Yeni sekme" tuşu mavi. TouchBar2'de ton sessiz ve Night Shift açıkken kullanılıyor, bu da kurala uyuyor.</p></article>
+      <article class="ilke"><h3>Camın üstüne cam yok <span class="rozet var">var</span></h3>
+        <p>Cam öğeleri üst üste koymak arayüzü kalabalıklaştırır. İlgili tuşlar tek bir kapta birleşir; üstteki öğeler dolgu ve canlılıkla ince bir katman gibi durur.</p>
+        <p class="uygulama">Gruplar tek kapsül (<code>Grup</code>), iç tuşlar dururken camsız. Damla yalnız dokunurken kabarır; Apple'ın "geçici olarak cama kalkma" dediği bu.</p></article>
+      <article class="ilke"><h3>Kontrol şekli <span class="rozet var">var</span></h3>
+        <p>Üç şekil: sabit, kapsül (yarıçap = yüksekliğin yarısı) ve eşmerkezli (dış yarıçap eksi boşluk). Dokunmaya uygun yerlerde kapsül tercih edilir.</p>
+        <p class="uygulama">Touch Bar dokunmatik bir yüzey, bu yüzden kapsül: 26 pt tuş, 13 pt yarıçap. Çubuk köşesi 5 pt olduğundan uçtaki tuşlarla arasında küçük bir açı farkı kalıyor; orijinal donanımda da öyle.</p></article>
+      <article class="ilke"><h3>Regular ve Clear <span class="rozet kismen">kısmen</span></h3>
+        <p>Regular her boyutta, her içerikte kullanılır ve uyarlanır. Clear daima daha saydamdır, uyarlanmaz; medya üstünde, kalın simgelerle ve karartma katmanıyla kullanılır.</p>
+        <p class="uygulama">TouchBar2 yalnız Regular kullanıyor, bu doğru. Clear, QuickTime film şeridindeki tuşlar için düşünülebilir (altında küçük resimler var).</p></article>
+      <article class="ilke"><h3>Erişilebilirlik kipleri <span class="rozet yok">yok</span></h3>
+        <p>Şeffaflığı azalt camı buzlu yapar; karşıtlığı artır siyah/beyaz ve karşıt bir kenarlık verir; hareketi azalt etkileri hafifletir, esnekliği kapatır.</p>
+        <p class="uygulama">Önizlemede üçü de çalışıyor. Swift kodu bu ayarları okumuyor; <code>accessibilityReduceMotion</code>, <code>accessibilityReduceTransparency</code>, <code>colorSchemeContrast</code> ortam değerleriyle eklenmeli.</p></article>
+      <article class="ilke"><h3>Yalnız kontrol katmanı <span class="rozet var">var</span></h3>
+        <p>Liquid Glass, içeriğin üstünde yüzen gezinme ve kontrol katmanına aittir. İçeriğin kendisi cam yapılmaz.</p>
+        <p class="uygulama">Touch Bar'ın tamamı kontrol katmanı. İçerik sayılabilecek tek şey ortam ışığı ve film şeridi küçük resimleri; onlar cam değil, camın altında.</p></article>
+      <article class="ilke"><h3>Odak kaybında geri çekilme <span class="rozet yok">yok</span></h3>
+        <p>Mac'te pencere odağı kaybedince cam görsel olarak geri çekilir ve dikkati yönlendirir.</p>
+        <p class="uygulama">Siri hapı açıkken arkadaki içerik bulanıklaşıp kararıyor; bu var. Uzun süre dokunulmayınca sistem çubuğu zaten kısıyor, ayrıca bir şey gerekmez.</p></article>
+    </div>
+    <div class="kaynak">
+      <span>Kaynaklar:</span>
+      <a href="https://developer.apple.com/videos/play/wwdc2025/219/" target="_blank" rel="noopener">WWDC25 · Meet Liquid Glass</a>
+      <a href="https://developer.apple.com/videos/play/wwdc2025/356/" target="_blank" rel="noopener">WWDC25 · Get to know the new design system</a>
+      <a href="https://developer.apple.com/design/human-interface-guidelines/materials" target="_blank" rel="noopener">HIG · Materials</a>
+      <a href="https://developer.apple.com/design/resources/" target="_blank" rel="noopener">Apple Design Resources</a>
+      <a href="https://developer.apple.com/sf-symbols/" target="_blank" rel="noopener">SF Symbols (tuşlardaki simgeler, macOS'tan birebir)</a>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+  const kok = document.documentElement;
+  const olcek = document.getElementById('olcek');
+  const cubuk = document.getElementById('cubuk');
+  const icerik = document.getElementById('icerik');
+  const durum = document.getElementById('durum');
+  const azHareket = () => kok.dataset.hareket === 'az' || matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ölçek: sahneye sığsın ama 0.75'in altına inmesin (telefonda yana kaydırılır)
+  function olcekle() {
+    const w = olcek.parentElement.clientWidth - 48;
+    const k = Math.max(0.75, Math.min(1.6, w / 1004));
+    olcek.style.setProperty('--k', k.toFixed(3));
+  }
+  addEventListener('resize', olcekle); olcekle();
+
+  // F tuşları ve emoji
+  const fn = document.querySelector('[data-panel="fn"]');
+  for (let i = 1; i <= 12; i++) fn.insertAdjacentHTML('beforeend', `<div class="cam" style="flex:1;min-width:0" data-eylem="F${i}"><span>F${i}</span></div>`);
+  const emojiler = '😀😂🥹😍🥳😎🤔😴🙌👏👍🙏💪🔥✨🎉❤️💙💜🧡🌊🌸🍀☀️🌙⭐️🍕☕️🎧📸✈️🏝️💆‍♀️🧖‍♂️🕯️'.match(/\p{Extended_Pictographic}(‍\p{Extended_Pictographic}|️)*/gu);
+  const seritIc = document.getElementById('seritIc');
+  emojiler.forEach(e => seritIc.insertAdjacentHTML('beforeend', `<div class="cam" data-eylem="emoji" data-serit="1"><span>${e}</span></div>`));
+
+  // ---------- ortam ışığı ----------
+  const tuval = document.getElementById('ortam'), c = tuval.getContext('2d');
+  const dpr = Math.min(2, devicePixelRatio || 1);
+  tuval.width = 1004 * dpr; tuval.height = 30 * dpr; c.scale(dpr, dpr);
+  const SIRI = ['#e98dbf', '#3d5ad6', '#8c6fe8', '#f0a066'];
+  let siriAcik = false, ortamAcik = false;
+  const dokunma = { x: 0, guc: 0, hedef: 0 };
+  let ortalama = 0;
+  function ortamCiz(t) {
+    c.clearRect(0, 0, 1004, 30);
+    if (ortamAcik) {
+      const renkler = siriAcik ? SIRI : ['#2f6bff', '#1f3fae', '#3a7bff'];
+      renkler.forEach((r, i) => {
+        const x = 502 + Math.sin(t / 3100 + i * 2.1) * 430;
+        const g = c.createRadialGradient(x, 15, 0, x, 15, 170);
+        g.addColorStop(0, r + (siriAcik ? '55' : '30')); g.addColorStop(1, r + '00');
+        c.fillStyle = g; c.fillRect(0, 0, 1004, 30);
+      });
+    }
+    dokunma.guc += (dokunma.hedef - dokunma.guc) * 0.18;
+    if (dokunma.guc > 0.01) {
+      const g = c.createRadialGradient(dokunma.x, 15, 0, dokunma.x, 15, 55);
+      g.addColorStop(0, `rgba(255,255,255,${0.12 * dokunma.guc})`); g.addColorStop(.4, `rgba(255,255,255,${0.05 * dokunma.guc})`); g.addColorStop(1, 'rgba(90,150,255,0)');
+      c.fillStyle = g; c.fillRect(0, 0, 1004, 30);
+    }
+    // uyarlanan gölge: arkası parlaksa gölge hafifler
+    const hedefParlaklik = (ortamAcik ? (siriAcik ? .7 : .45) : 0) + dokunma.guc * .4;
+    ortalama += (hedefParlaklik - ortalama) * .05;
+    cubuk.style.setProperty('--golge', (0.6 - ortalama * 0.35).toFixed(3));
+    requestAnimationFrame(ortamCiz);
+  }
+  requestAnimationFrame(ortamCiz);
+
+  // ---------- sıvı basma ----------
+  function cubukX(e) { const r = cubuk.getBoundingClientRect(); return (e.clientX - r.left) / r.width * 1004; }
+  let aktif = null;
+  cubuk.addEventListener('pointerdown', e => {
+    const t = e.target.closest('.cam, .kaydirici, .hap');
+    if (!t || t.classList.contains('kaydirici')) return;
+    if (t.classList.contains('hap')) { siriDegistir(false); return; }
+    e.preventDefault();
+    t.setPointerCapture(e.pointerId);
+    const r = t.getBoundingClientRect();
+    aktif = { t, x0: e.clientX, y0: e.clientY, w: r.width, h: r.height, kayiyor: false, deger: null };
+    t.classList.add('basili');
+    yerlestir(e);
+    if (!azHareket()) {
+      const h = document.createElement('i'); h.className = 'halka';
+      h.style.left = t.style.getPropertyValue('--x'); h.style.top = t.style.getPropertyValue('--y');
+      h.style.setProperty('--b', (r.width * 1.6 / 8 / parseFloat(getComputedStyle(olcek).getPropertyValue('--k'))).toFixed(1));
+      isikKatmani(t).appendChild(h); setTimeout(() => h.remove(), 650);
+    }
+    animasyon(t, 'p', 1, 120);
+    dokunma.x = cubukX(e); dokunma.hedef = 1;
+  });
+  function isikKatmani(t) { let i = t.querySelector(':scope > .isik'); if (!i) { i = document.createElement('i'); i.className = 'isik'; t.prepend(i); } return i; }
+  function yerlestir(e) {
+    const t = aktif.t, r = t.getBoundingClientRect();
+    t.style.setProperty('--x', ((e.clientX - r.left) / r.width * 100).toFixed(1) + '%');
+    t.style.setProperty('--y', ((e.clientY - r.top) / r.height * 100).toFixed(1) + '%');
+  }
+  cubuk.addEventListener('pointermove', e => {
+    if (!aktif) return;
+    const { t } = aktif;
+    const k = parseFloat(getComputedStyle(olcek).getPropertyValue('--k'));
+    const dx = (e.clientX - aktif.x0) / k;
+    yerlestir(e);
+    dokunma.x = cubukX(e);
+    if (t.dataset.kaydir && (aktif.kayiyor || Math.abs(dx) > 6)) {
+      // basılı tutup kaydırma: parlaklık/ses kaydırıcısı açılır ve parmağı izler
+      if (!aktif.kayiyor) { aktif.kayiyor = true; aktif.deger = kaydiriciDeger; kipSec('kaydirici', true); }
+      kaydiriciAyarla(aktif.deger + dx / 400);
+      t.style.setProperty('--tx', '0px'); t.style.setProperty('--sx', 1); t.style.setProperty('--sy', 1);
+      return;
+    }
+    if (t.dataset.serit) { seritKaydir(e); return; }
+    if (azHareket()) return;
+    const esne = Math.abs(Math.tanh(dx / 60));
+    t.classList.add('takip');
+    t.style.setProperty('--tx', (4 * Math.tanh(dx / 45)).toFixed(2) + 'px');
+    t.style.setProperty('--sx', (1 + 0.06 * esne).toFixed(3));
+    t.style.setProperty('--sy', (1 - 0.035 * esne).toFixed(3));
+  });
+  function birak(e, iptal) {
+    if (!aktif) return;
+    const { t, kayiyor } = aktif;
+    const r = t.getBoundingClientRect();
+    const k = parseFloat(getComputedStyle(olcek).getPropertyValue('--k'));
+    let icinde = !iptal && e.clientX > r.left - 14 * k && e.clientX < r.right + 14 * k && e.clientY > r.top - 24 * k && e.clientY < r.bottom + 24 * k;
+    if (t.dataset.serit && seritKaydi) icinde = false;
+    t.classList.remove('basili', 'takip');
+    t.style.setProperty('--tx', '0px'); t.style.setProperty('--sx', 1); t.style.setProperty('--sy', 1);
+    animasyon(t, 'p', 0, 550);
+    dokunma.hedef = 0;
+    aktif = null;
+    if (seritKaydi) seritBirak();
+    if (kayiyor) { setTimeout(() => kipSec(oncekiKip, true), 350); return; }
+    if (icinde) eylem(t.dataset.eylem, t);
+  }
+  cubuk.addEventListener('pointerup', e => birak(e, false));
+  cubuk.addEventListener('pointercancel', e => birak(e, true));
+
+  const anim = new WeakMap();
+  function animasyon(el, ad, hedef, sure) {
+    const bas = parseFloat(el.style.getPropertyValue('--' + ad)) || 0, t0 = performance.now();
+    cancelAnimationFrame(anim.get(el));
+    const adim = now => {
+      const q = Math.min(1, (now - t0) / sure), v = bas + (hedef - bas) * (1 - Math.pow(1 - q, 3));
+      el.style.setProperty('--' + ad, v.toFixed(3));
+      if (q < 1) anim.set(el, requestAnimationFrame(adim));
+    };
+    anim.set(el, requestAnimationFrame(adim));
+  }
+
+  // ---------- kipler ----------
+  const paneller = [...document.querySelectorAll('[data-panel]')];
+  const darSerit = document.getElementById('darSerit');
+  let kip = 'uygulama', oncekiKip = 'uygulama';
+  const durumYazi = { uygulama: 'Uygulama: Safari · Control Strip daraltılmış', genis: 'Genişletilmiş Control Strip', kaydirici: 'Parlaklık kaydırıcısı · topuzu sürükle', fn: 'fn basılı · F1–F12', emoji: 'Emoji şeridi · parmakla kaydır' };
+  function kipSec(yeni, gecici) {
+    if (yeni === 'siri') { siriDegistir(true); return; }
+    if (!gecici) oncekiKip = yeni;
+    kip = yeni;
+    paneller.forEach(p => p.classList.toggle('gizli', p.dataset.panel !== yeni));
+    darSerit.style.display = (yeni === 'uygulama') ? 'flex' : 'none';
+    durum.textContent = durumYazi[yeni];
+    document.querySelectorAll('[data-secim="kip"] button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.deger === yeni)));
+  }
+  const hap = document.getElementById('hap');
+  let siriZaman;
+  function siriDegistir(ac) {
+    siriAcik = ac ?? !siriAcik;
+    if (siriAcik && kip !== 'uygulama') kipSec('uygulama');
+    hap.classList.toggle('gizli', !siriAcik);
+    cubuk.classList.toggle('siri-acik', siriAcik);
+    durum.textContent = siriAcik ? 'Siri dinliyor · hapa dokununca kapanır' : durumYazi[kip];
+    document.querySelectorAll('[data-secim="kip"] button').forEach(b => b.setAttribute('aria-pressed', String(siriAcik ? b.dataset.deger === 'siri' : b.dataset.deger === kip)));
+    clearTimeout(siriZaman);
+    if (siriAcik) siriZaman = setTimeout(() => siriDegistir(false), 12000);
+  }
+  function eylem(ad) {
+    switch (ad) {
+      case 'genislet': kipSec('genis'); break;
+      case 'daralt': case 'kapat': case 'esc': if (siriAcik) siriDegistir(false); else kipSec('uygulama'); break;
+      case 'parlaklik': case 'ses': kipSec('kaydirici'); break;
+      case 'siri': siriDegistir(); break;
+      case 'parlak-': kaydiriciAyarla(kaydiriciDeger - .0625); break;
+      case 'parlak+': kaydiriciAyarla(kaydiriciDeger + .0625); break;
+    }
+  }
+
+  // ---------- kaydırıcı ----------
+  const kay = document.getElementById('kaydirici'), mercek = document.getElementById('mercek');
+  let kaydiriciDeger = .6;
+  function kaydiriciAyarla(v) {
+    kaydiriciDeger = Math.max(0, Math.min(1, v));
+    kay.style.setProperty('--v', kaydiriciDeger.toFixed(4));
+    // mercek: topuzun içinde altındaki rayın büyütülmüş kopyası
+    const w = kay.clientWidth, topuzX = Math.max(0, Math.min(w - 30, kaydiriciDeger * w - 15));
+    mercek.style.width = w + 'px';
+    mercek.style.left = (-topuzX) + 'px';
+    mercek.style.transformOrigin = (topuzX + 15) + 'px 13px';
+    mercek.style.transform = 'scale(1.3)';
+    mercek.style.setProperty('--v', kaydiriciDeger.toFixed(4));
+  }
+  kay.addEventListener('pointerdown', e => {
+    e.preventDefault(); kay.setPointerCapture(e.pointerId); kay.classList.add('surukle');
+    const git = ev => { const r = kay.getBoundingClientRect(); kaydiriciAyarla((ev.clientX - r.left) / r.width); };
+    git(e); dokunma.x = cubukX(e); dokunma.hedef = .7;
+    const hareket = ev => { git(ev); dokunma.x = cubukX(ev); };
+    const bitti = () => { kay.classList.remove('surukle'); dokunma.hedef = 0; kay.removeEventListener('pointermove', hareket); };
+    kay.addEventListener('pointermove', hareket);
+    kay.addEventListener('pointerup', bitti, { once: true });
+    kay.addEventListener('pointercancel', bitti, { once: true });
+  });
+  new ResizeObserver(() => kaydiriciAyarla(kaydiriciDeger)).observe(kay);
+
+  // ---------- emoji şeridi: momentum ve yerine oturma ----------
+  const serit = document.getElementById('serit');
+  let seritX = 0, seritHiz = 0, seritKaydi = false, sonX = 0, sonZ = 0, seritRaf;
+  function seritSinir() { return Math.min(0, serit.clientWidth - seritIc.scrollWidth); }
+  function seritKaydir(e) {
+    const k = parseFloat(getComputedStyle(olcek).getPropertyValue('--k'));
+    if (!seritKaydi) { if (Math.abs(e.clientX - aktif.x0) < 8) return; seritKaydi = true; sonX = e.clientX; sonZ = performance.now(); cancelAnimationFrame(seritRaf); aktif.t.classList.remove('basili'); }
+    const dx = (e.clientX - sonX) / k, now = performance.now();
+    seritHiz = dx / Math.max(1, now - sonZ) * 16; sonX = e.clientX; sonZ = now;
+    seritX += dx;
+    const min = seritSinir();
+    const gorunen = seritX > 0 ? seritX * .4 : seritX < min ? min + (seritX - min) * .4 : seritX;
+    seritIc.style.transform = `translateX(${gorunen}px)`;
+  }
+  function seritBirak() {
+    seritKaydi = false;
+    const adim = () => {
+      const min = seritSinir();
+      seritX += seritHiz; seritHiz *= .94;
+      if (seritX > 0) { seritX += (0 - seritX) * .2; seritHiz *= .5; }
+      if (seritX < min) { seritX += (min - seritX) * .2; seritHiz *= .5; }
+      if (Math.abs(seritHiz) < .2 && seritX <= 0 && seritX >= min) { seritX = Math.round(seritX / 36) * 36; seritX = Math.max(min, Math.min(0, seritX)); seritIc.style.transition = 'transform .35s cubic-bezier(.3,1.4,.5,1)'; seritIc.style.transform = `translateX(${seritX}px)`; setTimeout(() => seritIc.style.transition = '', 360); return; }
+      seritIc.style.transform = `translateX(${seritX}px)`;
+      seritRaf = requestAnimationFrame(adim);
+    };
+    seritRaf = requestAnimationFrame(adim);
+  }
+
+  // ---------- Siri dalgası ----------
+  const dalga = document.getElementById('dalga'), dc = dalga.getContext('2d');
+  dalga.width = 268 * dpr; dalga.height = 20 * dpr; dc.scale(dpr, dpr);
+  function dalgaCiz(t) {
+    if (siriAcik) {
+      dc.clearRect(0, 0, 268, 20);
+      dc.globalCompositeOperation = 'lighter';
+      SIRI.forEach((r, i) => {
+        dc.beginPath();
+        const a = 4 + 3.5 * Math.sin(t / 420 + i * 1.7) * Math.sin(t / 1300 + i);
+        for (let x = 0; x <= 268; x += 2) {
+          const zarf = Math.sin(Math.PI * x / 268);
+          const y = 10 + zarf * a * Math.sin(x / (18 + i * 5) + t / (260 + i * 70) + i);
+          x ? dc.lineTo(x, y) : dc.moveTo(x, y);
+        }
+        dc.strokeStyle = r; dc.lineWidth = 1.8; dc.shadowColor = r; dc.shadowBlur = 6; dc.stroke();
+      });
+      dc.globalCompositeOperation = 'source-over';
+    }
+    requestAnimationFrame(dalgaCiz);
+  }
+  requestAnimationFrame(dalgaCiz);
+
+  // ---------- denetimler ----------
+  document.querySelectorAll('[data-secim]').forEach(d => d.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (d.dataset.secim === 'kip') { if (b.dataset.deger !== 'siri' && siriAcik) siriDegistir(false); kipSec(b.dataset.deger); }
+    else { cubuk.dataset[d.dataset.secim] = b.dataset.deger; d.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); }
+  }));
+  document.querySelectorAll('[data-ozellik]').forEach(i => i.addEventListener('change', () => {
+    if (i.checked) kok.dataset[i.dataset.ozellik] = i.dataset.acik; else delete kok.dataset[i.dataset.ozellik];
+  }));
+  document.getElementById('aEsc').addEventListener('change', e => { document.getElementById('esc').hidden = !e.target.checked; });
+  document.getElementById('aTon').addEventListener('change', e => { if (e.target.checked) delete kok.dataset.ton; else kok.dataset.ton = 'yok'; });
+  document.getElementById('aOrtam').addEventListener('change', e => { ortamAcik = e.target.checked; });
+  cubuk.dataset.varyant = 'regular';
+})();
+</script>

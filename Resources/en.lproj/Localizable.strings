@@ -1,0 +1,103 @@
+/* TouchBar2 — English. Keys are the Turkish texts used in the code. */
+
+/* ✨ menu */
+"TouchBar2'yi göster" = "Show TouchBar2";
+"Uygulamanın kendi tuşları" = "App's Own Controls";
+"Erişilebilirlik izni ver…" = "Grant Accessibility Permission…";
+"“%@” için kendi Touch Bar'ını göster" = "Show Own Touch Bar for “%@”";
+"“%@” için hep F1, F2 tuşlarını göster" = "Always Show F1, F2 Keys for “%@”";
+"Touch Bar gösterir" = "Touch Bar Shows";
+"fn tuşu basılı tutulunca" = "Press and Hold fn Key to Show";
+"Tema" = "Theme";
+"Ortam ışığı" = "Ambient Light";
+"Control Strip'i göster" = "Show Control Strip";
+"Control Strip tuşları (en çok %d)" = "Control Strip Buttons (up to %d)";
+"Yazma önerilerini göster" = "Show Typing Suggestions";
+"Çubukta esc tuşu" = "esc Key on the Bar";
+"Mac açılınca başlat" = "Open at Login";
+"Çık" = "Quit";
+
+/* Touch Bar shows */
+"Uygulama denetimleri" = "App Controls";
+"Genişletilmiş Control Strip" = "Expanded Control Strip";
+"F1, F2 vb. tuşlar" = "F1, F2, etc. Keys";
+"Masaüstü alanları" = "Spaces";
+
+/* themes */
+"Klasik" = "Classic";
+"Sade Liquid Glass" = "Minimal Liquid Glass";
+
+/* Control Strip buttons */
+"Parlaklık" = "Brightness";
+"Ses" = "Volume";
+"Sessiz" = "Mute";
+"Oynat/Duraklat" = "Play/Pause";
+"Uygulamalar" = "Apps";
+"Bildirim Merkezi" = "Notification Center";
+"Ekran Resmi" = "Screenshot";
+"Giriş Kaynakları" = "Input Sources";
+"Masaüstünü Göster" = "Show Desktop";
+"Ekran Koruyucu" = "Screen Saver";
+"Ekranı Kilitle" = "Lock Screen";
+"Uyut" = "Sleep";
+"Klavye Aydınlatması" = "Keyboard Brightness";
+"Dikte" = "Dictation";
+"Hızlı Eylemler" = "Quick Actions";
+
+/* bar */
+"Masaüstü %d" = "Desktop %d";
+"Ara veya web sitesi adı gir" = "Search or enter website name";
+"Sekmeler okunuyor…" = "Loading tabs…";
+"Safari'ye erişim izni yok: Sistem Ayarları → Gizlilik ve Güvenlik → Otomasyon" = "No access to Safari: System Settings → Privacy & Security → Automation";
+"Açık Safari penceresi yok" = "No open Safari windows";
+"Açık video yok" = "No open video";
+"Çalan parça yok" = "Nothing playing";
+"Okunuyor…" = "Loading…";
+"Şu an seçilebilecek bir şey yok" = "Nothing to choose right now";
+
+/* Mail */
+"Yanıtla" = "Reply";
+"Tümünü Yanıtla" = "Reply All";
+"İlet" = "Forward";
+"Şuraya Taşı" = "Move to";
+"Şuraya Taşı…" = "Move to…";
+"Bayrak" = "Flag";
+
+/* Calendar, Contacts, Preview, Notes */
+"Bugün" = "Today";
+"Düzenle" = "Edit";
+"İşaretleme" = "Markup";
+"Renk Ayarla" = "Adjust Color";
+"Boyutu Ayarla" = "Adjust Size";
+"Ana Başlık" = "Title";
+"Başlık" = "Heading";
+"Alt Başlık" = "Subheading";
+"Gövde" = "Body";
+
+/* screenshot (⇧⌘5) */
+"Şuraya kaydet:" = "Save to:";
+"Masaüstü" = "Desktop";
+"Belgeler" = "Documents";
+"Pano" = "Clipboard";
+"Önizleme" = "Preview";
+"Başka Bir Yer…" = "Other Location…";
+
+/* background */
+"Arka plan" = "Background";
+"Kapalı" = "Off";
+"Uygulamanın rengi" = "App Color";
+"Aurora" = "Aurora";
+"Gün batımı" = "Sunset";
+"Okyanus" = "Ocean";
+"Siri renkleri" = "Siri Colors";
+"Duvar kağıdı" = "Wallpaper";
+"Görsel seç…" = "Choose Image…";
+"Touch Bar'ın arkasında görünecek görseli seç" = "Choose an image to show behind the Touch Bar";
+"Bitti" = "Done";
+"Renk sıcaklığı" = "Color Temperature";
+"Ilık" = "Warm";
+"Sıcak" = "Warmer";
+"Night Shift açıkken" = "When Night Shift Is On";
+"Control Strip'i Özelleştir…" = "Customize Control Strip…";
+"Şerit dolu" = "Strip full";
+"Ekle:" = "Add:";
