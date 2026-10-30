@@ -1,5 +1,7 @@
 # Orijinal Touch Bar'ın özellikleri ve GlassBar'daki durumu
 
+English: [FEATURES.md](FEATURES.md)
+
 Kaynaklar: Apple Destek "Touch Bar'ı kullanma" ve "Touch Bar'ı özelleştirme", MacRumors özelleştirme rehberi, iMore "Touch Bar ile neler yapılabilir", 9to5Mac Apple uygulamaları galerisi (2016), WWDC17 oturum 211 (AVKit), WebKit kaynak kodu (`generateTouchBarThumbnailsForTimes`). Uygulama çubukları 2026-10-30'da 13" M2'de (macOS 26) GlassBar kapalıyken her uygulama öne getirilip `screencapture -b` ile çekilen orijinallerle karşılaştırıldı.
 
 Durum: ✅ var · 🟡 kısmen · ❌ yok · ⛔ yapılamaz (veriyi yalnız o uygulama verir)
@@ -37,7 +39,7 @@ Durum: ✅ var · 🟡 kısmen · ❌ yok · ⛔ yapılamaz (veriyi yalnız o uy
 | fn + ⌃/⌥/⇧/⌘ + F tuşu | ✅ basılı değiştiriciler F tuşuna eklenir |
 | Orijinalde olmayan: Tema (Klasik / Sade Liquid Glass) | ✅ |
 | Orijinalde olmayan: Arka plan — Kapalı, Uygulamanın rengi, Aurora, Gün batımı, Okyanus, Siri renkleri, Duvar kağıdı (Mac'in masaüstü görseli), Görsel seç… | ✅ (`ArkaPlan.swift`) |
-| Orijinalde olmayan: Siri hapı Apple'ın yeni (Apple Intelligence) Siri ışığı gibi — kenardan içeri yayılan, renkleri akan ışık; mikrofondan gelen sese göre kalınlaşıp parlar (ilk kullanımda mikrofon izni; ses kaydedilmez) | ✅ (`Mikrofon.swift`, `ZekaIsigi`) |
+| Orijinalde olmayan: Siri hapı Apple'ın yeni Siri'si gibi şeffaf bir cam damla; içindeki renkli dalgalar mikrofondan gelen sese göre hareket eder, arka plan gürültüsü süzülür (ilk kullanımda mikrofon izni; ses kaydedilmez) | ✅ (`Siri.swift`, `Mikrofon.swift`) |
 | Dil | ✅ GlassBar'ın yazıları sistemin dilinde (Türkçe, İngilizce; diğer dillerde İngilizce) — `Resources/<dil>.lproj/Localizable.strings`. Menü komutları kimlik, kısayol harfi ya da Türkçe/İngilizce başlıkla bulunur |
 
 ## Uygulamaya özel içerik

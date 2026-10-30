@@ -66,7 +66,7 @@ What the Touch Bar shows, and what it shows while fn is held (app controls, expa
 
 Switching between desktop spaces uses the ⌃1…⌃9 shortcuts, so the "Switch to Desktop N" shortcuts must be enabled in System Settings → Keyboard → Keyboard Shortcuts → Mission Control. Suggestions and emoji need the Accessibility permission; Spotify asks for Automation permission on first use.
 
-Full feature list (in Turkish): `OZELLIKLER.md`.
+Full feature list: [FEATURES.md](FEATURES.md) (Turkish: [OZELLIKLER.md](OZELLIKLER.md)).
 
 ## Files
 `Sources/main.swift` (private API, menu), `Durum.swift` (state and button actions), `Cubuk.swift` (layout and app-specific buttons: Safari, Notes, Music, Finder…), `Cam.swift` (glass button, group, slider), `Siri.swift` (Siri glass drop and waves), `Mikrofon.swift` (microphone level), `Sistem.swift` (system calls), `Ayarlar.swift` (settings, Control Strip buttons, Night Shift, input source, spaces), `Calan.swift` (Now Playing, video filmstrips), `Yazi.swift` (suggestions, emoji, scrolling strip), `ArkaPlan.swift` (background styles).
