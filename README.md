@@ -45,14 +45,27 @@ A native macOS replacement for the Touch Bar on the 13" M2 MacBook Pro. The layo
 
 **Hardware detection** (`Sistem.swift` → `Donanim`): the model is read from `hw.model`. On Touch Bar MacBook Pros from late 2019 onward (MacBookPro16,x, 17,1, Mac14,7), esc is a physical key, the bar is 1004 pt wide, and no esc is shown on the bar. On earlier models the bar is 1085 pt and esc lives on the bar. The "esc on the bar" menu option overrides this. The physical esc key also closes the Siri pill and the sliders.
 
-## Installation
-Requires macOS 14 or later and a Touch Bar MacBook Pro.
-```
-./build.sh --ac
-```
-This builds the app, installs it as `~/Applications/GlassBar.app` and launches it. A ✨ icon appears in the menu bar (show, the app's own Touch Bar, launch at login, quit).
+## Download
 
-**Accessibility permission is required** (System Settings → Privacy & Security → Accessibility → GlassBar) to detect esc, F1–F12, shortcuts, media keys, typing suggestions and fn. If a code-signing certificate named "TouchBar2 Yerel Imza" exists in your keychain, `build.sh` signs the app with it, so the permission survives rebuilds. Without it the app is signed ad hoc, and you have to grant the permission again after every build. The permission status at launch is written to `~/Library/Logs/GlassBar.log`. Automation permission is requested on first use for Music, Safari, Photos and Finder tags; the Siri waves ask for microphone access.
+**[⬇ Download GlassBar.zip](https://github.com/Moryel/glass-bar/releases/latest/download/GlassBar.zip)** · Intel and Apple Silicon · macOS 14 Sonoma or later · MacBook Pro with a Touch Bar, 2018 or later (2016–2017 models cannot run macOS 14)
+
+1. Unzip it and drag **GlassBar.app** into **Applications**.
+2. Open it. GlassBar is free and not notarized by Apple, so the first time macOS blocks it:
+   - **macOS 15 and later:** System Settings → Privacy & Security → scroll down → **Open Anyway**.
+   - **macOS 14:** right-click GlassBar.app → **Open** → **Open**.
+
+   Or, in Terminal: `xattr -dr com.apple.quarantine /Applications/GlassBar.app`
+3. Give GlassBar **Accessibility** permission when asked (details below).
+4. A GlassBar icon appears in the menu bar. Turn on **Launch at Login** from there to have it start with your Mac.
+
+## Build from source
+Requires the Xcode command line tools.
+```
+./build.sh --ac      # builds, installs to ~/Applications and opens it
+./build.sh release   # universal (Intel + Apple Silicon) build and build/GlassBar.zip
+```
+
+**Accessibility permission is required** (System Settings → Privacy & Security → Accessibility → GlassBar) to detect esc, F1–F12, shortcuts, media keys, typing suggestions and fn. When building from source, if a code-signing certificate named "TouchBar2 Yerel Imza" exists in your keychain, `build.sh` signs the app with it, so the permission survives rebuilds. Without it the app is signed ad hoc, and you have to grant the permission again after every build. The permission status at launch is written to `~/Library/Logs/GlassBar.log`. Automation permission is requested on first use for Music, Spotify, Safari, Photos and Finder tags. The Siri waves ask for microphone access, and the Spotify sound bar asks for system audio recording permission (only the audio level is measured; nothing is recorded).
 
 ## How it works
 - To cover the Touch Bar in system-modal mode, GlassBar uses the same private APIs as MTMR and Pock (`NSTouchBar presentSystemModalTouchBar…`, DFRFoundation). It may break if Apple changes them.

@@ -1,0 +1,4 @@
+/* İzin pencerelerindeki açıklamalar (Türkçe) */
+"NSMicrophoneUsageDescription" = "Siri dinlerken Touch Bar'daki dalgayı sesinize göre hareket ettirmek için. Ses kaydedilmez.";
+"NSAudioCaptureUsageDescription" = "Ses dalgasının müzikle hareket etmesi için Spotify'ın ses seviyesini dinler. Ses kaydedilmez.";
+"NSAppleEventsUsageDescription" = "Müzik ve Spotify'da çalanı göstermek ve Finder'da etiket eklemek için.";
