@@ -1,5 +1,14 @@
 # TouchBar2
 
+> **A personal note**
+> TouchBar2 is the result of about four months of work, and I've been using it every day on my own MacBook for the past two months. It took much longer than I expected, and it still needs more time: some features are missing or only partly working. If you run into any of them, I'd really appreciate it if you let me know.
+>
+> I'm not fully happy with the design yet either, and I'll keep improving it.
+>
+> I haven't been able to measure any direct impact on battery life; in my use, CPU usage stays around 1%.
+>
+> — Yüksel
+
 13" M2 MacBook Pro'nun Touch Bar'ı için yerel macOS uygulaması. Dizilim ve özellikler orijinalle aynı (esc · uygulama alanı · Control Strip, genişletilmiş şerit, parlaklık/ses kaydırıcıları, fn ile F1–F12); görünüm Liquid Glass, Siri iOS 27'deki gibi koyu cam küre + renkli ses dalgası.
 
 **Donanıma uyum** (`Sistem.swift` → `Donanim`): model `hw.model`'den okunur. 2019 sonu ve sonrası Touch Bar'lı MacBook Pro'larda (MacBookPro16,x, 17,1, Mac14,7) esc fizikseldir, çubuk 1004 pt'dir ve çubukta esc gösterilmez; önceki modellerde çubuk 1085 pt ve esc çubuktadır. Menüdeki "Çubukta esc tuşu" bunu değiştirir. Fiziksel esc de Siri hapını ve kaydırıcıyı kapatır.
@@ -17,7 +26,7 @@
 - Uygulama simgesi tuşu (esc'nin yanında) TouchBar2'yi küçültüp öndeki uygulamanın kendi Touch Bar tuşlarını gösterir (yazı önerileri vb.); Control Strip'teki ✨ ya da başka uygulamaya geçmek geri getirir.
 - Parlaklık: DisplayServices; klavye ışığı: CoreBrightness; ses: CoreAudio; adım tuşları sistemin HUD'unu çıkarsın diye medya tuşu gönderir.
 - Launchpad tuşu macOS 26'dan beri "Uygulamalar"ı açar.
-- Siri tuşu gerçek Siri'yi açar; çubuktaki dalga animasyondur, mikrofon seviyesini okumaz. Hap 12 sn sonra, dokununca, esc ile ya da başka uygulamaya geçince kapanır.
+- Siri tuşu gerçek Siri'yi açar; çubuktaki cam damladaki dalgalar mikrofon seviyesine göre hareket eder (arka plan gürültüsü süzülür). Hap 12 sn sonra, dokununca, esc ile ya da başka uygulamaya geçince kapanır.
 
 ## Menü (✨)
 Touch Bar gösterir / fn basılı tutulunca (uygulama, genişletilmiş şerit, F tuşları, masaüstü alanları), Control Strip'i göster, Control Strip tuşları, yazma önerileri, çubukta esc, ve öndeki uygulama için “kendi Touch Bar'ını göster” / “hep F tuşları”.
