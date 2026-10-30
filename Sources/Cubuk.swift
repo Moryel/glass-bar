@@ -380,7 +380,7 @@ struct FnSatiri: View {
     var body: some View {
         HStack(spacing: Olcu.ara) {
             ForEach(1...12, id: \.self) { i in
-                Tus(genislik: nil, eylem: { d.fnTusu(i) }) { Text("F\(i)").frame(maxWidth: .infinity) }
+                Tus(genislik: nil, eylem: { d.fnTusu(i) }) { Yazi("F\(i)").frame(maxWidth: .infinity) }
             }
         }
     }

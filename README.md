@@ -13,6 +13,36 @@
 
 13" M2 MacBook Pro'nun Touch Bar'ı için yerel macOS uygulaması. Dizilim ve özellikler orijinalle aynı (esc · uygulama alanı · Control Strip, genişletilmiş şerit, parlaklık/ses kaydırıcıları, fn ile F1–F12); görünüm Liquid Glass, Siri iOS 27'deki gibi koyu cam küre + renkli ses dalgası.
 
+## Görseller / Screenshots
+
+**Siri** — cam damla, mikrofona göre hareket eden renkli dalgalar / glass drop with mic-reactive waves
+
+<p align="center"><img src="gorseller/siri.gif" width="720" alt="Siri animasyonu"></p>
+
+![Siri çubukta](gorseller/siri-cubuk.gif)
+
+**Finder**
+![Finder](gorseller/varsayilan.png)
+
+**Safari**
+![Safari](gorseller/safari.png)
+
+**Notlar / Notes**
+![Notlar](gorseller/notlar.png)
+
+**Genişletilmiş Control Strip / Expanded Control Strip**
+![Genişletilmiş şerit](gorseller/genis.png)
+
+**Parlaklık ve ses / Brightness and volume**
+![Parlaklık](gorseller/parlaklik.png)
+![Ses](gorseller/ses.png)
+
+**fn → F1–F12**
+![F tuşları](gorseller/fn.png)
+
+**Emoji**
+![Emoji](gorseller/emoji.png)
+
 **Donanıma uyum** (`Sistem.swift` → `Donanim`): model `hw.model`'den okunur. 2019 sonu ve sonrası Touch Bar'lı MacBook Pro'larda (MacBookPro16,x, 17,1, Mac14,7) esc fizikseldir, çubuk 1004 pt'dir ve çubukta esc gösterilmez; önceki modellerde çubuk 1085 pt ve esc çubuktadır. Menüdeki "Çubukta esc tuşu" bunu değiştirir. Fiziksel esc de Siri hapını ve kaydırıcıyı kapatır.
 
 ## Kurulum

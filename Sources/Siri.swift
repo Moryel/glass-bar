@@ -54,13 +54,16 @@ struct SiriKure: View {
 /// parlak iç çizgiyle cam gibi durur; ortasında renkli Siri çizgileri akar. Konuştukça çizgiler yükselir ve damla
 /// jöle gibi hafifçe şişer.
 struct SiriHap: View {
+    static let demo = UserDefaults.standard.string(forKey: "tb2kip") == "siriDemo"
     @ObservedObject private var mikrofon = Mikrofon.ortak
     @StateObject private var yumusak = Yumusatici()
 
     var body: some View {
         TimelineView(.animation) { tl in
             let t = tl.date.timeIntervalSinceReferenceDate
-            let hedef = mikrofon.calisiyor ? mikrofon.seviye : 0.2 + 0.12 * sin(t * 1.6)
+            // -tb2kip siriDemo: mikrofonsuz, konuşmayı taklit eden seviye (README GIF'i için)
+            let hedef = SiriHap.demo ? max(0, 0.55 * sin(t * 2.1) + 0.35 * sin(t * 5.3 + 1) + 0.15)
+                : mikrofon.calisiyor ? mikrofon.seviye : 0.2 + 0.12 * sin(t * 1.6)
             // mikrofon değeri kesik kesik gelir; her karede yumuşatılır ki çizgiler titremesin
             let ses = yumusak.ilerle(hedef, t)
             ZStack {

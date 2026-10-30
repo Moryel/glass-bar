@@ -126,6 +126,7 @@ final class Temsilci: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NSMen
         case "parlaklik": durum.kip = .parlaklik
         case "ses": durum.kip = .ses
         case "siri": DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { self.durum.siri = true; Mikrofon.ortak.baslat() }
+        case "siriDemo": DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { self.durum.siri = true }
         case "fn": durum.fn = true
         case "emoji": durum.kip = .emoji
         case "simdi": durum.kip = .simdi
