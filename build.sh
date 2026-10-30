@@ -7,7 +7,7 @@ rm -rf "$UYG"
 mkdir -p "$UYG/Contents/MacOS" "$UYG/Contents/Resources"
 
 swiftc -O -swift-version 5 -target arm64-apple-macos14.0 \
-  -framework AppKit -framework SwiftUI -framework CoreAudio -framework AudioToolbox -framework ServiceManagement \
+  -framework AppKit -framework SwiftUI -framework CoreAudio -framework AudioToolbox -framework ServiceManagement -framework Accelerate \
   Sources/*.swift -o "$UYG/Contents/MacOS/GlassBar"
 
 # çeviriler (sistemin diline göre; listede olmayan dillerde İngilizce)
@@ -33,6 +33,7 @@ cat > "$UYG/Contents/Info.plist" <<'PLIST'
   <key>LSMinimumSystemVersion</key><string>14.0</string>
   <key>LSUIElement</key><true/>
   <key>NSMicrophoneUsageDescription</key><string>Siri dinlerken Touch Bar'daki dalgayı sesinize göre hareket ettirmek için. Ses kaydedilmez.</string>
+  <key>NSAudioCaptureUsageDescription</key><string>GlassBar listens to Spotify's audio level so the sound bar moves with the music. Nothing is recorded.</string>
   <key>NSAppleEventsUsageDescription</key><string>Müzik'te çalan parçayı göstermek ve Finder'da etiket eklemek için.</string>
 </dict>
 </plist>

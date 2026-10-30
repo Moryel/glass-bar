@@ -98,25 +98,100 @@ struct SpotifyOynatici: View {
     }
 }
 
-/// Kapak renklerinde, çalarken dalgalanan, duraklatınca dinlenen çubuklar.
+/// Kapak renklerinde çubuklar. Ses yakalama açıksa Spotify'ın sesinin frekans bantlarıyla oynar (soldan sağa bas → tiz);
+/// izin yoksa çalarken temsili dalgalanır. Duraklatınca dinlenir.
 struct SesDalgasi: View {
     let caliyor: Bool
     let renkler: [Color]
-    private let adet = 14
+    @ObservedObject private var ses = SesYakalayici.ortak
+    private let adet = SesYakalayici.bantSayisi
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1 / 30, paused: !caliyor)) { tl in
-            let t = tl.date.timeIntervalSinceReferenceDate
-            HStack(alignment: .center, spacing: 1.5) {
-                ForEach(0..<adet, id: \.self) { i in
+        if !caliyor {
+            cubuklar([Double](repeating: 0, count: adet))
+        } else if ses.calisiyor {
+            CanliCubuklar(renkler: renkler)
+        } else {
+            TimelineView(.animation(minimumInterval: 1 / 30)) { tl in
+                let t = tl.date.timeIntervalSinceReferenceDate
+                cubuklar((0..<adet).map { i in
                     let x = Double(i)
-                    let dalga = abs(sin(t * (3.1 + x * 0.37) + x * 1.7) * 0.6 + sin(t * (5.3 + x * 0.21) + x) * 0.4)
-                    Capsule()
-                        .fill(renkler[i * renkler.count / adet])
-                        .frame(height: caliyor ? 4 + 16 * dalga : 4)
-                }
+                    return abs(sin(t * (3.1 + x * 0.37) + x * 1.7) * 0.6 + sin(t * (5.3 + x * 0.21) + x) * 0.4)
+                })
             }
-            .animation(.easeOut(duration: 0.25), value: caliyor)
         }
+    }
+
+    /// Her karede 14 ayrı görünüm yerine tek Canvas: işlemci yükü belirgin biçimde düşer.
+    private func cubuklar(_ seviyeler: [Double]) -> some View {
+        let renkler = renkler, adet = adet
+        return Canvas { ctx, boyut in
+            let ara: CGFloat = 1.5
+            let w = (boyut.width - ara * CGFloat(adet - 1)) / CGFloat(adet)
+            for i in 0..<adet {
+                let h = 4 + (boyut.height - 4) * CGFloat(seviyeler[i])
+                let r = CGRect(x: CGFloat(i) * (w + ara), y: (boyut.height - h) / 2, width: w, height: h)
+                ctx.fill(Path(roundedRect: r, cornerRadius: w / 2), with: .color(renkler[i * renkler.count / adet]))
+            }
+        }
+    }
+}
+
+/// Gerçek sesle oynayan çubuklar: SesYakalayici'nin her ölçümü doğrudan CALayer çerçevelerine yazılır.
+struct CanliCubuklar: NSViewRepresentable {
+    let renkler: [Color]
+
+    func makeNSView(context: Context) -> CubukGorunumu {
+        let v = CubukGorunumu()
+        SesYakalayici.ortak.dinleyici = { [weak v] in v?.ciz($0) }
+        return v
+    }
+
+    func updateNSView(_ v: CubukGorunumu, context: Context) {
+        v.renkler = renkler.map { NSColor($0).cgColor }
+    }
+}
+
+final class CubukGorunumu: NSView {
+    private let adet = SesYakalayici.bantSayisi
+    private var katmanlar: [CALayer] = []
+    private var son: [Float]
+    var renkler: [CGColor] = [] {
+        didSet {
+            guard !renkler.isEmpty else { return }
+            for (i, k) in katmanlar.enumerated() { k.backgroundColor = renkler[i * renkler.count / adet] }
+        }
+    }
+
+    init() {
+        son = [Float](repeating: 0, count: adet)
+        super.init(frame: .zero)
+        wantsLayer = true
+        for _ in 0..<adet {
+            let k = CALayer()
+            layer?.addSublayer(k)
+            katmanlar.append(k)
+        }
+    }
+
+    required init?(coder: NSCoder) { nil }
+
+    override func layout() {
+        super.layout()
+        ciz(son)
+    }
+
+    func ciz(_ seviyeler: [Float]) {
+        son = seviyeler
+        let ara: CGFloat = 1.5
+        let w = (bounds.width - ara * CGFloat(adet - 1)) / CGFloat(adet)
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        for (i, k) in katmanlar.enumerated() {
+            let h = 4 + (bounds.height - 4) * CGFloat(seviyeler[i])
+            k.frame = CGRect(x: CGFloat(i) * (w + ara), y: (bounds.height - h) / 2, width: w, height: h)
+            k.cornerRadius = w / 2
+        }
+        CATransaction.commit()
     }
 }

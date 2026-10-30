@@ -304,6 +304,9 @@ final class Durum: ObservableObject {
         if c != calan { calan = c }
         FilmSeridi.ortak.yukle(c?.video == true ? c?.dosya : nil)
         Kapak.ortak.yukle(spotifyOynatici ? c?.kapak : nil)
+        // ses dalgası yalnız Spotify oynatıcısı görünür ve çalarken Spotify'ın sesini dinler
+        SesYakalayici.ortak.ayarla(acik: spotifyOynatici && c?.kaynak == Calan.spotify && c?.caliyor == true
+                                       && (paket == Calan.spotify || kip == .simdi))
         if let c, Date().timeIntervalSince(sonSarma) > 1.5 { calanKonum = Float(c.konum / c.sure) }
         if c == nil && kip == .simdi { kip = .uygulama }
     }
