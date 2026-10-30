@@ -62,7 +62,7 @@ Menü komutları öndeki uygulamanın menüsünden Erişilebilirlik ile çalış
 | **Mesajlar** | ✅ yeni ileti, Tapback (açılır: ❤️ 👍 👎 😂 ‼️ ❓), emoji, öneriler |
 | **Notlar** | ✅ yazmıyorken orijinal düzen (yeni not, yapılacaklar, sil, liste); yazarken yapılacaklar, Aa (başlık stilleri, kalın/italik/altı çizili), liste türleri, emoji, öneriler |
 | **TextEdit** | ✅ biçim (açılır: kalın/italik/altı çizili, hizalama), emoji, öneriler · renk seçici ⛔ |
-| **Müzik / Spotify** | ✅ oynat/duraklat, önceki/sonraki, parça çubuğunda sarma, beğen · Sıradakine Ekle ✅ (Müzik) |
+| **Müzik / Spotify** | ✅ oynat/duraklat, önceki/sonraki, parça çubuğunda sarma, beğen · Sıradakine Ekle ✅ (Müzik) · Spotify: albüm kapağı, parça adı ve sanatçı, geçen/kalan süre ve kapak renklerinde ses dalgası, GlassBar'ın kendi Control Strip'inin yanında |
 | **Spotify entegrasyonu** | 🔜 yakında: Spotify hesabıyla bağlanma (Web API), çalma listeleri, arama, Sıradakine Ekle, beğen, Spotify Connect ile cihaz seçimi |
 | **QuickTime / AVKit video** | ✅ QuickTime (15 sn ileri/geri, küçük resimli film şeridi, cam mercekli oynatma başı) · diğer oynatıcılar ⛔ |
 | **⇧⌘5 ekran resmi** | ✅ orijinal düzen: üç yakalama, üç kayıt, "Şuraya kaydet" (aracın düğmelerine basar) |

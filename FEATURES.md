@@ -60,7 +60,7 @@ Menu commands run from the front app's menu through Accessibility (`AXYardim.swi
 | **Messages** | ✅ new message, Tapback (popover: ❤️ 👍 👎 😂 ‼️ ❓), emoji, suggestions |
 | **Notes** | ✅ original layout when not typing (new note, checklist, delete, list); while typing: checklist, Aa (heading styles, bold/italic/underline), list types, emoji, suggestions |
 | **TextEdit** | ✅ format (popover: bold/italic/underline, alignment), emoji, suggestions · color picker ⛔ |
-| **Music / Spotify** | ✅ play/pause, previous/next, scrubbing in the track bar, like · Add to Up Next ✅ (Music) |
+| **Music / Spotify** | ✅ play/pause, previous/next, scrubbing in the track bar, like · Add to Up Next ✅ (Music) · Spotify: album cover, title and artist, time elapsed/remaining and a sound bar in the cover's colors, next to GlassBar's own Control Strip |
 | **Spotify integration** | 🔜 coming soon: sign in with a Spotify account (Web API), playlists, search, Add to Queue, like, device selection with Spotify Connect |
 | **QuickTime / AVKit video** | ✅ QuickTime (15 s forward/back, filmstrip with thumbnails, glass-lens playhead) · other players ⛔ |
 | **⇧⌘5 screenshot** | ✅ original layout: three capture modes, three recording modes, "Save to" (presses the tool's buttons) |

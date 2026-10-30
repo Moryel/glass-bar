@@ -264,9 +264,7 @@ struct SimdiTusu: View {
     @ObservedObject var d: Durum
     let c: Calan
     var body: some View {
-        Tus(genislik: 52, eylem: {
-            if c.kaynak == Calan.spotify, d.spotiwKullan, Spotiw.calisiyor { d.spotiwAc() } else { d.kip = .simdi }
-        }) {
+        Tus(genislik: 52, eylem: { d.kip = .simdi }) {
             HStack(spacing: 4) {
                 UygulamaSimgesi(paket: c.kaynak, boyut: 15)
                 Image(systemName: c.caliyor ? "pause.fill" : "play.fill").font(.system(size: 11))
@@ -468,6 +466,14 @@ struct Oynatici: View {
     @ObservedObject var d: Durum
     let c: Calan
     var body: some View {
+        if c.kaynak == Calan.spotify {
+            SpotifyOynatici(d: d, c: c)
+        } else {
+            genel
+        }
+    }
+
+    @ViewBuilder private var genel: some View {
         Grup(tuslar: [.init(simge: c.video ? "gobackward.15" : "backward.fill") { d.calanKomut { $0.onceki() } },
                       .init(simge: c.caliyor ? "pause.fill" : "play.fill") { d.calanKomut { $0.oynatDuraklat() } },
                       .init(simge: c.video ? "goforward.15" : "forward.fill") { d.calanKomut { $0.sonraki() } }],

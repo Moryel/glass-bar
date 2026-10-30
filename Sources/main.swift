@@ -62,8 +62,6 @@ final class Temsilci: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NSMen
     }()
     var durumOgesi: NSStatusItem!
     var kucuk = false
-    /// Spotiw'in çubuğu öndeyken true.
-    var spotiwda = false
     var izleyiciler: [Any] = []
 
     func applicationDidFinishLaunching(_ n: Notification) {
@@ -75,7 +73,6 @@ final class Temsilci: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NSMen
         durum.yenile()
         durum.uygulamaDegisti(NSWorkspace.shared.frontmostApplication)
         durum.uygulamaTuslari = { [weak self] in self?.kucult() }
-        durum.spotiwAc = { [weak self] in self?.spotiwAc() }
         durum.arkaResmiYenile()
 
         cubuk.delegate = self
@@ -97,11 +94,10 @@ final class Temsilci: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NSMen
             self?.durum.alanlar = Alanlar.durum()
             if self?.durum.arkaPlan == .duvarKagidi { self?.durum.arkaResmiYenile() }
         })
-        // Spotiw'in X'i ya da başka bir sebeple kapanınca GlassBar geri gelir
+        // Spotiw elle açılıp X'iyle kapatılınca sistemin eski çubuğu yerine GlassBar geri gelir
         izleyiciler.append(DistributedNotificationCenter.default().addObserver(forName: .init(Spotiw.kimlik + ".didHide"), object: nil, queue: .main) { [weak self] _ in
-            guard let self, self.spotiwda || !self.kucuk else { return }
-            self.spotiwda = false
-            if !self.durum.kendiCubugu.contains(self.durum.paket) { self.goster() }
+            guard let self, !self.kucuk else { return }
+            self.goster()
         })
 
         // fn basılı tutulunca F1–F12
@@ -170,14 +166,6 @@ final class Temsilci: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NSMen
         DFR.sun(cubuk, tepsi: tepsiKimlik.rawValue)
     }
 
-    /// Spotiw'in oynatıcısını öne getirir; GlassBar kenara çekilir.
-    func spotiwAc() {
-        guard !spotiwda else { return }
-        spotiwda = true
-        if !kucuk { kucult() }
-        Spotiw.gonder("show")
-    }
-
     @objc func kucult() {
         kucuk = true
         DFR.kucult(cubuk)
@@ -185,11 +173,6 @@ final class Temsilci: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NSMen
 
     /// "Kendi çubuğu" listesindeki uygulamada GlassBar çekilir; başka uygulamaya geçince geri gelir.
     func listeyiUygula() {
-        if durum.spotiwKullan, durum.paket == Calan.spotify, Spotiw.calisiyor {
-            spotiwAc()
-            return
-        }
-        if spotiwda { spotiwda = false; Spotiw.gonder("hide") }
         if durum.kendiCubugu.contains(durum.paket) {
             if !kucuk { kucult() }
         } else if kucuk {
@@ -265,7 +248,6 @@ final class Temsilci: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NSMen
             oge(t.ad, #selector(seritTusuDegistir(_:)), durum.seritTuslari.contains(t), t.rawValue)
         }))
         m.addItem(oge(L("Yazma önerilerini göster"), #selector(oneriDegistir), durum.oneriAcik))
-        m.addItem(oge(L("Spotify'da Spotiw'i kullan"), #selector(spotiwDegistir), durum.spotiwKullan))
         m.addItem(oge(L("Çubukta esc tuşu"), #selector(escDegistir), durum.escGoster))
         let giris = m.addItem(withTitle: L("Mac açılınca başlat"), action: #selector(girisDegistir), keyEquivalent: "")
         giris.target = self
@@ -313,7 +295,6 @@ final class Temsilci: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NSMen
         durum.arkaPlan = .gorsel
     }
     @objc func oneriDegistir() { durum.oneriAcik.toggle() }
-    @objc func spotiwDegistir() { durum.spotiwKullan.toggle(); listeyiUygula() }
 
     @objc func gosterimSec(_ o: NSMenuItem) {
         if let g = Gosterim(rawValue: o.representedObject as? String ?? "") { durum.gosterim = g; durum.kip = .uygulama }
@@ -361,14 +342,10 @@ final class Temsilci: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NSMen
     }
 }
 
-/// Spotiw (github.com/Moryel/spotiw): Spotify oynatıcısını Touch Bar'da gösteren uygulama.
-/// İki uygulama dağıtık bildirimlerle haberleşir: show / hide istekleri, Spotiw'den didShow / didHide.
+/// Spotiw (github.com/Moryel/spotiw): Spotify oynatıcısını Touch Bar'da gösteren ayrı uygulama.
+/// Çubuğu kapanınca dağıtık "didHide" bildirimi gönderir; GlassBar o zaman geri gelir.
 enum Spotiw {
     static let kimlik = "com.yuksel.spotiw"
-    static var calisiyor: Bool { !NSRunningApplication.runningApplications(withBundleIdentifier: kimlik).isEmpty }
-    static func gonder(_ ad: String) {
-        DistributedNotificationCenter.default().postNotificationName(.init(kimlik + "." + ad), object: nil, userInfo: nil, deliverImmediately: true)
-    }
 }
 
 // Uygulamanın eski adı TouchBar2'ydi: ilk açılışta ayarları eski kimlikten taşı.

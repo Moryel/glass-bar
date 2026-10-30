@@ -11,6 +11,8 @@ struct Calan: Equatable {
     var sure: Double
     var caliyor: Bool
     var dosya: String?
+    /// Spotify'da kapak resminin adresi.
+    var kapak: String? = nil
 
     static let muzik = "com.apple.Music", spotify = "com.spotify.client", quickTime = "com.apple.QuickTimePlayerX"
     static let kaynaklar = [muzik, spotify, quickTime]
@@ -33,7 +35,7 @@ struct Calan: Equatable {
             betik = """
             tell application "\(uyg)"
                 if player state is stopped then return {}
-                return {name of current track, artist of current track, player position, \(sure), (player state is playing), ""}
+                return {name of current track, artist of current track, player position, \(sure), (player state is playing), \(kaynak == spotify ? "artwork url of current track" : "\"\"")}
             end tell
             """
         default:
@@ -53,7 +55,8 @@ struct Calan: Equatable {
         let yol = d.atIndex(6)?.stringValue ?? ""
         return Calan(kaynak: kaynak, ad: d.atIndex(1)?.stringValue ?? "", sanatci: d.atIndex(2)?.stringValue ?? "",
                      konum: d.atIndex(3)?.doubleValue ?? 0, sure: max(1, d.atIndex(4)?.doubleValue ?? 1),
-                     caliyor: d.atIndex(5)?.booleanValue ?? false, dosya: yol.isEmpty ? nil : yol)
+                     caliyor: d.atIndex(5)?.booleanValue ?? false,
+                     dosya: yol.isEmpty || kaynak == spotify ? nil : yol, kapak: kaynak == spotify && !yol.isEmpty ? yol : nil)
     }
 
     private var uygAdi: String { kaynak == Calan.muzik ? "Music" : kaynak == Calan.spotify ? "Spotify" : "QuickTime Player" }
