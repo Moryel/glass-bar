@@ -3,7 +3,7 @@
 import base64, re, struct, sys, os
 
 kok = sys.argv[1]  # onizleme klasörü
-v4 = open(os.path.join(kok, 'touchbar2-onizleme.v4.html'), encoding='utf-8').read()
+v4 = open(os.path.join(kok, 'glassbar-onizleme.v4.html'), encoding='utf-8').read()
 
 def png_boyut(yol):
     b = open(yol, 'rb').read(24)
@@ -258,8 +258,8 @@ html = html.replace("  cubuk.dataset.varyant = 'regular';", ek_js + "  cubuk.dat
 html = html.replace("    else { cubuk.dataset[d.dataset.secim] = b.dataset.deger;", """    else if (d.dataset.secim === 'app') return;
     else if (d.dataset.secim === 'sicak') { const g = +b.dataset.deger; if (g) { cubuk.dataset.sicak = '1'; cubuk.style.setProperty('--g', g); } else delete cubuk.dataset.sicak; d.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); }
     else { cubuk.dataset[d.dataset.secim] = b.dataset.deger; if (d.dataset.secim === 'arka') { ortamAcik = b.dataset.deger === 'isik'; document.getElementById('aOrtam').checked = ortamAcik; }""", 1)
-html = html.replace('<title>TouchBar2 Liquid Glass', '<title>TouchBar2 Önizleme', 1)
-html = html.replace('<h1>TouchBar2 Liquid Glass</h1>', '<h1>TouchBar2 Önizleme</h1>', 1)
+html = html.replace('<title>GlassBar Liquid Glass', '<title>GlassBar Önizleme', 1)
+html = html.replace('<h1>GlassBar Liquid Glass</h1>', '<h1>GlassBar Önizleme</h1>', 1)
 
-open(os.path.join(kok, 'touchbar2-onizleme.html'), 'w', encoding='utf-8').write(html)
+open(os.path.join(kok, 'glassbar-onizleme.html'), 'w', encoding='utf-8').write(html)
 print(len(html))

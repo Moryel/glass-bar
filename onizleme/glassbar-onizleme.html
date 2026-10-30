@@ -1,5 +1,5 @@
 <meta charset="utf-8">
-<title>TouchBar2 Önizleme</title>
+<title>GlassBar Önizleme</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
@@ -371,8 +371,8 @@ code { font: 12.5px var(--f-kod); color: #d6d9e4; background: var(--yuzey2); pad
 
 <div class="sayfa">
   <header>
-    <div class="ust">TouchBar2 · tasarım önizlemesi · 1004 × 30 pt</div>
-    <h1>TouchBar2 Önizleme</h1>
+    <div class="ust">GlassBar · tasarım önizlemesi · 1004 × 30 pt</div>
+    <h1>GlassBar Önizleme</h1>
     <p class="giris">Apple'ın Liquid Glass kaynaklarındaki kuralları gerçek ölçekte Touch Bar'a uygulayan, dokunulabilir bir önizleme. Tuşlara bas, basılı tutup kaydır, kaydırıcıyı sürükle. Aşağıdaki seçeneklerle Regular/Clear varyantlarını ve sistemin erişilebilirlik kiplerini deneyebilirsin.</p>
   </header>
 
@@ -633,7 +633,7 @@ code { font: 12.5px var(--f-kod); color: #d6d9e4; background: var(--yuzey2); pad
 
   <section style="display:grid;gap:18px">
     <div class="ilkeler-bas">
-      <h2>Kaynaklardan ilkeler ve TouchBar2'deki karşılığı</h2>
+      <h2>Kaynaklardan ilkeler ve GlassBar'daki karşılığı</h2>
       <p class="giris">Her kart Apple'ın söylediğini, bu önizlemede nasıl uygulandığını ve şu anki Swift kodunda (<code>Cam.swift</code>, <code>Cubuk.swift</code>, <code>Siri.swift</code>) durumunu gösterir.</p>
     </div>
     <div class="ilkeler">
@@ -642,7 +642,7 @@ code { font: 12.5px var(--f-kod); color: #d6d9e4; background: var(--yuzey2); pad
         <p class="uygulama">Önizlemede kenarda iki kat ışık çizgisi, camın kalınlığı için iç parıltı ve sürüklenen topuzda altındaki rayı %130 büyüten gerçek bir mercek var. Swift'te topuz yalnızca saydamlaşıyor, altını büyütmüyor.</p></article>
       <article class="ilke"><h3>İçeriden aydınlanma <span class="rozet var">var</span></h3>
         <p>Dokunuşa ışıkla cevap verilir: parlama parmağın altından başlar, tuşa yayılır ve yakındaki cam öğelere ulaşır.</p>
-        <p class="uygulama">TouchBar2'de var (<code>SiviBasma</code>, <code>Isik.ortak</code>). Önizleme aynısını yapıyor: parmak ışığı, yayılan halka, ortam ışığının o noktada yanması.</p></article>
+        <p class="uygulama">GlassBar'da var (<code>SiviBasma</code>, <code>Isik.ortak</code>). Önizleme aynısını yapıyor: parmak ışığı, yayılan halka, ortam ışığının o noktada yanması.</p></article>
       <article class="ilke"><h3>Jöle esnekliği <span class="rozet var">var</span></h3>
         <p>Malzeme etkileşimle birlikte hareket eden jel gibi bir esnekliğe sahip; dokununca öğe geçici olarak cama "kalkar", dururken sessiz kalır.</p>
         <p class="uygulama">Basınca %10 büyüme, parmak yönüne esneme, bırakınca salınarak oturma. Gruplarda camın içinden kabaran damla. Swift'teki yay değerleri önizlemeye taşındı.</p></article>
@@ -654,7 +654,7 @@ code { font: 12.5px var(--f-kod); color: #d6d9e4; background: var(--yuzey2); pad
         <p class="uygulama">Önizlemede gölge ortam ışığının parlaklığına göre değişiyor (<code>--golge</code>). Swift'te gölge sabit <code>.black.opacity(0.55)</code>; Siri ışığı yanınca hafifletilebilir.</p></article>
       <article class="ilke"><h3>Ton yalnız birincil eyleme <span class="rozet var">var</span></h3>
         <p>Ton süs değildir; yalnız birincil öğeyi ve anlamlı durumu vurgular. Her şey tonlanırsa hiçbir şey öne çıkmaz.</p>
-        <p class="uygulama">Önizlemede yalnız Safari'nin "Yeni sekme" tuşu mavi. TouchBar2'de ton sessiz ve Night Shift açıkken kullanılıyor, bu da kurala uyuyor.</p></article>
+        <p class="uygulama">Önizlemede yalnız Safari'nin "Yeni sekme" tuşu mavi. GlassBar'da ton sessiz ve Night Shift açıkken kullanılıyor, bu da kurala uyuyor.</p></article>
       <article class="ilke"><h3>Camın üstüne cam yok <span class="rozet var">var</span></h3>
         <p>Cam öğeleri üst üste koymak arayüzü kalabalıklaştırır. İlgili tuşlar tek bir kapta birleşir; üstteki öğeler dolgu ve canlılıkla ince bir katman gibi durur.</p>
         <p class="uygulama">Gruplar tek kapsül (<code>Grup</code>), iç tuşlar dururken camsız. Damla yalnız dokunurken kabarır; Apple'ın "geçici olarak cama kalkma" dediği bu.</p></article>
@@ -663,7 +663,7 @@ code { font: 12.5px var(--f-kod); color: #d6d9e4; background: var(--yuzey2); pad
         <p class="uygulama">Touch Bar dokunmatik bir yüzey, bu yüzden kapsül: 26 pt tuş, 13 pt yarıçap. Çubuk köşesi 5 pt olduğundan uçtaki tuşlarla arasında küçük bir açı farkı kalıyor; orijinal donanımda da öyle.</p></article>
       <article class="ilke"><h3>Regular ve Clear <span class="rozet kismen">kısmen</span></h3>
         <p>Regular her boyutta, her içerikte kullanılır ve uyarlanır. Clear daima daha saydamdır, uyarlanmaz; medya üstünde, kalın simgelerle ve karartma katmanıyla kullanılır.</p>
-        <p class="uygulama">TouchBar2 yalnız Regular kullanıyor, bu doğru. Clear, QuickTime film şeridindeki tuşlar için düşünülebilir (altında küçük resimler var).</p></article>
+        <p class="uygulama">GlassBar yalnız Regular kullanıyor, bu doğru. Clear, QuickTime film şeridindeki tuşlar için düşünülebilir (altında küçük resimler var).</p></article>
       <article class="ilke"><h3>Erişilebilirlik kipleri <span class="rozet yok">yok</span></h3>
         <p>Şeffaflığı azalt camı buzlu yapar; karşıtlığı artır siyah/beyaz ve karşıt bir kenarlık verir; hareketi azalt etkileri hafifletir, esnekliği kapatır.</p>
         <p class="uygulama">Önizlemede üçü de çalışıyor. Swift kodu bu ayarları okumuyor; <code>accessibilityReduceMotion</code>, <code>accessibilityReduceTransparency</code>, <code>colorSchemeContrast</code> ortam değerleriyle eklenmeli.</p></article>

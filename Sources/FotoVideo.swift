@@ -53,7 +53,7 @@ enum FotoOynatici {
 
     /// Seçili videoyu geçici klasöre aktarır, dosyanın yolunu döner. Arka kuyrukta çağrılır.
     static func disaAktar() -> String? {
-        let klasor = FileManager.default.temporaryDirectory.appendingPathComponent("TouchBar2-foto")
+        let klasor = FileManager.default.temporaryDirectory.appendingPathComponent("GlassBar-foto")
         try? FileManager.default.removeItem(at: klasor)
         try? FileManager.default.createDirectory(at: klasor, withIntermediateDirectories: true)
         Sistem.betik("""

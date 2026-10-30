@@ -39,9 +39,9 @@ enum Sistem {
 
     static var erisimVar: Bool { AXIsProcessTrusted() }
 
-    /// ~/Library/Logs/TouchBar2.log dosyasına bir satır ekler (tanı için).
+    /// ~/Library/Logs/GlassBar.log dosyasına bir satır ekler (tanı için).
     static func gunluk(_ satir: String) {
-        let url = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Logs/TouchBar2.log")
+        let url = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Logs/GlassBar.log")
         guard let veri = "\(Date()) \(satir)\n".data(using: .utf8), let h = try? FileHandle(forWritingTo: url) else { return }
         h.seekToEndOfFile()
         h.write(veri)
@@ -105,7 +105,7 @@ enum Sistem {
     static func missionControl() { ac("/System/Applications/Mission Control.app") }
 
     /// AppleScript ve Erişilebilirlik okumaları için: ana iş parçacığı (çubuğun çizimi) hiç beklemez.
-    static let arka = DispatchQueue(label: "TouchBar2.arka", qos: .userInitiated)
+    static let arka = DispatchQueue(label: "GlassBar.arka", qos: .userInitiated)
 
     /// Komut betiğini arka planda çalıştırır.
     static func betikArka(_ kaynak: String) { arka.async { betik(kaynak) } }

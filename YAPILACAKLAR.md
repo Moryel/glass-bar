@@ -1,13 +1,13 @@
-# TouchBar2 — yapılacaklar (2026-10-30 sonu)
+# GlassBar — yapılacaklar (2026-10-30 sonu)
 
-Yeni konuşmada önce bunu ve `OZELLIKLER.md`'yi oku. Kod `Sources/`, derleme `./build.sh --ac`, kayıt `~/Library/Logs/TouchBar2.log`.
+Yeni konuşmada önce bunu ve `OZELLIKLER.md`'yi oku. Kod `Sources/`, derleme `./build.sh --ac`, kayıt `~/Library/Logs/GlassBar.log`.
 
 ## Bağlam (kısa)
 - Kalıcı imza "TouchBar2 Yerel Imza"; izinler bu sürüme verildi (Erişilebilirlik, Otomasyon: Safari/Fotoğraflar, mikrofon). Safari'de "Apple Event'lerden gelen JavaScript'e izin ver" açık.
 - Menü komutları `AXYardim.swift` (kimlik > başlık; Türkçe başlıkların İngilizcesi `AX.ingilizce`). ⌘ kısayolları önce menüde, Türkçe Q'da düzen karakteriyle (⌘[ → ⌘Ğ) aranır.
 - Açılır çubuk `Acilir.swift`, uygulama çubukları `Cubuk.swift`, dil `Resources/<dil>.lproj` + `L()`.
-- Touch Bar görüntüsü: `screencapture -b dosya.png` (TouchBar2'yi `open -g` ile arkada aç, ilgili uygulama önde olsun; yoksa boş çıkar). Orijinal çubuğu görmek için TouchBar2'yi kapatıp uygulamayı öne getir.
-- Deneme bayrakları: `open ~/Applications/TouchBar2.app --args -tb2kip genis|parlaklik|ses|siri|fn|emoji|simdi|sekmeler`, `-AppleLanguages "(en)"`.
+- Touch Bar görüntüsü: `screencapture -b dosya.png` (GlassBar'ı `open -g` ile arkada aç, ilgili uygulama önde olsun; yoksa boş çıkar). Orijinal çubuğu görmek için GlassBar'ı kapatıp uygulamayı öne getir.
+- Deneme bayrakları: `open ~/Applications/GlassBar.app --args -tb2kip genis|parlaklik|ses|siri|fn|emoji|simdi|sekmeler`, `-AppleLanguages "(en)"`.
 - Kullanıcı jeton tüketimine dikkat ediyor: kısa tut, gereksiz ekran görüntüsü ve okuma yapma.
 
 ## 1. Kullanıcı deneyecek (sonucu söyleyince düzelt)
@@ -40,6 +40,6 @@ Yeni konuşmada önce bunu ve `OZELLIKLER.md`'yi oku. Kod `Sources/`, derleme `.
 - [ ] Spotify Web API (hesapla bağlanma, OAuth PKCE): çalma listeleri şeridi, arama, Sıradakine Ekle, beğen, Spotify Connect cihaz seçimi. Şu an Spotify yalnız AppleScript ile (oynat/duraklat, önceki/sonraki, sarma).
 
 ## 4. HTML önizleme
-- [x] (2026-10-30) Yayında sürüm 5: Klasik/Sade seçici, uygulama seçici (Safari, Mail, Mail yazarken, Takvim, Hesap Makinesi, Müzik, Finder), Safari sekmeleri, Hızlı Eylemler, Control Strip düzenleyici, ⇧⌘5, açılır çubuk (Mail Yanıtla basılı), arka plan stilleri, renk sıcaklığı. `touchbar2-onizleme.html` artık `onizleme_yap.py` ile v4'ten üretilir (`python3 onizleme_yap.py .`); v4 dosyasına dokunma. Eksik: Siri cam damlası ve video şeritleri (Safari/Fotoğraflar) önizlemede ayrı panel değil.
+- [x] (2026-10-30) Yayında sürüm 5: Klasik/Sade seçici, uygulama seçici (Safari, Mail, Mail yazarken, Takvim, Hesap Makinesi, Müzik, Finder), Safari sekmeleri, Hızlı Eylemler, Control Strip düzenleyici, ⇧⌘5, açılır çubuk (Mail Yanıtla basılı), arka plan stilleri, renk sıcaklığı. `glassbar-onizleme.html` artık `onizleme_yap.py` ile v4'ten üretilir (`python3 onizleme_yap.py .`); v4 dosyasına dokunma. Eksik: Siri cam damlası ve video şeritleri (Safari/Fotoğraflar) önizlemede ayrı panel değil.
 - Eski not: Uygulamanın yaptığı her şeyi birebir gösteren önizleme; görünüm seçici "Klasik" / "Sade Liquid Glass" (v4 korunacak). Dosyalar `onizleme/` (v4, SF Symbols PNG'leri, uygulama ikonları).
 - (yapıldı) Bugün eklenenler de girmeli: uygulama çubukları, açılır çubuk, ⇧⌘5, Safari sekmeleri ve video, Fotoğraflar videosu, arka plan stilleri, Siri cam damlası.

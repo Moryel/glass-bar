@@ -1,7 +1,7 @@
-/* TouchBar2 — English. Keys are the Turkish texts used in the code. */
+/* GlassBar — English. Keys are the Turkish texts used in the code. */
 
 /* ✨ menu */
-"TouchBar2'yi göster" = "Show TouchBar2";
+"GlassBar'ı göster" = "Show GlassBar";
 "Uygulamanın kendi tuşları" = "App's Own Controls";
 "Erişilebilirlik izni ver…" = "Grant Accessibility Permission…";
 "“%@” için kendi Touch Bar'ını göster" = "Show Own Touch Bar for “%@”";

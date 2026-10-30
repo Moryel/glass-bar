@@ -1,9 +1,9 @@
-<p align="center"><img src="tasarim/uygulama_simgesi.png" width="160" alt="TouchBar2"></p>
+<p align="center"><img src="tasarim/uygulama_simgesi.png" width="160" alt="GlassBar"></p>
 
-# TouchBar2
+# GlassBar
 
 > **A personal note**
-> TouchBar2 is the result of about four months of work, and I've been using it every day on my own MacBook for the past two months. It took much longer than I expected, and it still needs more time: some features are missing or only partly working. If you run into any of them, I'd really appreciate it if you let me know.
+> GlassBar is the result of about four months of work, and I've been using it every day on my own MacBook for the past two months. It took much longer than I expected, and it still needs more time: some features are missing or only partly working. If you run into any of them, I'd really appreciate it if you let me know.
 >
 > I'm not fully happy with the design yet either, and I'll keep improving it.
 >
@@ -19,13 +19,13 @@
 ```
 ./build.sh --ac
 ```
-`~/Applications/TouchBar2.app` olarak kurulur ve açılır. Menü çubuğunda ✨ simgesi çıkar (göster, uygulamanın kendi tuşları, Mac açılınca başlat, çık).
+`~/Applications/GlassBar.app` olarak kurulur ve açılır. Menü çubuğunda ✨ simgesi çıkar (göster, uygulamanın kendi tuşları, Mac açılınca başlat, çık).
 
-**Erişilebilirlik izni gerekir** (Sistem Ayarları → Gizlilik ve Güvenlik → Erişilebilirlik → TouchBar2): esc, F1–F12, kısayollar, medya tuşları, yazma tahminleri ve fn'yi algılamak için. `build.sh`, anahtar zincirindeki "TouchBar2 Yerel Imza" sertifikasıyla imzalar (2026-10-30'da oluşturuldu, 10 yıl geçerli); böylece izin yeniden derlemelerde düşmez. Sertifika yoksa geçici imza kullanılır ve izin her derlemede yeniden verilmelidir. Açılıştaki izin durumu `~/Library/Logs/TouchBar2.log` dosyasına yazılır. Müzik ve Finder etiketleri için ilk kullanımda Otomasyon izni sorulur.
+**Erişilebilirlik izni gerekir** (Sistem Ayarları → Gizlilik ve Güvenlik → Erişilebilirlik → GlassBar): esc, F1–F12, kısayollar, medya tuşları, yazma tahminleri ve fn'yi algılamak için. `build.sh`, anahtar zincirindeki "TouchBar2 Yerel Imza" sertifikasıyla imzalar (2026-10-30'da oluşturuldu, 10 yıl geçerli); böylece izin yeniden derlemelerde düşmez. Sertifika yoksa geçici imza kullanılır ve izin her derlemede yeniden verilmelidir. Açılıştaki izin durumu `~/Library/Logs/GlassBar.log` dosyasına yazılır. Müzik ve Finder etiketleri için ilk kullanımda Otomasyon izni sorulur.
 
 ## Nasıl çalışır
 - Touch Bar'ı sistem kipinde kaplamak için MTMR/Pock'un da kullandığı gizli API'ler (`NSTouchBar presentSystemModalTouchBar…`, DFRFoundation). Apple bunları değiştirirse kırılabilir.
-- Uygulama simgesi tuşu (esc'nin yanında) TouchBar2'yi küçültüp öndeki uygulamanın kendi Touch Bar tuşlarını gösterir (yazı önerileri vb.); Control Strip'teki ✨ ya da başka uygulamaya geçmek geri getirir.
+- Uygulama simgesi tuşu (esc'nin yanında) GlassBar'ı küçültüp öndeki uygulamanın kendi Touch Bar tuşlarını gösterir (yazı önerileri vb.); Control Strip'teki ✨ ya da başka uygulamaya geçmek geri getirir.
 - Parlaklık: DisplayServices; klavye ışığı: CoreBrightness; ses: CoreAudio; adım tuşları sistemin HUD'unu çıkarsın diye medya tuşu gönderir.
 - Launchpad tuşu macOS 26'dan beri "Uygulamalar"ı açar.
 - Siri tuşu gerçek Siri'yi açar; çubuktaki cam damladaki dalgalar mikrofon seviyesine göre hareket eder (arka plan gürültüsü süzülür). Hap 12 sn sonra, dokununca, esc ile ya da başka uygulamaya geçince kapanır.
@@ -43,6 +43,6 @@ Ayrıntılı özellik listesi: `OZELLIKLER.md`.
 ## Sıvı cam dokunuşu (`Cam.swift` → `SiviBasma`)
 Dokununca tuş büyür (%10), parmağın altında ışık yanar, oradan bir ışık halkası yayılır, kenar parlar ve camın arkasındaki ortam ışığı o noktada yanar. Parmak kaydıkça tuş o yöne esner; bırakınca yaylanıp salınarak yerine oturur. Gruplardaki tuşlarda grubun içinden cam bir damla kabarır; kaydırıcının topuzu sürüklenirken şeffaf merceğe dönüşür. Eylem, parmak tuşun üstündeyken kalkınca çalışır.
 
-Ekran görüntüsü denemesi: `open ~/Applications/TouchBar2.app --args -tb2kip genis|parlaklik|ses|siri|fn|emoji|simdi` (basılı görünüm için ayrıca `-tb2basili YES`), sonra `screencapture -b cubuk.png`.
+Ekran görüntüsü denemesi: `open ~/Applications/GlassBar.app --args -tb2kip genis|parlaklik|ses|siri|fn|emoji|simdi` (basılı görünüm için ayrıca `-tb2basili YES`), sonra `screencapture -b cubuk.png`.
 
 **Yakında:** Spotify entegrasyonu — hesapla bağlanıp çalma listeleri, arama, Sıradakine Ekle ve Spotify Connect cihaz seçimi Touch Bar'dan.

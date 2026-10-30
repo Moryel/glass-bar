@@ -51,11 +51,11 @@ enum DFR {
 final class Temsilci: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NSMenuDelegate {
     let durum = Durum()
     let cubuk = NSTouchBar()
-    let anaKimlik = NSTouchBarItem.Identifier("com.yukselozge.touchbar2.ana")
-    let tepsiKimlik = NSTouchBarItem.Identifier("com.yukselozge.touchbar2.tepsi")
+    let anaKimlik = NSTouchBarItem.Identifier("com.yukselozge.glassbar.ana")
+    let tepsiKimlik = NSTouchBarItem.Identifier("com.yukselozge.glassbar.tepsi")
     lazy var tepsi: NSCustomTouchBarItem = {
         let o = NSCustomTouchBarItem(identifier: tepsiKimlik)
-        let b = NSButton(image: NSImage(systemSymbolName: "sparkles", accessibilityDescription: "TouchBar2")!,
+        let b = NSButton(image: NSImage(systemSymbolName: "sparkles", accessibilityDescription: "GlassBar")!,
                          target: self, action: #selector(goster))
         o.view = b
         return o
@@ -65,8 +65,8 @@ final class Temsilci: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NSMen
     var izleyiciler: [Any] = []
 
     func applicationDidFinishLaunching(_ n: Notification) {
-        // tanı için: ~/Library/Logs/TouchBar2.log
-        let gunluk = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Logs/TouchBar2.log")
+        // tanı için: ~/Library/Logs/GlassBar.log
+        let gunluk = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Logs/GlassBar.log")
         try? "\(Date()) açıldı · Erişilebilirlik: \(Sistem.erisimVar ? "var" : "YOK") · model: \(Donanim.model)\n"
             .write(to: gunluk, atomically: true, encoding: .utf8)
         if !Sistem.erisimVar { Sistem.erisimIste() }
@@ -120,7 +120,7 @@ final class Temsilci: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NSMen
         }
         listeyiUygula()
 
-        // ekran görüntüsü denemeleri için: open TouchBar2.app --args -tb2kip genis|parlaklik|ses|siri|fn
+        // ekran görüntüsü denemeleri için: open GlassBar.app --args -tb2kip genis|parlaklik|ses|siri|fn
         switch UserDefaults.standard.string(forKey: "tb2kip") {
         case "genis": durum.kip = .genis
         case "parlaklik": durum.kip = .parlaklik
@@ -164,7 +164,7 @@ final class Temsilci: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NSMen
         DFR.kucult(cubuk)
     }
 
-    /// "Kendi çubuğu" listesindeki uygulamada TouchBar2 çekilir; başka uygulamaya geçince geri gelir.
+    /// "Kendi çubuğu" listesindeki uygulamada GlassBar çekilir; başka uygulamaya geçince geri gelir.
     func listeyiUygula() {
         if durum.kendiCubugu.contains(durum.paket) {
             if !kucuk { kucult() }
@@ -176,8 +176,8 @@ final class Temsilci: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NSMen
     // MARK: menü çubuğu
     func menuKur() {
         durumOgesi = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        durumOgesi.button?.image = NSImage(systemSymbolName: "sparkles.rectangle.stack", accessibilityDescription: "TouchBar2")
-            ?? NSImage(systemSymbolName: "sparkles", accessibilityDescription: "TouchBar2")
+        durumOgesi.button?.image = NSImage(systemSymbolName: "sparkles.rectangle.stack", accessibilityDescription: "GlassBar")
+            ?? NSImage(systemSymbolName: "sparkles", accessibilityDescription: "GlassBar")
         let m = NSMenu()
         m.delegate = self
         durumOgesi.menu = m
@@ -185,7 +185,7 @@ final class Temsilci: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NSMen
 
     func menuNeedsUpdate(_ m: NSMenu) {
         m.removeAllItems()
-        m.addItem(withTitle: L("TouchBar2'yi göster"), action: #selector(goster), keyEquivalent: "").target = self
+        m.addItem(withTitle: L("GlassBar'ı göster"), action: #selector(goster), keyEquivalent: "").target = self
         m.addItem(withTitle: L("Uygulamanın kendi tuşları"), action: #selector(kucult), keyEquivalent: "").target = self
         m.addItem(.separator())
         if !Sistem.erisimVar {
@@ -309,6 +309,16 @@ final class Temsilci: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NSMen
         let s = SMAppService.mainApp
         if s.status == .enabled { try? s.unregister() } else { try? s.register() }
     }
+}
+
+// Uygulamanın eski adı TouchBar2'ydi: ilk açılışta ayarları eski kimlikten taşı.
+let eskiAyarlar = "com.yukselozge.TouchBar2"
+if !UserDefaults.standard.bool(forKey: "ayarlarTasindi") {
+    for (anahtar, deger) in UserDefaults.standard.persistentDomain(forName: eskiAyarlar) ?? [:]
+    where UserDefaults.standard.object(forKey: anahtar) == nil {
+        UserDefaults.standard.set(deger, forKey: anahtar)
+    }
+    UserDefaults.standard.set(true, forKey: "ayarlarTasindi")
 }
 
 let uygulama = NSApplication.shared

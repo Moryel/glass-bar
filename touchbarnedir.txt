@@ -304,9 +304,9 @@ Sketch, Fantastical, Spotify (sürüme göre). [D: Photoshop, djay, Office]
   duyurusu bulunamadı. [D: basın/forum]
 
 
-12. TOUCHBAR2 İLE İLİŞKİ
+12. GLASSBAR İLE İLİŞKİ
 -----------------------
-Bu listedeki her özelliğin TouchBar2'deki durumu (✅/🟡/❌/⛔) ayrıntılı olarak
+Bu listedeki her özelliğin GlassBar'daki durumu (✅/🟡/❌/⛔) ayrıntılı olarak
 OZELLIKLER.md'de tutuluyor. Bu dosyadan çıkan, OZELLIKLER.md'de henüz geçmeyen başlıklar:
 - Popover'larda basılı tut + kaydır + bırak (OZELLIKLER.md'de ❌).
 - Popover tuşundaki küçük ok (chevron) ve görünürlük önceliğine göre öğe gizleme.

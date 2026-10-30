@@ -1,7 +1,7 @@
 import AppKit
 import Carbon
 
-/// TouchBar2'nin kendi yazıları: anahtar Türkçe metnin kendisi, çevirisi <dil>.lproj/Localizable.strings'te.
+/// GlassBar'ın kendi yazıları: anahtar Türkçe metnin kendisi, çevirisi <dil>.lproj/Localizable.strings'te.
 /// Çevirisi olmayan (posta kutusu adı gibi) metin olduğu gibi döner.
 func L(_ s: String) -> String { NSLocalizedString(s, comment: "") }
 

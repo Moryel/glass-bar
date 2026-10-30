@@ -83,7 +83,7 @@ final class Durum: ObservableObject {
     @Published var hepF = Kayit.dizi("hepF") ?? [] { didSet { Kayit.yaz("hepF", hepF) } }
 
     let genislik = Donanim.genislik
-    /// Öndeki uygulamanın kendi Touch Bar tuşlarını göstermek için (TouchBar2 küçülür).
+    /// Öndeki uygulamanın kendi Touch Bar tuşlarını göstermek için (GlassBar küçülür).
     var uygulamaTuslari: () -> Void = {}
 
     private var kapatma: Timer?
