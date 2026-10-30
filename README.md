@@ -1,3 +1,5 @@
+<p align="center"><img src="tasarim/uygulama_simgesi.png" width="160" alt="TouchBar2"></p>
+
 # TouchBar2
 
 > **A personal note**

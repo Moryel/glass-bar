@@ -12,6 +12,8 @@ swiftc -O -swift-version 5 -target arm64-apple-macos14.0 \
 
 # çeviriler (sistemin diline göre; listede olmayan dillerde İngilizce)
 cp -R Resources/*.lproj "$UYG/Contents/Resources/"
+# uygulama simgesi (kaynağı: tasarim/uygulama_simgesi.swift)
+cp Resources/TouchBar2.icns "$UYG/Contents/Resources/"
 
 cat > "$UYG/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -24,6 +26,7 @@ cat > "$UYG/Contents/Info.plist" <<'PLIST'
   <key>CFBundleExecutable</key><string>TouchBar2</string>
   <key>CFBundleDevelopmentRegion</key><string>en</string>
   <key>CFBundleLocalizations</key><array><string>en</string><string>tr</string></array>
+  <key>CFBundleIconFile</key><string>TouchBar2</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>0.1</string>
   <key>CFBundleVersion</key><string>1</string>
