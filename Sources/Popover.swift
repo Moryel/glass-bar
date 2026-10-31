@@ -28,13 +28,13 @@ struct PopoverView: View {
                 BarText(b, size: 12).foregroundStyle(.white.opacity(0.6)).padding(.horizontal, 4)
             }
             if a.items.isEmpty {
-                Text(L(a.placeholder ?? "")).font(.system(size: 12)).foregroundStyle(.white.opacity(0.5))
+                Text(L(a.placeholder ?? "")).font(.bar(12)).foregroundStyle(.white.opacity(0.5))
                 Spacer(minLength: 0)
             } else if a.items.count > 8 {
                 // long lists (mailboxes) go in a scrolling strip; slide-to-pick only for short lists
                 ScrollingStrip {
                     ForEach(Array(a.items.enumerated()), id: \.offset) { _, o in
-                        GlassButton(width: nil, highlight: o.isSelected ? .white.opacity(0.28) : nil, action: { d.closePopover(); o.action() }) {
+                        GlassButton(width: nil, highlight: o.isSelected ? .active : nil, action: { d.closePopover(); o.action() }) {
                             Text(L(o.text ?? "")).lineLimit(1).frame(maxWidth: 160)
                         }
                         .inScrollingStrip()
@@ -44,7 +44,7 @@ struct PopoverView: View {
             } else {
                 ButtonGroup(buttons: a.items.enumerated().map { i, o in
                     GroupButton(symbol: o.symbol, text: o.text, dot: o.dot,
-                            highlight: o.isSelected || d.highlightedPopoverItem == i ? .white.opacity(0.28) : nil) { d.closePopover(); o.action() }
+                            highlight: o.isSelected || d.highlightedPopoverItem == i ? .active : nil) { d.closePopover(); o.action() }
                 })
                 .background(GeometryReader { g in
                     Color.clear
@@ -63,7 +63,7 @@ final class ButtonPosition: ObservableObject { var x: CGFloat = 0 }
 struct PopoverButton<Label: View>: View {
     @ObservedObject var d: AppState
     var width: CGFloat? = Metrics.iconWidth
-    var highlight: Color? = nil
+    var highlight: Role? = nil
     let popover: () -> Popover
     var onTap: (() -> Void)? = nil
     @ViewBuilder var label: () -> Label
@@ -74,7 +74,7 @@ struct PopoverButton<Label: View>: View {
             HStack(spacing: 3) {
                 label()
                 if onTap == nil {
-                    Image(systemName: "chevron.right").font(.system(size: 7, weight: .bold)).foregroundStyle(.white.opacity(0.5))
+                    Icon("chevron.right").font(.bar(7, .bold)).foregroundStyle(.white.opacity(0.5))
                 }
             }
         }

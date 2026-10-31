@@ -27,6 +27,8 @@ fi
 cp -R Resources/*.lproj "$APP/Contents/Resources/"
 # app icon (source: design/app_icon.swift)
 cp Resources/GlassBar.icns "$APP/Contents/Resources/"
+# built-in theme packages (Terminal, 8-Bit Arcade…)
+cp -R Resources/Themes "$APP/Contents/Resources/"
 
 cat > "$APP/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -49,12 +51,13 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
     <key>CFBundleTypeName</key><string>GlassBar Theme</string>
     <key>CFBundleTypeRole</key><string>Viewer</string>
     <key>LSHandlerRank</key><string>Owner</string>
+    <key>LSTypeIsPackage</key><true/>
     <key>LSItemContentTypes</key><array><string>com.yukselozge.glasstheme</string></array>
   </dict></array>
   <key>UTExportedTypeDeclarations</key><array><dict>
     <key>UTTypeIdentifier</key><string>com.yukselozge.glasstheme</string>
     <key>UTTypeDescription</key><string>GlassBar Theme</string>
-    <key>UTTypeConformsTo</key><array><string>public.json</string></array>
+    <key>UTTypeConformsTo</key><array><string>com.apple.package</string></array>
     <key>UTTypeTagSpecification</key><dict><key>public.filename-extension</key><array><string>glasstheme</string></array></dict>
   </dict></array>
   <key>NSMicrophoneUsageDescription</key><string>GlassBar uses the microphone level to move the Siri waves on the Touch Bar while Siri is listening. Nothing is recorded.</string>

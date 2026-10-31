@@ -39,6 +39,8 @@ final class PressState: ObservableObject {
     @Published var dragOffset: CGSize = .zero
     @Published var ripple: CGFloat = 1
     @Published var glow: Double = 0
+    /// counts presses for the shake effect
+    @Published var shakes: CGFloat = 0
     var size: CGSize = .zero
     var frameInBar: CGRect = .zero
     /// press-and-slide in progress
@@ -54,11 +56,17 @@ final class TouchLight: ObservableObject {
 
 /// Glass background. When `b` is given it reacts to touch: light under the finger, a spreading ring, a glowing edge.
 struct GlassBackground: View {
-    var highlight: Color? = nil
+    var role: Role? = nil
     @ObservedObject var b: PressState = PressState()
     @Environment(\.theme) private var theme
 
+    private var highlight: Color? { role.flatMap(theme.glassColor) }
+
     var body: some View {
+        if theme.isSkin { SkinBackground(role: role, isPressed: b.isPressed) } else { glass }
+    }
+
+    private var glass: some View {
         GeometryReader { g in
             let w = max(1, g.size.width), h = max(1, g.size.height)
             let center = UnitPoint(x: b.position.x / w, y: b.position.y / h)
@@ -136,7 +144,7 @@ struct GlassBackground: View {
 struct LiquidPress: ViewModifier {
     enum Kind { case capsule, bubble }
     var kind: Kind = .capsule
-    var highlight: Color? = nil
+    var role: Role? = nil
     /// item in a scrolling strip: doesn't stretch, and the action doesn't run if the finger slides
     var isScrollable = false
     /// called with the horizontal offset when pressing and sliding sideways (like brightness/volume)
@@ -152,18 +160,24 @@ struct LiquidPress: ViewModifier {
     func body(content: Content) -> some View {
         let tx = b.dragOffset.width, ty = b.dragOffset.height
         let stretch = abs(tanh(tx / 60))
-        let minimal = theme.isMinimal, k = CGFloat(theme.bounce)
-        content
-            .font(.system(size: 13, weight: theme.weight, design: theme.design))
-            .foregroundStyle(theme.text)
+        let minimal = theme.isMinimal, effect = theme.pressEffect
+        let k = CGFloat(theme.bounce) * (effect == .liquid ? 1 : 0)
+        let pop: CGFloat = effect == .pop && b.isPressed ? (kind == .capsule ? 0.12 : 0.08) : 0
+        bracketed(content)
+            .font(theme.font(13))
+            .textCase(theme.letterCase)
+            .tracking(theme.tracking)
+            .foregroundStyle(theme.isSkin ? theme.layer(role, pressed: b.isPressed).text : theme.text)
             .frame(maxHeight: .infinity)
             .background {
                 switch kind {
                 case .capsule:
-                    GlassBackground(highlight: highlight, b: b)
+                    GlassBackground(role: role, b: b)
+                case .bubble where theme.isSkin:
+                    SkinBackground(role: role, isPressed: b.isPressed, isGroupItem: true)
                 case .bubble:
                     ZStack {
-                        if let highlight {
+                        if let highlight = role.flatMap(theme.glassColor) {
                             let r = theme.radius(Metrics.buttonHeight)
                             UnevenRoundedRectangle(topLeadingRadius: isLeadingEnd ? r : 0, bottomLeadingRadius: isLeadingEnd ? r : 0,
                                                    bottomTrailingRadius: isTrailingEnd ? r : 0, topTrailingRadius: isTrailingEnd ? r : 0)
@@ -191,9 +205,11 @@ struct LiquidPress: ViewModifier {
                     .onChange(of: g.frame(in: .named("bar"))) { _, c in b.size = c.size; b.frameInBar = c }
             })
             .contentShape(Rectangle())
-            .scaleEffect(b.isPressed ? 1 + k * (kind == .capsule ? (minimal ? 0.08 : 0.1) : (minimal ? 0.05 : 0.04)) : 1)
+            .scaleEffect(b.isPressed ? 1 + pop + k * (kind == .capsule ? (minimal ? 0.08 : 0.1) : (minimal ? 0.05 : 0.04)) : 1)
             .scaleEffect(x: 1 + k * (minimal ? 0.06 : 0.12) * stretch, y: 1 - k * (minimal ? 0.035 : 0.07) * stretch)
             .offset(x: k * (minimal ? 4 : 7) * tanh(tx / 45), y: k * (minimal ? 1 : 2) * tanh(ty / 25))
+            .modifier(ShakeEffect(amount: b.shakes))
+            .rotationEffect(.degrees(effect == .wobble && b.isPressed ? -4 : 0))
             .animation(Springs.follow, value: b.dragOffset)
             .animation(b.isPressed ? Springs.press(theme) : Springs.release(theme), value: b.isPressed)
             .zIndex(b.isPressed ? 1 : 0)
@@ -204,6 +220,8 @@ struct LiquidPress: ViewModifier {
                         b.ripple = 0
                         withAnimation(.easeOut(duration: 0.6)) { b.ripple = 1 }
                         withAnimation(.easeOut(duration: 0.12)) { b.glow = 1 }
+                        if effect == .shake { withAnimation(.linear(duration: 0.3)) { b.shakes += 1 } }
+                        ThemeSound.play("tap", theme)
                         TouchLight.shared.position = CGPoint(x: b.frameInBar.minX + e.location.x, y: b.frameInBar.midY)
                         withAnimation(.easeOut(duration: 0.18)) { TouchLight.shared.intensity = 1 }
                     }
@@ -230,18 +248,54 @@ struct LiquidPress: ViewModifier {
     }
 }
 
+/// The shared background of a button group: glass, or the skin's group layer.
+struct GroupBackground: View {
+    var role: Role? = nil
+    @Environment(\.theme) private var theme
+
+    var body: some View {
+        if theme.isSkin {
+            let l = theme.groupLayer(role)
+            GeometryReader { g in
+                let shape = RoundedRectangle(cornerRadius: min(l.radius, g.size.height / 2), style: .continuous)
+                ZStack {
+                    if let f = l.fill { shape.fill(LinearGradient(colors: [f, l.fill2 ?? f], startPoint: .top, endPoint: .bottom)) }
+                    SkinBorder(l: l, size: g.size)
+                }
+                .shadow(color: l.glowColor.opacity(l.glow > 0 ? 0.9 : 0), radius: l.glow)
+            }
+        } else {
+            GlassBackground(role: role).clipShape(theme.shape(Metrics.buttonHeight))
+        }
+    }
+}
+
+extension LiquidPress {
+    /// ASCII borders hug the label: "[esc]", "[ / ]".
+    @ViewBuilder func bracketed(_ c: Content) -> some View {
+        let l = theme.layer(role, pressed: b.isPressed)
+        if theme.isSkin && l.border == "ascii" {
+            HStack(spacing: 2) { Text(l.opening); c; Text(l.closing) }.padding(.horizontal, 3)
+        } else {
+            c
+        }
+    }
+}
+
 /// Single-line button text. On the Touch Bar, Text doesn't fit the width it measures itself and truncates ("Tod…");
 /// the width is measured with AppKit and given with a little slack.
 struct BarText: View {
     let text: String
     var size: CGFloat = 13
     var weight: NSFont.Weight = .medium
+    @Environment(\.theme) private var theme
     init(_ text: String, size: CGFloat = 13, weight: NSFont.Weight = .medium) {
         self.text = L(text); self.size = size; self.weight = weight
     }
     var body: some View {
-        let w = (text as NSString).size(withAttributes: [.font: NSFont.systemFont(ofSize: size, weight: weight)]).width
-        Text(text).font(.system(size: size, weight: Font.Weight(weight))).lineLimit(1).frame(width: ceil(w) + 6)
+        let s = theme.cased(text)
+        let w = (s as NSString).size(withAttributes: [.font: theme.nsFont(size, weight), .kern: theme.tracking]).width
+        Text(s).font(theme.font(size, Font.Weight(weight))).tracking(theme.tracking).lineLimit(1).frame(width: ceil(w) + 6)
     }
 }
 
@@ -258,19 +312,22 @@ extension Font.Weight {
 
 struct GlassButton<Label: View>: View {
     var width: CGFloat? = Metrics.iconWidth
-    var highlight: Color? = nil
+    var highlight: Role? = nil
     let action: () -> Void
     @ViewBuilder var label: () -> Label
     var isScrollable = false
     var onSlide: ((CGFloat) -> Void)? = nil
     var onSlideEnd: (() -> Void)? = nil
+    @Environment(\.theme) private var theme
 
     var body: some View {
+        // skins may show text instead of symbols, so a fixed width becomes a minimum
         label()
             .padding(.horizontal, width == nil ? 12 : 0)
-            .frame(width: width)
+            .frame(width: theme.isSkin ? nil : width)
+            .frame(minWidth: theme.isSkin ? width : nil)
             .frame(height: Metrics.buttonHeight)
-            .modifier(LiquidPress(highlight: highlight, isScrollable: isScrollable, onSlide: onSlide, onSlideEnd: onSlideEnd, action: action))
+            .modifier(LiquidPress(role: highlight, isScrollable: isScrollable, onSlide: onSlide, onSlideEnd: onSlideEnd, action: action))
             .frame(height: Metrics.buttonHeight)
     }
 
@@ -290,12 +347,12 @@ struct GlassButton<Label: View>: View {
     }
 }
 
-extension GlassButton where Label == Image {
-    init(_ symbol: String, width: CGFloat? = Metrics.iconWidth, highlight: Color? = nil, action: @escaping () -> Void) {
+extension GlassButton where Label == Icon {
+    init(_ symbol: String, width: CGFloat? = Metrics.iconWidth, highlight: Role? = nil, action: @escaping () -> Void) {
         self.width = width
         self.highlight = highlight
         self.action = action
-        self.label = { Image(systemName: symbol) }
+        self.label = { Icon(symbol) }
     }
 }
 
@@ -304,7 +361,7 @@ struct GroupButton: Identifiable {
     var symbol: String? = nil
     var text: String? = nil
     var dot: Color? = nil
-    var highlight: Color? = nil
+    var highlight: Role? = nil
     let action: () -> Void
 }
 
@@ -312,27 +369,27 @@ struct ButtonGroup: View {
     let buttons: [GroupButton]
     var buttonWidth: CGFloat? = nil
     /// when given, the group's glass is tinted this color (typing suggestions are dark blue-gray in the original)
-    var backgroundTint: Color? = nil
+    var backgroundTint: Role? = nil
     @Environment(\.theme) private var theme
 
     var body: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: theme.splitsGroups ? Metrics.spacing : 0) {
             ForEach(Array(buttons.enumerated()), id: \.offset) { i, t in
-                if i > 0 { Rectangle().fill(theme.text.opacity(0.13)).frame(width: 0.6).padding(.vertical, 5) }
+                if i > 0 && !theme.splitsGroups { Rectangle().fill(theme.layer(nil).text.opacity(0.13)).frame(width: 0.6).padding(.vertical, 5) }
                 Group {
                     if let n = t.dot {
                         Circle().fill(n).frame(width: 13, height: 13)
                             .overlay(Circle().fill(LinearGradient(colors: [.white.opacity(0.45), .clear],
                                                                   startPoint: .top, endPoint: .center)))
-                    } else if let s = t.symbol { Image(systemName: s) } else { Text(L(t.text ?? "")).lineLimit(1) }
+                    } else if let s = t.symbol { Icon(s) } else { Text(L(t.text ?? "")).lineLimit(1) }
                 }
                 .frame(maxWidth: buttonWidth == nil ? .infinity : nil)
                 .frame(width: buttonWidth)
-                .modifier(LiquidPress(kind: .bubble, highlight: t.highlight, isLeadingEnd: i == 0, isTrailingEnd: i == buttons.count - 1, action: t.action))
+                .modifier(LiquidPress(kind: theme.splitsGroups ? .capsule : .bubble, role: t.highlight, isLeadingEnd: i == 0, isTrailingEnd: i == buttons.count - 1, action: t.action))
             }
         }
         .frame(height: Metrics.buttonHeight)
-        .background(GlassBackground(highlight: backgroundTint).clipShape(theme.shape(Metrics.buttonHeight)))
+        .background { if !theme.splitsGroups { GroupBackground(role: backgroundTint) } }
     }
 }
 
@@ -347,7 +404,41 @@ struct GlassSlider: View {
     @Environment(\.theme) private var theme
 
     var body: some View {
-        if theme.isMinimal { minimal } else { classic }
+        if theme.isSkin { skinned } else if theme.isMinimal { minimal } else { classic }
+    }
+
+    /// Skinned theme: a track in the theme's colors and a knob drawn like its buttons; with ASCII borders, [====|----].
+    private var skinned: some View {
+        GeometryReader { g in
+            let w = max(1, g.size.width), v = CGFloat(value)
+            let l = theme.layer(nil, pressed: b.isPressed)
+            let fill = theme.sliderFill ?? theme.layer(.primary).fill ?? l.borderColor
+            Group {
+                if l.border == "ascii" {
+                    let font = theme.nsFont(13, .medium)
+                    let charWidth = max(1, ("=" as NSString).size(withAttributes: [.font: font]).width)
+                    let count = max(4, Int(w / charWidth) - 3), filled = Int((v * CGFloat(count)).rounded())
+                    Text(l.opening + String(repeating: "=", count: filled) + "|" + String(repeating: "-", count: max(0, count - filled)) + l.closing)
+                        .font(theme.font(13)).foregroundStyle(l.text).lineLimit(1).fixedSize()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    let knob = CGSize(width: isThin ? 12 : 26, height: isThin ? 12 : 20)
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: min(l.radius, 3)).fill(l.borderColor.opacity(0.3)).frame(height: isThin ? 4 : 6)
+                        RoundedRectangle(cornerRadius: min(l.radius, 3)).fill(fill).frame(width: max(6, w * v), height: isThin ? 4 : 6)
+                        SkinBackground(isPressed: b.isPressed)
+                            .frame(width: knob.width, height: knob.height)
+                            .scaleEffect(b.isPressed ? 1.15 : 1)
+                            .offset(x: min(max(0, w * v - knob.width / 2), w - knob.width))
+                            .animation(Springs.minimalPress, value: b.isPressed)
+                    }
+                    .frame(maxHeight: .infinity)
+                }
+            }
+            .contentShape(Rectangle())
+            .gesture(dragGesture(w))
+        }
+        .frame(height: Metrics.buttonHeight)
     }
 
     /// Minimal theme: a white capsule knob at rest; while dragging it becomes a clear lens magnifying the track below.

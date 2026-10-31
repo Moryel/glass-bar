@@ -9,12 +9,15 @@ struct TouchBarView: View {
         // while pressing and sliding the button stays in the hierarchy so the finger's movement isn't cut off
         let sliderPanel: AppState.Panel? = d.liveSlider ?? ((d.panel == .brightness || d.panel == .volume) ? d.panel : nil)
         ZStack {
-            AmbientLight(color: d.appColor, isSiriActive: d.isSiriActive, style: d.backdrop, image: d.backdropImage)
+            // a skinned theme with its own bar replaces the background
+            if let bar = d.theme.skin?.bar { SkinBarBackground(style: bar, theme: d.theme) } else {
+                AmbientLight(color: d.appColor, isSiriActive: d.isSiriActive, style: d.backdrop, image: d.backdropImage)
+            }
             HStack(spacing: Metrics.spacing) {
                 if d.showsEsc {
                     // while a temporary panel (emoji, tabs, Now Playing…) is open, "Done" like the original: closes the panel, sends no key
                     let showsDone = d.panel == .emoji || d.panel == .tabs || d.panel == .nowPlaying
-                    GlassButton(width: Metrics.escWidth, highlight: showsDone ? .white.opacity(0.22) : nil, action: showsDone ? d.handleEsc : d.esc) {
+                    GlassButton(width: Metrics.escWidth, highlight: showsDone ? .active : nil, action: showsDone ? d.handleEsc : d.esc) {
                         if showsDone { BarText("Done") } else { Text("esc").kerning(0.3) }
                     }
                         .transition(.focusIn)
@@ -46,9 +49,10 @@ struct TouchBarView: View {
         .frame(width: d.width, height: Metrics.barHeight)
         .coordinateSpace(name: "bar")
         .background(Color.black)
+        .overlay { if let bar = d.theme.skin?.bar { SkinBarOverlay(style: bar) } }
         .environment(\.theme, d.theme)
-        .font(.system(size: 14))
-        .fontDesign(d.theme.design)
+        .font(d.theme.font(14))
+        .textCase(d.theme.letterCase)
         .animation(.spring(response: 0.45, dampingFraction: 0.8), value: d.animationKey)
     }
 }
@@ -185,13 +189,13 @@ struct ControlStripEditor: View {
         let available = StripButton.allCases.filter { !d.stripButtons.contains($0) }
         let step = Metrics.iconWidth + Metrics.spacing
         HStack(spacing: Metrics.spacing) {
-            GlassButton(width: Metrics.escWidth, highlight: Color(hex: 0x0A84FF, 0.6), action: { d.isEditingControlStrip = false }) { BarText("Done") }
+            GlassButton(width: Metrics.escWidth, highlight: .primary, action: { d.isEditingControlStrip = false }) { BarText("Done") }
             HStack(spacing: Metrics.spacing) {
                 ForEach(d.stripButtons, id: \.self) { t in
                     let isDragged = s.button == t
                     GlassButton(t.symbol, action: { d.stripButtons.removeAll { $0 == t } })
                         .overlay(alignment: .topTrailing) {
-                            Image(systemName: "minus.circle.fill").font(.system(size: 10))
+                            Icon("minus.circle.fill").font(.bar(10))
                                 .foregroundStyle(.white, Color(hex: 0xFF453A)).offset(x: 2, y: -1)
                         }
                         .offset(x: isDragged ? s.x : 0)
@@ -217,7 +221,7 @@ struct ControlStripEditor: View {
             .padding(.horizontal, 4)
             .background(Capsule().fill(.white.opacity(0.08)))
             Text(L(d.stripButtons.count >= StripButton.maxCount ? "Strip full" : "Add:"))
-                .font(.system(size: 11)).foregroundStyle(.white.opacity(0.5)).padding(.leading, 6)
+                .font(.bar(11)).foregroundStyle(.white.opacity(0.5)).padding(.leading, 6)
             ScrollingStrip {
                 ForEach(available, id: \.self) { t in
                     GlassButton(t.symbol, action: {
@@ -252,9 +256,9 @@ struct StripButtonView: View {
             GlassButton(d.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill") { d.performStripButton(.volume) }
                 .whenSliding({ d.liveSlide(.volume, $0) }, onEnd: d.endLiveSlider)
                 .modifier(ReportButtonFrame(d: d, k: .volume))
-        case .mute: GlassButton("speaker.slash.fill", highlight: d.isMuted ? .white.opacity(0.35) : nil) { d.performStripButton(.mute) }
-        case .nightShift: GlassButton("moon.stars.fill", highlight: d.isNightShiftOn ? Color(hex: 0xF5A623, 0.6) : nil) { d.performStripButton(.nightShift) }
-        case .inputSource: GlassButton(action: { d.performStripButton(.inputSource) }) { Text(d.inputSourceName).font(.system(size: 12, weight: .semibold)) }
+        case .mute: GlassButton("speaker.slash.fill", highlight: d.isMuted ? .active : nil) { d.performStripButton(.mute) }
+        case .nightShift: GlassButton("moon.stars.fill", highlight: d.isNightShiftOn ? .custom(Color(hex: 0xF5A623, 0.6)) : nil) { d.performStripButton(.nightShift) }
+        case .inputSource: GlassButton(action: { d.performStripButton(.inputSource) }) { Text(d.inputSourceName).font(.bar(12, .semibold)) }
         default: GlassButton(t.symbol) { d.performStripButton(t) }
         }
     }
@@ -268,7 +272,7 @@ struct NowPlayingButton: View {
         GlassButton(width: 52, action: { d.panel = .nowPlaying }) {
             HStack(spacing: 4) {
                 AppIcon(bundleID: c.source, size: 15)
-                Image(systemName: c.isPlaying ? "pause.fill" : "play.fill").font(.system(size: 11))
+                Icon(c.isPlaying ? "pause.fill" : "play.fill").font(.bar(11))
             }
         }
     }
@@ -291,7 +295,7 @@ struct AppIcon: View {
         if let icon {
             Image(nsImage: icon).resizable().frame(width: size, height: size)
         } else {
-            Image(systemName: "music.note")
+            Icon("music.note")
         }
     }
 }
@@ -311,7 +315,7 @@ struct ExpandedControlStrip: View {
             ButtonGroup(buttons: [.init(symbol: "backward.fill") { d.step(.previous) },
                           .init(symbol: "playpause.fill") { d.step(.playPause) },
                           .init(symbol: "forward.fill") { d.step(.next) }])
-            ButtonGroup(buttons: [.init(symbol: "speaker.slash.fill", highlight: d.isMuted ? .white.opacity(0.3) : nil) { d.toggleMute() },
+            ButtonGroup(buttons: [.init(symbol: "speaker.slash.fill", highlight: d.isMuted ? .active : nil) { d.toggleMute() },
                           .init(symbol: "speaker.wave.1.fill") { d.step(.volumeDown) },
                           .init(symbol: "speaker.wave.3.fill") { d.step(.volumeUp) }])
             SiriButton(d: d)
@@ -347,7 +351,7 @@ struct PopUpSlider: View {
         ZStack(alignment: .topLeading) {
             HStack(spacing: 12) {
                 // the end icons also step down/up by one, like the original
-                Image(systemName: isBrightness ? "sun.min.fill" : "speaker.fill").font(.system(size: 12))
+                Icon(isBrightness ? "sun.min.fill" : "speaker.fill").font(.bar(12))
                     .frame(width: 30, height: Metrics.buttonHeight).contentShape(Rectangle())
                     .onTapGesture { d.sliderStep(k, -1) }
                 if isBrightness {
@@ -355,7 +359,7 @@ struct PopUpSlider: View {
                 } else {
                     GlassSlider(value: $d.volume, fillColor: Color(hex: 0x0A84FF), onValueChange: d.setVolume)
                 }
-                Image(systemName: isBrightness ? "sun.max.fill" : "speaker.wave.3.fill").font(.system(size: 14))
+                Icon(isBrightness ? "sun.max.fill" : "speaker.wave.3.fill").font(.bar(14))
                     .frame(width: 30, height: Metrics.buttonHeight).contentShape(Rectangle())
                     .onTapGesture { d.sliderStep(k, 1) }
             }
@@ -404,14 +408,14 @@ struct QuickActionsRow: View {
                 ScrollingStrip {
                     ForEach(items, id: \.self) { t in
                         GlassButton(width: nil, action: { select(t) }) {
-                            Text(t).font(.system(size: 12, weight: .medium)).lineLimit(1).frame(maxWidth: 180)
+                            Text(t).font(.bar(12, .medium)).lineLimit(1).frame(maxWidth: 180)
                         }
                         .inScrollingStrip()
                     }
                 }
             } else {
                 Text(L(items == nil ? "Loading…" : "Nothing to choose right now"))
-                    .font(.system(size: 12)).foregroundStyle(.white.opacity(0.5)).padding(.leading, 6)
+                    .font(.bar(12)).foregroundStyle(.white.opacity(0.5)).padding(.leading, 6)
                 Spacer(minLength: 0)
             }
         }
@@ -439,8 +443,8 @@ struct SpacesRow: View {
         HStack(spacing: Metrics.spacing) {
             GlassButton("rectangle.3.group", action: SystemControl.missionControl)
             ForEach(0..<d.spaces.count, id: \.self) { i in
-                GlassButton(width: nil, highlight: i == d.spaces.current ? .white.opacity(0.28) : nil, action: { Spaces.switchTo(i) }) {
-                    Text(String(format: L("Desktop %d"), i + 1)).font(.system(size: 12, weight: .medium)).frame(maxWidth: .infinity)
+                GlassButton(width: nil, highlight: i == d.spaces.current ? .active : nil, action: { Spaces.switchTo(i) }) {
+                    Text(String(format: L("Desktop %d"), i + 1)).font(.bar(12, .medium)).frame(maxWidth: .infinity)
                 }
             }
         }
@@ -482,7 +486,7 @@ struct PlayerControls: View {
         if c.video {
             FilmstripView(d: d)
             Text(TimeFormat.typeText(Double(d.nowPlayingProgress) * c.duration) + " / " + TimeFormat.typeText(c.duration))
-                .font(.system(size: 10)).monospacedDigit().foregroundStyle(.white.opacity(0.6))
+                .font(.bar(10)).monospacedDigit().foregroundStyle(.white.opacity(0.6))
                 .frame(width: TimeFormat.pairWidth(c.duration))
         } else {
             TrackProgress(d: d, c: c)
@@ -512,7 +516,7 @@ struct TrackProgress: View {
                 Text("\(TimeFormat.typeText(Double(d.nowPlayingProgress) * c.duration)) / \(TimeFormat.typeText(c.duration))").monospacedDigit().foregroundStyle(.white.opacity(0.6))
                     .frame(width: 80, alignment: .trailing)
             }
-            .font(.system(size: 10))
+            .font(.bar(10))
             .lineLimit(1)
             GlassSlider(value: $d.nowPlayingProgress, isThin: true, onValueChange: { d.scrubNowPlaying($0) }).frame(height: 10)
         }
@@ -620,17 +624,17 @@ struct ScreenshotBar: View {
             if d.showsTargetList {
                 GlassButton("chevron.left", width: Metrics.narrowWidth) { d.showsTargetList = false }
                 ButtonGroup(buttons: ScreenshotTool.targets.map { h in
-                    .init(text: h, highlight: h == a.target ? .white.opacity(0.25) : nil) { d.selectScreenshotTarget(h) }
+                    .init(text: h, highlight: h == a.target ? .active : nil) { d.selectScreenshotTarget(h) }
                 })
                 .frame(maxWidth: .infinity)
             } else {
                 ButtonGroup(buttons: ScreenshotTool.captureModes.map { k in
-                    .init(symbol: k.identifier, highlight: !a.video && a.style == k.style ? .white.opacity(0.25) : nil) {
+                    .init(symbol: k.identifier, highlight: !a.video && a.style == k.style ? .active : nil) {
                         d.selectScreenshotMode(k.identifier, style: k.style, video: false)
                     }
                 }, buttonWidth: Metrics.iconWidth)
                 ButtonGroup(buttons: ScreenshotTool.recordModes.map { k in
-                    .init(symbol: ScreenshotTool.symbol(k.identifier), highlight: a.video && a.style == k.style ? .white.opacity(0.25) : nil) {
+                    .init(symbol: ScreenshotTool.symbol(k.identifier), highlight: a.video && a.style == k.style ? .active : nil) {
                         d.selectScreenshotMode(k.identifier, style: k.style, video: true)
                     }
                 }, buttonWidth: Metrics.iconWidth)
@@ -639,7 +643,7 @@ struct ScreenshotBar: View {
                 GlassButton(width: nil, action: { d.showsTargetList = true }) {
                     HStack(spacing: 6) {
                         Text(L(a.target)).lineLimit(1)
-                        Image(systemName: "chevron.right").font(.system(size: 10, weight: .semibold)).foregroundStyle(.white.opacity(0.6))
+                        Icon("chevron.right").font(.bar(10, .semibold)).foregroundStyle(.white.opacity(0.6))
                     }
                     .frame(minWidth: 90)
                 }
@@ -660,19 +664,19 @@ struct TabsBar: View {
             GlassButton("xmark", width: Metrics.narrowWidth, action: d.collapse)
             if windows.count > 1 {
                 ButtonGroup(buttons: windows.map { p in
-                    .init(text: "\(p)", highlight: p == d.selectedWindow ? .white.opacity(0.25) : nil) { d.selectedWindow = p }
+                    .init(text: "\(p)", highlight: p == d.selectedWindow ? .active : nil) { d.selectedWindow = p }
                 }, buttonWidth: 28)
             }
             if items.isEmpty {
                 Text(L(d.isLoadingTabs ? "Loading tabs…"
                      : d.isSafariAccessDenied ? "No access to Safari: System Settings → Privacy & Security → Automation"
                      : "No open Safari windows"))
-                    .font(.system(size: 12)).foregroundStyle(.white.opacity(0.5)).padding(.leading, 6)
+                    .font(.bar(12)).foregroundStyle(.white.opacity(0.5)).padding(.leading, 6)
                 Spacer(minLength: 0)
             } else {
                 ScrollingStrip {
                     ForEach(items) { s in
-                        GlassButton(width: nil, highlight: s.isSelected ? .white.opacity(0.28) : nil, action: { d.selectTab(s) }) {
+                        GlassButton(width: nil, highlight: s.isSelected ? .active : nil, action: { d.selectTab(s) }) {
                             Text(s.name.isEmpty ? s.address : s.name)
                                 .font(.system(size: 12, weight: s.isSelected ? .semibold : .regular))
                                 .lineLimit(1).truncationMode(.tail)
@@ -699,11 +703,11 @@ struct EmojiBar: View {
         HStack(spacing: Metrics.spacing) {
             GlassButton("xmark", width: Metrics.narrowWidth, action: d.collapse)
             ButtonGroup(buttons: categories.indices.map { i in
-                .init(symbol: categories[i].symbol, highlight: i == d.emojiCategory ? .white.opacity(0.25) : nil) { d.emojiCategory = i }
+                .init(symbol: categories[i].symbol, highlight: i == d.emojiCategory ? .active : nil) { d.emojiCategory = i }
             }, buttonWidth: 30)
             ScrollingStrip {
                 ForEach(items, id: \.self) { e in
-                    Text(e).font(.system(size: 19)).frame(width: 34)
+                    Text(e).font(.bar(19)).frame(width: 34)
                         .modifier(LiquidPress(kind: .bubble, isScrollable: true, action: { Emoji.insert(e) }))
                         .frame(height: Metrics.buttonHeight)
                 }
@@ -743,7 +747,7 @@ struct AppArea: View {
                 if let icon = d.frontApp?.icon {
                     Image(nsImage: icon).resizable().frame(width: 20, height: 20)
                 } else {
-                    Image(systemName: "app")
+                    Icon("app")
                 }
             }
             .simultaneousGesture(LongPressGesture(minimumDuration: 0.6).onEnded { _ in d.showAppOwnControls() })
@@ -780,7 +784,7 @@ struct AppArea: View {
                     SuggestionStrip(d: d)
                 } else {
                     Text(d.frontApp?.localizedName ?? "")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(.bar(12, .medium))
                         .foregroundStyle(.white.opacity(0.55))
                         .padding(.leading, 6)
                     Spacer(minLength: 0)
@@ -800,14 +804,14 @@ struct SuggestionStrip: View {
         if d.suggestionsHidden {
             GlassButton(width: 46, action: { d.suggestionsHidden = false }) {
                 HStack(spacing: 3) {
-                    Image(systemName: "chevron.left").font(.system(size: 9, weight: .semibold))
-                    Image(systemName: "keyboard")
+                    Icon("chevron.left").font(.bar(9, .semibold))
+                    Icon("keyboard")
                 }
             }
         } else {
             HStack(spacing: Metrics.spacing) {
                 GlassButton("chevron.right", width: Metrics.narrowWidth) { d.suggestionsHidden = true }
-                ButtonGroup(buttons: suggestionButtons, backgroundTint: Color(hex: 0x2A3A50)).frame(width: 375)
+                ButtonGroup(buttons: suggestionButtons, backgroundTint: .suggestions).frame(width: 375)
                     .animation(.easeInOut(duration: 0.18), value: d.suggestions)
             }
         }
@@ -818,7 +822,7 @@ struct SuggestionStrip: View {
         var t: [GroupButton] = []
         if !o.partialWord.isEmpty { t.append(.init(text: "“\(o.partialWord)”") { SystemControl.typeText(" ") }) }
         for (i, k) in o.words.enumerated() {
-            t.append(.init(text: k, highlight: o.isCorrection && i == 0 ? Color(hex: 0x0A84FF, 0.6) : nil) { d.selectSuggestion(k) })
+            t.append(.init(text: k, highlight: o.isCorrection && i == 0 ? .primary : nil) { d.selectSuggestion(k) })
         }
         while t.count < 3 { t.append(.init(text: "") {}) }
         return t
@@ -835,7 +839,7 @@ struct MediaAppControls: View {
             }
         } else {
             Text(L(d.frontBundleID == NowPlaying.quickTime ? "No open video" : "Nothing playing"))
-                .font(.system(size: 12)).foregroundStyle(.white.opacity(0.5)).padding(.leading, 6)
+                .font(.bar(12)).foregroundStyle(.white.opacity(0.5)).padding(.leading, 6)
             Spacer(minLength: 0)
         }
     }
@@ -858,14 +862,14 @@ struct SafariControls: View {
              buttonWidth: Metrics.narrowWidth)
         GlassButton(width: nil, action: { d.shortcut(37, .maskCommand, "l") }) {
             HStack(spacing: 6) {
-                Image(systemName: "magnifyingglass")
-                Text(L("Search or enter website name")).font(.system(size: 12.5)).foregroundStyle(.white.opacity(0.6))
+                Icon("magnifyingglass")
+                Text(L("Search or enter website name")).font(.bar(12.5)).foregroundStyle(.white.opacity(0.6))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         GlassButton("square.on.square", action: d.showTabs)
         // a theme with an accent tints the primary action (Apple: tint only the primary action)
-        GlassButton("plus", highlight: theme.accentColor) { d.shortcut(17, .maskCommand, "t") }
+        GlassButton("plus", highlight: .accent) { d.shortcut(17, .maskCommand, "t") }
     }
 }
 
@@ -881,7 +885,7 @@ struct SafariVideoBar: View {
              buttonWidth: Metrics.narrowWidth + 2)
         FilmstripView(d: d, source: .safari)
         Text(TimeFormat.typeText(v.elapsed) + " / " + TimeFormat.typeText(v.duration))
-            .font(.system(size: 10)).monospacedDigit().foregroundStyle(.white.opacity(0.6))
+            .font(.bar(10)).monospacedDigit().foregroundStyle(.white.opacity(0.6))
             .frame(width: TimeFormat.pairWidth(v.duration))
         GlassButton("magnifyingglass") { d.shortcut(37, .maskCommand, "l") }
     }
@@ -900,12 +904,12 @@ struct NotesControls: View {
                                 PopoverItem(symbol: "bold") { d.shortcut(11, .maskCommand, "b") },
                                 PopoverItem(symbol: "italic") { d.shortcut(34, .maskCommand, "i") },
                                 PopoverItem(symbol: "underline") { d.shortcut(32, .maskCommand, "u") }])
-            }) { Image(systemName: "textformat") }
+            }) { Icon("textformat") }
             PopoverButton(d: d, popover: {
                 Popover(items: [PopoverItem(symbol: "list.bullet") { d.menu(nil, "Bulleted List") },
                                 PopoverItem(symbol: "list.dash") { d.menu(nil, "Dashed List") },
                                 PopoverItem(symbol: "list.number") { d.menu(nil, "Numbered List") }])
-            }) { Image(systemName: "list.bullet") }
+            }) { Icon("list.bullet") }
             GlassButton("face.smiling") { d.panel = .emoji }
             Spacer(minLength: 0)
             SuggestionStrip(d: d)
@@ -935,14 +939,14 @@ struct FinderControls: View {
                             PopoverItem(symbol: "list.bullet") { d.shortcut(19, .maskCommand, "2") },
                             PopoverItem(symbol: "rectangle.split.3x1") { d.shortcut(20, .maskCommand, "3") },
                             PopoverItem(symbol: "squares.below.rectangle") { d.shortcut(21, .maskCommand, "4") }])
-        }) { Image(systemName: "square.grid.2x2") }
+        }) { Icon("square.grid.2x2") }
         Spacer(minLength: 0)
         GlassButton("eye") { d.shortcut(49) }
         GlassButton("square.and.arrow.up") { d.menu(nil, "Share…") }
         PopoverButton(d: d, popover: {
             Popover(items: tags.map { color, index in PopoverItem(dot: color) { Finder.setLabel(index) } }
                    + [PopoverItem(symbol: "xmark.circle") { Finder.setLabel(0) }])
-        }) { Image(systemName: "tag") }
+        }) { Icon("tag") }
         Spacer(minLength: 0)
     }
 }
@@ -956,7 +960,7 @@ struct MailControls: View {
     var body: some View {
         // while composing, like the original: Send, attach a file, then typing suggestions
         if d.suggestions.isActive {
-            GlassButton("paperplane.fill", highlight: Color(hex: 0x0A84FF, 0.6)) { d.menu(nil, "Send") }
+            GlassButton("paperplane.fill", highlight: .primary) { d.menu(nil, "Send") }
             GlassButton("paperclip") { d.menu(nil, "Attach Files…") }
             TypingControls(d: d)
         } else {
@@ -970,17 +974,17 @@ struct MailControls: View {
             Popover(items: [PopoverItem(text: "Reply") { d.menu(m + "reply") },
                             PopoverItem(text: "Reply All") { d.menu(m + "replyAll") },
                             PopoverItem(text: "Forward") { d.menu(m + "forward") }])
-        }, onTap: { d.menu(m + "reply") }) { Image(systemName: "arrowshape.turn.up.left") }
+        }, onTap: { d.menu(m + "reply") }) { Icon("arrowshape.turn.up.left") }
         GlassButton("archivebox") { d.menu(m + "archive") }
         GlassButton(width: nil, action: { d.showSubmenu(m + "moveTo", [], title: "Move to") }) {
             HStack(spacing: 6) {
-                Image(systemName: "folder")
+                Icon("folder")
                 if compactLevel == 0 { BarText("Move to…").opacity(0.85) }
             }
         }
         GlassButton("xmark.bin") { d.menu("Mail.menuBar.editMenu.delete") }
         GlassButton(action: { d.showSubmenu(m + "flag", [], title: "Flag") }) {
-            Image(systemName: "flag.fill").foregroundStyle(Color(hex: 0xFF9F0A))
+            Icon("flag.fill").foregroundStyle(Color(hex: 0xFF9F0A))
         }
     }
 }
@@ -988,21 +992,20 @@ struct MailControls: View {
 /// Like the original: ± % , on the left; ÷ × − + = in orange. Presses Calculator's own buttons.
 struct CalculatorControls: View {
     @ObservedObject var d: AppState
-    private let orange = Color(hex: 0xFF9F0A, 0.5)
     var body: some View {
-        button("Negate") { Image(systemName: "plus.forwardslash.minus") }
-        button("Percent") { Image(systemName: "percent") }
-        button("Decimal") { Text(",").font(.system(size: 16, weight: .medium)) }
+        button("Negate") { Icon("plus.forwardslash.minus") }
+        button("Percent") { Icon("percent") }
+        button("Decimal") { Text(",").font(.bar(16, .medium)) }
         Color.clear.frame(maxWidth: .infinity, maxHeight: 1)
-        button("Divide", orange) { Image(systemName: "divide") }
-        button("Multiply", orange) { Image(systemName: "multiply") }
-        button("Subtract", orange) { Image(systemName: "minus") }
-        button("Add", orange) { Image(systemName: "plus") }
-        button("Equals", orange) { Image(systemName: "equal") }
+        button("Divide", .operatorKey) { Icon("divide") }
+        button("Multiply", .operatorKey) { Icon("multiply") }
+        button("Subtract", .operatorKey) { Icon("minus") }
+        button("Add", .operatorKey) { Icon("plus") }
+        button("Equals", .operatorKey) { Icon("equal") }
     }
 
-    private func button<E: View>(_ identifier: String, _ color: Color? = nil, @ViewBuilder _ e: @escaping () -> E) -> some View {
-        GlassButton(width: nil, highlight: color, action: { d.pressWindowButton(identifier) }) { e().frame(maxWidth: .infinity) }
+    private func button<E: View>(_ identifier: String, _ role: Role? = nil, @ViewBuilder _ e: @escaping () -> E) -> some View {
+        GlassButton(width: nil, highlight: role, action: { d.pressWindowButton(identifier) }) { e().frame(maxWidth: .infinity) }
     }
 }
 
@@ -1045,7 +1048,7 @@ struct ContactsControls: View {
         GlassButton("plus") { d.shortcut(45, .maskCommand, "n") }
         GlassButton(width: nil, action: { k?.sendMessage() }) {
             HStack(spacing: 6) {
-                Image(systemName: "message")
+                Icon("message")
                 Text(k?.name ?? "").lineLimit(1)
             }
             .frame(maxWidth: .infinity)
@@ -1067,12 +1070,12 @@ struct PreviewControls: View {
             Popover(items: [PopoverItem(text: "Markup") { d.menu(nil, "Show Markup Toolbar", "Hide Markup Toolbar") },
                             PopoverItem(text: "Adjust Color") { d.menu(nil, "Adjust Color…") },
                             PopoverItem(text: "Adjust Size") { d.menu(nil, "Adjust Size…") }])
-        }) { Image(systemName: "slider.horizontal.3") }
+        }) { Icon("slider.horizontal.3") }
         Spacer(minLength: 0)
         GlassButton("rotate.left") { d.menu(nil, "Rotate Left") }
         GlassButton("rotate.right") { d.menu(nil, "Rotate Right") }
-        GlassButton(action: { d.menu(nil, "Flip Horizontal") }) { Image(systemName: "flip.horizontal") }
-        GlassButton(action: { d.menu(nil, "Flip Vertical") }) { Image(systemName: "flip.horizontal").rotationEffect(.degrees(90)) }
+        GlassButton(action: { d.menu(nil, "Flip Horizontal") }) { Icon("flip.horizontal") }
+        GlassButton(action: { d.menu(nil, "Flip Vertical") }) { Icon("flip.horizontal").rotationEffect(.degrees(90)) }
         Spacer(minLength: 0)
     }
 }
@@ -1089,7 +1092,7 @@ struct PhotosControls: View {
             GlassButton("playpause.fill") { d.pressWindowButton("button_playPause") }
             FilmstripView(d: d, source: .photos)
             Text(v.elapsed + " / " + v.remaining.filter { $0 != "\u{200E}" })
-                .font(.system(size: 10)).monospacedDigit().foregroundStyle(.white.opacity(0.6)).fixedSize()
+                .font(.bar(10)).monospacedDigit().foregroundStyle(.white.opacity(0.6)).fixedSize()
         } else {
             Spacer(minLength: 0)
         }
@@ -1104,7 +1107,7 @@ struct TapbackButton: View {
             Popover(items: ["❤️", "👍", "👎", "😂", "‼️", "❓"].enumerated().map { i, e in
                 PopoverItem(text: e) { d.tapback(i + 1) }
             })
-        }) { Image(systemName: "hand.thumbsup") }
+        }) { Icon("hand.thumbsup") }
     }
 }
 
@@ -1120,7 +1123,7 @@ struct TextFormatControls: View {
                             PopoverItem(symbol: "text.aligncenter") { d.menu(nil, "Center") },
                             PopoverItem(symbol: "text.alignright") { d.menu(nil, "Align Right") },
                             PopoverItem(symbol: "text.justify") { d.menu(nil, "Justify") }])
-        }) { Image(systemName: "textformat") }
+        }) { Icon("textformat") }
     }
 }
 
@@ -1134,7 +1137,7 @@ struct TypingControls: View {
             SuggestionStrip(d: d)
         } else {
             Text(d.frontApp?.localizedName ?? "")
-                .font(.system(size: 12, weight: .medium))
+                .font(.bar(12, .medium))
                 .foregroundStyle(.white.opacity(0.55))
                 .padding(.leading, 6)
             Spacer(minLength: 0)

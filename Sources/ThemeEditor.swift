@@ -191,7 +191,7 @@ struct ThemeEditorView: View {
                 GlassButton(width: 150, action: {}) {
                     HStack(spacing: 6) { Image(systemName: "magnifyingglass"); Text(L("Search")); Spacer(minLength: 0) }
                 }
-                GlassButton("plus", highlight: m.draft.accentColor) {}
+                GlassButton("plus", highlight: .accent) {}
                 GlassSlider(value: $m.previewValue, fillColor: Color(hex: 0x0A84FF)).frame(width: 110)
                 ButtonGroup(buttons: [.init(symbol: "sun.max.fill") {}, .init(symbol: "speaker.wave.2.fill") {},
                                       .init(symbol: "speaker.slash.fill") {}], buttonWidth: Metrics.iconWidth)
@@ -212,6 +212,12 @@ struct ThemeEditorView: View {
 
     private var form: some View {
         Form {
+            if m.draft.isSkin {
+                Section {
+                    Text(L("This theme draws its own skin (theme.json in its package). The settings below change only its name and the parts it doesn’t set; Theme Studio will edit skins."))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            }
             Section(L("Info")) {
                 TextField(L("Name"), text: $m.draft.name)
                 TextField(L("Author"), text: $m.draft.author)

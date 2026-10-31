@@ -65,6 +65,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
     var observers: [Any] = []
 
     func applicationDidFinishLaunching(_ n: Notification) {
+        Theme.current = state.theme
         // for diagnostics: ~/Library/Logs/GlassBar.log
         let logURL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Logs/GlassBar.log")
         try? "\(Date()) launched · Accessibility: \(SystemControl.hasAccessibility ? "yes" : "NO") · model: \(Hardware.model)\n"
@@ -242,7 +243,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
             menuItem(g.name, #selector(selectFnBarMode(_:)), state.fnBarMode == g, g.rawValue)
         }))
         let themeItems = ThemeStore.shared.all.map { t in menuItem(t.displayName, #selector(selectTheme(_:)), state.theme.id == t.id, t.id) }
-        m.addItem(submenuItem(L("Theme"), themeItems + [.separator(), menuItem(L("Theme Editor…"), #selector(openThemeEditor), false)]))
+        m.addItem(submenuItem(L("Theme"), themeItems + [.separator(), menuItem(L("Play Theme Sounds"), #selector(toggleThemeSounds), ThemeSound.isEnabled),
+                                                        menuItem(L("Theme Editor…"), #selector(openThemeEditor), false)]))
         m.addItem(submenuItem(L("Color Temperature"), ColorTemperature.allCases.map { r in
             menuItem(r.name, #selector(selectColorTemperature(_:)), state.colorTemperature == r, r.rawValue)
         }))
@@ -347,6 +349,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
         if let t = ThemeStore.shared.theme(id: o.representedObject as? String ?? "") { state.apply(t) }
     }
     @objc func openThemeEditor() { ThemeEditor.open(state) }
+    @objc func toggleThemeSounds() { Defaults.set("themeSounds", !ThemeSound.isEnabled) }
 
     /// Double-clicked .glasstheme files are installed and applied.
     func application(_ application: NSApplication, open urls: [URL]) {

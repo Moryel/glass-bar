@@ -1,0 +1,48 @@
+{
+  "id": "terminal",
+  "name": "Terminal",
+  "author": "GlassBar",
+  "version": 1,
+  "sliderColor": "#33FF66",
+  "roles": {
+    "active": { "invert": true },
+    "primary": { "text": "#C8FFD7", "borderColor": "#C8FFD7" },
+    "accent": { "text": "#C8FFD7", "borderColor": "#C8FFD7" },
+    "operator": { "text": "#FFC14D", "borderColor": "#FFC14D", "glowColor": "#FFC14D80" }
+  },
+  "skin": {
+    "bar": { "fill": "#010701", "overlay": "scanlines" },
+    "button": {
+      "fill": "none",
+      "text": "#33FF66",
+      "border": "ascii",
+      "chars": "[ ]",
+      "borderColor": "#33FF66",
+      "radius": 0,
+      "glow": 3,
+      "glowColor": "#33FF6680"
+    },
+    "pressed": { "invert": true },
+    "group": { "fill": "none", "border": "none" },
+    "text": { "font": "mono", "weight": "medium", "case": "lower" },
+    "press": "none",
+    "sounds": { "tap": "click" },
+    "icons": {
+      "chevron.left": "<", "chevron.right": ">",
+      "sun.max.fill": "*", "sun.min.fill": ".", "sun.max": "*", "sun.min": ".",
+      "speaker.fill": "vol", "speaker.wave.1.fill": "vol-", "speaker.wave.2.fill": "vol", "speaker.wave.3.fill": "vol+",
+      "speaker.slash.fill": "mute",
+      "play.fill": ">", "pause.fill": "||", "playpause.fill": ">||", "backward.fill": "<<", "forward.fill": ">>",
+      "gobackward.10": "-10", "goforward.10": "+10", "gobackward.15": "-15", "goforward.15": "+15",
+      "magnifyingglass": "$", "plus": "+", "minus": "-", "multiply": "x", "divide": "/", "equal": "=", "percent": "%",
+      "plus.forwardslash.minus": "+/-", "xmark": "x",
+      "square.and.pencil": "new", "trash": "rm", "square.and.arrow.up": "share", "square.on.square": "tabs",
+      "checklist": "todo", "list.bullet": "ls", "textformat": "Aa", "face.smiling": ":)", "mic.fill": "mic",
+      "moon.stars.fill": "night", "keyboard": "kbd", "rectangle.3.group": "mc", "square.grid.3x3.fill": "apps",
+      "light.min": "kb-", "light.max": "kb+", "lock.fill": "lock", "heart": "<3",
+      "arrowshape.turn.up.left": "re", "archivebox": "arch", "xmark.bin": "junk", "flag.fill": "flag",
+      "folder": "cd", "tag": "tag", "eye": "cat", "paperplane.fill": "send", "paperclip": "attach",
+      "sparkles": "~", "camera.viewfinder": "shot", "music.note": "~"
+    }
+  }
+}

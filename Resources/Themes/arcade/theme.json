@@ -1,0 +1,37 @@
+{
+  "id": "arcade",
+  "name": "8-Bit Arcade",
+  "author": "GlassBar",
+  "version": 1,
+  "sliderColor": "#FF4F5E",
+  "roles": {
+    "active": { "fill": "#3FA9FF", "text": "#FFFFFF" },
+    "primary": { "fill": "#3FA9FF", "text": "#FFFFFF" },
+    "accent": { "fill": "#3FA9FF", "text": "#FFFFFF" },
+    "operator": { "fill": "#FF4F5E", "text": "#FFFFFF" }
+  },
+  "skin": {
+    "bar": { "fill": "#1B1036", "pattern": "stars", "patternColor": "#FFFFFFB0" },
+    "button": {
+      "fill": "#FFD23F",
+      "text": "#1B1036",
+      "border": "pixel",
+      "borderWidth": 2,
+      "borderColor": "#000000",
+      "bevel": true,
+      "radius": 0
+    },
+    "pressed": { "fill": "#FFE680" },
+    "group": { "fill": "none", "border": "none" },
+    "text": { "font": "PressStart2P-Regular.ttf", "scale": 0.62, "case": "upper" },
+    "press": "pop",
+    "sounds": { "tap": "blip" },
+    "icons": {
+      "chevron.left": "<", "chevron.right": ">",
+      "sun.max.fill": "BRT", "speaker.wave.2.fill": "VOL", "speaker.slash.fill": "MUTE",
+      "play.fill": ">", "pause.fill": "II", "playpause.fill": ">II",
+      "plus": "+", "minus": "-", "multiply": "X", "divide": "/", "equal": "=", "percent": "%",
+      "plus.forwardslash.minus": "+-", "magnifyingglass": "?", "heart": "1UP"
+    }
+  }
+}

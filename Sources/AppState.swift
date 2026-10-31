@@ -55,7 +55,7 @@ final class AppState: ObservableObject {
     var buttonFrames: [Panel: CGRect] = [:]
 
     // MARK: settings
-    @Published var theme = ThemeStore.shared.theme(id: Defaults.string("theme")) ?? .classic { didSet { Defaults.set("theme", theme.id) } }
+    @Published var theme = ThemeStore.shared.theme(id: Defaults.string("theme")) ?? .classic { didSet { Defaults.set("theme", theme.id); Theme.current = theme } }
     /// Behind the glass; starts off if the old "Ambient light" setting was off
     @Published var colorTemperature = ColorTemperature(rawValue: Defaults.string("colorTemperature")) ?? .off {
         didSet { Defaults.set("colorTemperature", colorTemperature.rawValue) }
