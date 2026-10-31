@@ -91,7 +91,11 @@ When you touch a button, it grows by 10%, light appears under your finger, a rin
 
 Screenshot testing: `open ~/Applications/GlassBar.app --args -testPanel expanded|brightness|volume|siri|siriDemo|fn|emoji|nowPlaying|stripEditor|tabs|themeEditor` (add `-testPressed YES` for the pressed look), then `screencapture -b bar.png`. `siriDemo` animates Siri without the microphone.
 
-**Coming soon:** Spotify integration: sign in to browse playlists, search, Add to Queue and pick Spotify Connect devices from the Touch Bar.
+## Roadmap
+
+GlassBar is becoming a free, open-source Touch Bar hub: themes that can look like anything (glass, a terminal, pixel art), a visual Theme Studio, a store for themes, layouts and widgets, editable bars for any app, and widgets that follow the theme. Every planned feature is described in [ROADMAP.md](ROADMAP.md).
+
+Also coming: Spotify integration — sign in to browse playlists, search, Add to Queue and pick Spotify Connect devices from the Touch Bar.
 
 ---
 
