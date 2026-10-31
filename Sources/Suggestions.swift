@@ -167,5 +167,7 @@ struct ScrollingStrip<Content: View>: View {
                     })
         }
         .clipShape(Capsule())
+        // clipping hides the scrolled-out items but they still take touches; limit touches to the visible strip
+        .contentShape(Capsule())
     }
 }
