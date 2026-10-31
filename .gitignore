@@ -1,4 +1,4 @@
-# Derleme çıktısı (build.sh)
+# Build output (build.sh)
 build/
 *.app
 *.dSYM/
@@ -14,13 +14,13 @@ build/
 .Trashes
 Icon?
 
-# Xcode / SwiftPM (ileride açılırsa)
+# Xcode / SwiftPM (if ever used)
 xcuserdata/
 DerivedData/
 *.xcuserstate
 .swiftpm/
 
-# İmza ve sırlar (yerel sertifika asla depoya girmesin)
+# Signing and secrets (the local certificate must never enter the repo)
 *.p12
 *.cer
 *.certSigningRequest
@@ -28,11 +28,16 @@ DerivedData/
 *.provisionprofile
 .env
 
-# Günlük ve geçici dosyalar
+# Logs and temporary files
 *.log
 *.tmp
 *.swp
 *~
 
-# Kişisel notlar (depoda yok)
-YAPILACAKLAR.md
+# Personal notes (not in the repo)
+TODO.md
+
+# early web mockups, design notes and research (kept locally)
+preview/
+design/GlassBar-*
+touch-bar-features.txt

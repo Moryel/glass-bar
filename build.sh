@@ -25,7 +25,7 @@ fi
 
 # translations (by system language; English for languages not listed)
 cp -R Resources/*.lproj "$APP/Contents/Resources/"
-# app icon (source: tasarim/uygulama_simgesi.swift)
+# app icon (source: design/app_icon.swift)
 cp Resources/GlassBar.icns "$APP/Contents/Resources/"
 
 cat > "$APP/Contents/Info.plist" <<'PLIST'

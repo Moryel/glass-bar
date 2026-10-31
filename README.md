@@ -1,4 +1,4 @@
-<p align="center"><img src="tasarim/uygulama_simgesi.png" width="160" alt="GlassBar"></p>
+<p align="center"><img src="design/app_icon.png" width="160" alt="GlassBar"></p>
 
 # GlassBar
 
@@ -17,31 +17,31 @@ A native macOS replacement for the Touch Bar on the 13" M2 MacBook Pro. The layo
 
 **Siri**: a glass drop with colorful waves that react to your voice
 
-<p align="center"><img src="gorseller/siri.gif" width="720" alt="Siri animation"></p>
+<p align="center"><img src="images/siri.gif" width="720" alt="Siri animation"></p>
 
-![Siri on the bar](gorseller/siri-cubuk.gif)
+![Siri on the bar](images/siri-bar.gif)
 
 **Finder**
-![Finder](gorseller/varsayilan.png)
+![Finder](images/finder.png)
 
 **Safari**
-![Safari](gorseller/safari.png)
+![Safari](images/safari.png)
 
 **Notes**
-![Notes](gorseller/notlar.png)
+![Notes](images/notes.png)
 
 **Expanded Control Strip**
-![Expanded Control Strip](gorseller/genis.png)
+![Expanded Control Strip](images/expanded.png)
 
 **Brightness and volume**
-![Brightness](gorseller/parlaklik.png)
-![Volume](gorseller/ses.png)
+![Brightness](images/brightness.png)
+![Volume](images/volume.png)
 
 **fn → F1–F12**
-![F keys](gorseller/fn.png)
+![F keys](images/fn.png)
 
 **Emoji**
-![Emoji](gorseller/emoji.png)
+![Emoji](images/emoji.png)
 
 **Hardware detection** (`SystemControl.swift` → `Hardware`): the model is read from `hw.model`. On Touch Bar MacBook Pros from late 2019 onward (MacBookPro16,x, 17,1, Mac14,7), esc is a physical key, the bar is 1004 pt wide, and no esc is shown on the bar. On earlier models the bar is 1085 pt and esc lives on the bar. The "esc on the bar" menu option overrides this. The physical esc key also closes the Siri pill and the sliders.
 
@@ -79,7 +79,7 @@ What the Touch Bar shows, and what it shows while fn is held (app controls, expa
 
 Switching between desktop spaces uses the ⌃1…⌃9 shortcuts, so the "Switch to Desktop N" shortcuts must be enabled in System Settings → Keyboard → Keyboard Shortcuts → Mission Control. Suggestions and emoji need the Accessibility permission; Spotify asks for Automation permission on first use.
 
-Full feature list: [FEATURES.md](FEATURES.md) (Turkish: [OZELLIKLER.md](OZELLIKLER.md)).
+Full feature list: [FEATURES.md](FEATURES.md) (Turkish: [FEATURES.tr.md](FEATURES.tr.md)).
 
 ## Files
 `Sources/main.swift` (private API, app delegate, menu), `AppState.swift` (state and button actions), `TouchBarView.swift` (layout and app-specific buttons: Safari, Notes, Music, Finder…), `Glass.swift` (glass button, group, slider), `Popover.swift` (popover bar), `Siri.swift` (Siri glass drop and waves), `Microphone.swift` (microphone level), `SystemControl.swift` (system calls, hardware, brightness, volume), `Settings.swift` (settings, Control Strip buttons, Night Shift, input source, spaces), `NowPlaying.swift` (Now Playing, video filmstrips), `SpotifyPlayer.swift` (Spotify player, album art, sound bar), `AudioCapture.swift` (Spotify audio tap and FFT), `Suggestions.swift` (suggestions, emoji, scrolling strip), `Backdrop.swift` (background styles), `AnimatedLayers.swift` (Core Animation glows), `AXHelpers.swift` (menu commands through Accessibility), `ScreenshotTool.swift`, `SafariTab.swift`, `SafariVideo.swift`, `PhotosVideo.swift`, `Contact.swift`, `UpdateChecker.swift`.
@@ -91,7 +91,11 @@ When you touch a button, it grows by 10%, light appears under your finger, a rin
 
 Screenshot testing: `open ~/Applications/GlassBar.app --args -tb2kip genis|parlaklik|ses|siri|siriDemo|fn|emoji|simdi` (add `-tb2basili YES` for the pressed look), then `screencapture -b bar.png`. `siriDemo` animates Siri without the microphone.
 
-**Coming soon:** Spotify integration: sign in to browse playlists, search, Add to Queue and pick Spotify Connect devices from the Touch Bar.
+## Roadmap
+
+GlassBar is becoming a free, open-source Touch Bar hub: themes that can look like anything (glass, a terminal, pixel art), a visual Theme Studio, a store for themes, layouts and widgets, editable bars for any app, and widgets that follow the theme. Every planned feature is described in [ROADMAP.md](ROADMAP.md).
+
+Also coming: Spotify integration — sign in to browse playlists, search, Add to Queue and pick Spotify Connect devices from the Touch Bar.
 
 ---
 
