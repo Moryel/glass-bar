@@ -1,34 +1,34 @@
 #!/bin/zsh
-# GlassBar.app'i derler ve ~/Applications'a kurar.
-# Kullanım: ./build.sh [--ac]   ·   ./build.sh release  → Intel + Apple Silicon, geçici imza, build/GlassBar.zip (kurmaz)
+# Builds GlassBar.app and installs it to ~/Applications.
+# Usage: ./build.sh [--ac]   ·   ./build.sh release  → Intel + Apple Silicon, ad-hoc signed, build/GlassBar.zip (doesn't install)
 set -e
 cd "${0:A:h}"
-SURUM=1.0
-UYG=build/GlassBar.app
-rm -rf "$UYG"
-mkdir -p "$UYG/Contents/MacOS" "$UYG/Contents/Resources"
+VERSION=1.0
+APP=build/GlassBar.app
+rm -rf "$APP"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
-derle() {
+compile() {
   swiftc -O -swift-version 5 -target $1-apple-macos14.0 \
     -framework AppKit -framework SwiftUI -framework CoreAudio -framework AudioToolbox -framework ServiceManagement -framework Accelerate \
     Sources/*.swift -o "$2"
 }
 if [[ "$1" == "release" ]]; then
-  mkdir -p build/mimari
-  derle arm64 build/mimari/arm64
-  derle x86_64 build/mimari/x86_64
-  lipo -create build/mimari/arm64 build/mimari/x86_64 -output "$UYG/Contents/MacOS/GlassBar"
-  rm -rf build/mimari
+  mkdir -p build/arch
+  compile arm64 build/arch/arm64
+  compile x86_64 build/arch/x86_64
+  lipo -create build/arch/arm64 build/arch/x86_64 -output "$APP/Contents/MacOS/GlassBar"
+  rm -rf build/arch
 else
-  derle arm64 "$UYG/Contents/MacOS/GlassBar"
+  compile arm64 "$APP/Contents/MacOS/GlassBar"
 fi
 
-# çeviriler (sistemin diline göre; listede olmayan dillerde İngilizce)
-cp -R Resources/*.lproj "$UYG/Contents/Resources/"
-# uygulama simgesi (kaynağı: tasarim/uygulama_simgesi.swift)
-cp Resources/GlassBar.icns "$UYG/Contents/Resources/"
+# translations (by system language; English for languages not listed)
+cp -R Resources/*.lproj "$APP/Contents/Resources/"
+# app icon (source: tasarim/uygulama_simgesi.swift)
+cp Resources/GlassBar.icns "$APP/Contents/Resources/"
 
-cat > "$UYG/Contents/Info.plist" <<'PLIST'
+cat > "$APP/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -41,7 +41,7 @@ cat > "$UYG/Contents/Info.plist" <<'PLIST'
   <key>CFBundleLocalizations</key><array><string>en</string><string>tr</string></array>
   <key>CFBundleIconFile</key><string>GlassBar</string>
   <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleShortVersionString</key><string>SURUM</string>
+  <key>CFBundleShortVersionString</key><string>VERSION</string>
   <key>CFBundleVersion</key><string>1</string>
   <key>LSMinimumSystemVersion</key><string>14.0</string>
   <key>LSUIElement</key><true/>
@@ -51,28 +51,28 @@ cat > "$UYG/Contents/Info.plist" <<'PLIST'
 </dict>
 </plist>
 PLIST
-sed -i '' "s/<string>SURUM<\/string>/<string>$SURUM<\/string>/" "$UYG/Contents/Info.plist"
+sed -i '' "s/<string>VERSION<\/string>/<string>$VERSION<\/string>/" "$APP/Contents/Info.plist"
 
 if [[ "$1" == "release" ]]; then
-  # herkesin Mac'inde çalışsın diye geçici imza (kişisel sertifika dağıtılmaz)
-  xattr -cr "$UYG"
-  codesign --force --sign - "$UYG"
+  # ad-hoc signature so it runs on any Mac (the personal certificate isn't distributed)
+  xattr -cr "$APP"
+  codesign --force --sign - "$APP"
   rm -f build/GlassBar.zip
-  ditto -c -k --norsrc --noextattr --noqtn --keepParent "$UYG" build/GlassBar.zip
-  echo "Hazır: build/GlassBar.zip ($(lipo -archs "$UYG/Contents/MacOS/GlassBar"), sürüm $SURUM)"
+  ditto -c -k --norsrc --noextattr --noqtn --keepParent "$APP" build/GlassBar.zip
+  echo "Ready: build/GlassBar.zip ($(lipo -archs "$APP/Contents/MacOS/GlassBar"), version $VERSION)"
   exit 0
 fi
 
 mkdir -p ~/Applications
 pkill -x GlassBar 2>/dev/null && sleep 0.5 || true
 rm -rf ~/Applications/GlassBar.app
-cp -R "$UYG" ~/Applications/
-# iCloud klasöründeki ek öznitelikler imzayı bozar; kurulan kopyayı temizleyip imzala
+cp -R "$APP" ~/Applications/
+# extended attributes from the iCloud folder break the signature; clean the installed copy and sign it
 xattr -cr ~/Applications/GlassBar.app
-# Yerel imza sertifikası varsa onunla imzala: kimlik her derlemede aynı kalır, Erişilebilirlik izni düşmez.
-# Yoksa geçici (ad-hoc) imza; o zaman izin her derlemede yeniden verilmeli.
-KIMLIK=$(security find-identity -p codesigning 2>/dev/null | awk '/"TouchBar2 Yerel Imza"/ {print $2; exit}')
-codesign --force --sign "${KIMLIK:--}" ~/Applications/GlassBar.app
-echo "Kuruldu: ~/Applications/GlassBar.app"
+# Sign with the local signing certificate if present: the identity stays the same across builds, so the Accessibility permission sticks.
+# Otherwise ad-hoc; the permission then has to be granted again after each build.
+IDENTITY=$(security find-identity -p codesigning 2>/dev/null | awk '/"TouchBar2 Yerel Imza"/ {print $2; exit}')
+codesign --force --sign "${IDENTITY:--}" ~/Applications/GlassBar.app
+echo "Installed: ~/Applications/GlassBar.app"
 [[ "$1" == "--ac" ]] && open ~/Applications/GlassBar.app
 exit 0
