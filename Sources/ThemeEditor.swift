@@ -184,6 +184,8 @@ struct ThemeEditorView: View {
 
     private var preview: some View {
         VStack(spacing: 8) {
+            // skins can make buttons wider; the preview scrolls instead of widening the window
+            ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: Metrics.spacing) {
                 GlassButton(width: Metrics.escWidth, action: {}) { Text("esc") }
                 GlassButton("safari", action: {})
@@ -200,7 +202,10 @@ struct ThemeEditorView: View {
             .padding(.horizontal, 10).padding(.vertical, 6)
             .background(RoundedRectangle(cornerRadius: 8).fill(Color.black))
             .environment(\.theme, m.draft)
-            .fontDesign(m.draft.design)
+            .font(m.draft.font(14))
+            .textCase(m.draft.letterCase)
+            }
+            .frame(maxWidth: .infinity)
             Text(L("Changes show on your Touch Bar right away. Touch the preview to try the press effect."))
                 .font(.caption).foregroundStyle(.secondary)
         }

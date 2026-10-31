@@ -363,7 +363,7 @@ struct PopUpSlider: View {
                     .frame(width: 30, height: Metrics.buttonHeight).contentShape(Rectangle())
                     .onTapGesture { d.sliderStep(k, 1) }
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(d.theme.isSkin ? d.theme.layer(nil).text : .white)
             .padding(.horizontal, 6)
             .frame(width: boxWidth, height: Metrics.buttonHeight)
             .background(GlassBackground())

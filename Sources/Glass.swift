@@ -411,7 +411,8 @@ struct GlassSlider: View {
     private var skinned: some View {
         GeometryReader { g in
             let w = max(1, g.size.width), v = CGFloat(value)
-            let l = theme.layer(nil, pressed: b.isPressed)
+            // the track keeps its normal look while held (a pressed look such as inverted colors would hide it)
+            let l = theme.layer(nil)
             let fill = theme.sliderFill ?? theme.layer(.primary).fill ?? l.borderColor
             Group {
                 if l.border == "ascii" {

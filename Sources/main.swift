@@ -135,6 +135,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
         case "expanded": state.panel = .expanded
         case "brightness": state.panel = .brightness
         case "volume": state.panel = .volume
+        case "liveVolume":
+            // imitates pressing the volume button and sliding: 4 seconds of movement
+            for i in 0..<80 { DispatchQueue.main.asyncAfter(deadline: .now() + 1 + Double(i) * 0.05) { self.state.liveSlide(.volume, CGFloat(i % 40) * 4 - 60) } }
         case "siri": DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { self.state.isSiriActive = true; Microphone.shared.start() }
         case "siriDemo": DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { self.state.isSiriActive = true }
         case "fn": state.fn = true
