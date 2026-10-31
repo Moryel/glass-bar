@@ -43,7 +43,7 @@ A native macOS replacement for the Touch Bar on the 13" M2 MacBook Pro. The layo
 **Emoji**
 ![Emoji](gorseller/emoji.png)
 
-**Hardware detection** (`Sistem.swift` → `Donanim`): the model is read from `hw.model`. On Touch Bar MacBook Pros from late 2019 onward (MacBookPro16,x, 17,1, Mac14,7), esc is a physical key, the bar is 1004 pt wide, and no esc is shown on the bar. On earlier models the bar is 1085 pt and esc lives on the bar. The "esc on the bar" menu option overrides this. The physical esc key also closes the Siri pill and the sliders.
+**Hardware detection** (`SystemControl.swift` → `Hardware`): the model is read from `hw.model`. On Touch Bar MacBook Pros from late 2019 onward (MacBookPro16,x, 17,1, Mac14,7), esc is a physical key, the bar is 1004 pt wide, and no esc is shown on the bar. On earlier models the bar is 1085 pt and esc lives on the bar. The "esc on the bar" menu option overrides this. The physical esc key also closes the Siri pill and the sliders.
 
 ## Download
 
@@ -82,11 +82,11 @@ Switching between desktop spaces uses the ⌃1…⌃9 shortcuts, so the "Switch 
 Full feature list: [FEATURES.md](FEATURES.md) (Turkish: [OZELLIKLER.md](OZELLIKLER.md)).
 
 ## Files
-`Sources/main.swift` (private API, menu), `Durum.swift` (state and button actions), `Cubuk.swift` (layout and app-specific buttons: Safari, Notes, Music, Finder…), `Cam.swift` (glass button, group, slider), `Siri.swift` (Siri glass drop and waves), `Mikrofon.swift` (microphone level), `Sistem.swift` (system calls), `Ayarlar.swift` (settings, Control Strip buttons, Night Shift, input source, spaces), `Calan.swift` (Now Playing, video filmstrips), `Yazi.swift` (suggestions, emoji, scrolling strip), `ArkaPlan.swift` (background styles).
+`Sources/main.swift` (private API, app delegate, menu), `AppState.swift` (state and button actions), `TouchBarView.swift` (layout and app-specific buttons: Safari, Notes, Music, Finder…), `Glass.swift` (glass button, group, slider), `Popover.swift` (popover bar), `Siri.swift` (Siri glass drop and waves), `Microphone.swift` (microphone level), `SystemControl.swift` (system calls, hardware, brightness, volume), `Settings.swift` (settings, Control Strip buttons, Night Shift, input source, spaces), `NowPlaying.swift` (Now Playing, video filmstrips), `SpotifyPlayer.swift` (Spotify player, album art, sound bar), `AudioCapture.swift` (Spotify audio tap and FFT), `Suggestions.swift` (suggestions, emoji, scrolling strip), `Backdrop.swift` (background styles), `AnimatedLayers.swift` (Core Animation glows), `AXHelpers.swift` (menu commands through Accessibility), `ScreenshotTool.swift`, `SafariTab.swift`, `SafariVideo.swift`, `PhotosVideo.swift`, `Contact.swift`, `UpdateChecker.swift`.
 
-The code and comments are in Turkish. The interface follows the system language (English and Turkish; other languages fall back to English).
+The interface follows the system language (English and Turkish; other languages fall back to English). Strings are written in English in the code; Turkish translations live in `Resources/tr.lproj/Localizable.strings`.
 
-## Liquid glass touch (`Cam.swift` → `SiviBasma`)
+## Liquid glass touch (`Glass.swift` → `LiquidPress`)
 When you touch a button, it grows by 10%, light appears under your finger, a ring of light spreads out from there, the edge glows, and the ambient light behind the glass lights up at that spot. As your finger slides, the button stretches in that direction; when you let go, it springs back into place. In grouped buttons a glass drop swells up inside the group, and a slider's knob turns into a clear lens while you drag it. The action runs when you lift your finger while it is still on the button.
 
 Screenshot testing: `open ~/Applications/GlassBar.app --args -tb2kip genis|parlaklik|ses|siri|siriDemo|fn|emoji|simdi` (add `-tb2basili YES` for the pressed look), then `screencapture -b bar.png`. `siriDemo` animates Siri without the microphone.

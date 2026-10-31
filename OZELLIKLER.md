@@ -38,15 +38,15 @@ Durum: ✅ var · 🟡 kısmen · ❌ yok · ⛔ yapılamaz (veriyi yalnız o uy
 | Yazma önerilerini göster | ✅ |
 | fn + ⌃/⌥/⇧/⌘ + F tuşu | ✅ basılı değiştiriciler F tuşuna eklenir |
 | Orijinalde olmayan: Tema (Klasik / Sade Liquid Glass) | ✅ |
-| Orijinalde olmayan: Arka plan — Kapalı, Uygulamanın rengi, Aurora, Gün batımı, Okyanus, Siri renkleri, Duvar kağıdı (Mac'in masaüstü görseli), Görsel seç… | ✅ (`ArkaPlan.swift`) |
-| Orijinalde olmayan: Siri hapı Apple'ın yeni Siri'si gibi şeffaf bir cam damla; içindeki renkli dalgalar mikrofondan gelen sese göre hareket eder, arka plan gürültüsü süzülür (ilk kullanımda mikrofon izni; ses kaydedilmez) | ✅ (`Siri.swift`, `Mikrofon.swift`) |
+| Orijinalde olmayan: Arka plan — Kapalı, Uygulamanın rengi, Aurora, Gün batımı, Okyanus, Siri renkleri, Duvar kağıdı (Mac'in masaüstü görseli), Görsel seç… | ✅ (`Backdrop.swift`) |
+| Orijinalde olmayan: Siri hapı Apple'ın yeni Siri'si gibi şeffaf bir cam damla; içindeki renkli dalgalar mikrofondan gelen sese göre hareket eder, arka plan gürültüsü süzülür (ilk kullanımda mikrofon izni; ses kaydedilmez) | ✅ (`Siri.swift`, `Microphone.swift`) |
 | Dil | ✅ GlassBar'ın yazıları sistemin dilinde (Türkçe, İngilizce; diğer dillerde İngilizce) — `Resources/<dil>.lproj/Localizable.strings`. Menü komutları kimlik, kısayol harfi ya da Türkçe/İngilizce başlıkla bulunur |
 
 ## Uygulamaya özel içerik
 
 ⛔ olanlar için menüden “… için kendi Touch Bar'ını göster” (ya da uygulama simgesini basılı tutmak): o uygulamanın kendi çubuğu görünür.
 
-Menü komutları öndeki uygulamanın menüsünden Erişilebilirlik ile çalıştırılır (`AXYardim.swift`): Mail ve Mesajlar'da dilden bağımsız kimlikle, diğerlerinde Türkçe başlıkla. ⌘ kısayolları da önce menüde aranır (Türkçe Q'da ⌘[ → ⌘Ğ).
+Menü komutları öndeki uygulamanın menüsünden Erişilebilirlik ile çalıştırılır (`AXHelpers.swift`): Mail ve Mesajlar'da dilden bağımsız kimlikle, diğerlerinde Türkçe başlıkla. ⌘ kısayolları da önce menüde aranır (Türkçe Q'da ⌘[ → ⌘Ğ).
 
 | Uygulama | Durum |
 |---|---|
@@ -79,7 +79,7 @@ Menü komutları öndeki uygulamanın menüsünden Erişilebilirlik ile çalış
 | Özellik | Durum |
 |---|---|
 | Dokun-kaldır ile tuş | ✅ |
-| Açılır çubuk (popover): dokununca ya da basılı tutup kaydırınca diğer öğelerin üstüne açılır, köşede küçük ok | ✅ (`Acilir.swift`) |
+| Açılır çubuk (popover): dokununca ya da basılı tutup kaydırınca diğer öğelerin üstüne açılır, köşede küçük ok | ✅ (`Popover.swift`) |
 | Basılı tut + kaydır + bırak ile tek harekette seçim | ✅ açılır çubuklarda (8 öğeye kadar) ve parlaklık/seste |
 | Basılı tutunca alternatif (Mail Yanıtla) | ✅ |
 | Şeritlerde momentumlu kaydırma ve yerine oturma (scrubber) | ✅ emoji, Safari sekmeleri, Takvim ayları, uzun açılır listeler |

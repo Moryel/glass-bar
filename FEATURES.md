@@ -36,15 +36,15 @@ Status: ✅ available · 🟡 partial · ❌ missing · ⛔ not possible (only t
 | Show typing suggestions | ✅ |
 | fn + ⌃/⌥/⇧/⌘ + F key | ✅ held modifiers are added to the F key |
 | Not in the original: Theme (Classic / Simple Liquid Glass) | ✅ |
-| Not in the original: Background: Off, App color, Aurora, Sunset, Ocean, Siri colors, Wallpaper (the Mac's desktop picture), Choose image… | ✅ (`ArkaPlan.swift`) |
-| Not in the original: the Siri pill is a clear glass drop like Apple's new Siri, with colorful waves that follow your voice through the microphone; background noise is filtered out (microphone permission on first use; nothing is recorded) | ✅ (`Siri.swift`, `Mikrofon.swift`) |
+| Not in the original: Background: Off, App color, Aurora, Sunset, Ocean, Siri colors, Wallpaper (the Mac's desktop picture), Choose image… | ✅ (`Backdrop.swift`) |
+| Not in the original: the Siri pill is a clear glass drop like Apple's new Siri, with colorful waves that follow your voice through the microphone; background noise is filtered out (microphone permission on first use; nothing is recorded) | ✅ (`Siri.swift`, `Microphone.swift`) |
 | Language | ✅ GlassBar's text follows the system language (Turkish, English; English for other languages): `Resources/<language>.lproj/Localizable.strings`. Menu commands are found by identifier, shortcut letter, or Turkish/English title |
 
 ## App-specific content
 
 For apps marked ⛔, use "Show its own Touch Bar for …" in the menu (or press and hold the app icon): the app's own bar appears.
 
-Menu commands run from the front app's menu through Accessibility (`AXYardim.swift`): by language-independent identifiers in Mail and Messages, by title elsewhere. ⌘ shortcuts are also looked up in the menu first (on the Turkish Q layout ⌘[ becomes ⌘Ğ).
+Menu commands run from the front app's menu through Accessibility (`AXHelpers.swift`): by language-independent identifiers in Mail and Messages, by title elsewhere. ⌘ shortcuts are also looked up in the menu first (on the Turkish Q layout ⌘[ becomes ⌘Ğ).
 
 | App | Status |
 |---|---|
@@ -77,7 +77,7 @@ Menu commands run from the front app's menu through Accessibility (`AXYardim.swi
 | Feature | Status |
 |---|---|
 | Tap-and-lift buttons | ✅ |
-| Popover bar: opens over the other items on tap or press-and-slide, with a small arrow in the corner | ✅ (`Acilir.swift`) |
+| Popover bar: opens over the other items on tap or press-and-slide, with a small arrow in the corner | ✅ (`Popover.swift`) |
 | Press, slide and release to pick in one gesture | ✅ in popovers (up to 8 items) and brightness/volume |
 | Alternative action on press-and-hold (Mail Reply) | ✅ |
 | Momentum scrolling and snapping in strips (scrubber) | ✅ emoji, Safari tabs, Calendar months, long popover lists |
