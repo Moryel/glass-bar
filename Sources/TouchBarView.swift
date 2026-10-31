@@ -481,7 +481,8 @@ struct PlayerControls: View {
         if c.video {
             FilmstripView(d: d)
             Text(TimeFormat.typeText(Double(d.nowPlayingProgress) * c.duration) + " / " + TimeFormat.typeText(c.duration))
-                .font(.system(size: 10)).monospacedDigit().foregroundStyle(.white.opacity(0.6)).fixedSize()
+                .font(.system(size: 10)).monospacedDigit().foregroundStyle(.white.opacity(0.6))
+                .frame(width: TimeFormat.pairWidth(c.duration))
         } else {
             TrackProgress(d: d, c: c)
             if c.source == NowPlaying.music { GlassButton("heart") { c.love() } }
@@ -494,6 +495,9 @@ enum TimeFormat {
         let s = Int(max(0, s))
         return s >= 3600 ? String(format: "%d:%02d:%02d", s / 3600, s / 60 % 60, s % 60) : String(format: "%d:%02d", s / 60, s % 60)
     }
+
+    /// Width of "elapsed / duration" (fixedSize truncates text on the Touch Bar, so the width is fixed).
+    static func pairWidth(_ duration: Double) -> CGFloat { duration >= 3600 ? 100 : 70 }
 }
 
 struct TrackProgress: View {
@@ -876,7 +880,8 @@ struct SafariVideoBar: View {
              buttonWidth: Metrics.narrowWidth + 2)
         FilmstripView(d: d, source: .safari)
         Text(TimeFormat.typeText(v.elapsed) + " / " + TimeFormat.typeText(v.duration))
-            .font(.system(size: 10)).monospacedDigit().foregroundStyle(.white.opacity(0.6)).fixedSize()
+            .font(.system(size: 10)).monospacedDigit().foregroundStyle(.white.opacity(0.6))
+            .frame(width: TimeFormat.pairWidth(v.duration))
         GlassButton("magnifyingglass") { d.shortcut(37, .maskCommand, "l") }
     }
 }
