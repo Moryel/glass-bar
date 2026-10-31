@@ -33,3 +33,6 @@ DerivedData/
 *.tmp
 *.swp
 *~
+
+# Kişisel notlar (depoda yok)
+YAPILACAKLAR.md
