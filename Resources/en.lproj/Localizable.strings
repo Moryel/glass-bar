@@ -131,3 +131,14 @@
 "Yumuşaklık" = "Smoothness";
 "Az" = "Low";
 "Çok" = "High";
+"GlassBar %@" = "GlassBar %@";
+"Güncellemeleri denetle…" = "Check for Updates…";
+"Güncelleme var: GlassBar %@…" = "Update available: GlassBar %@…";
+"GlassBar %@ çıktı" = "GlassBar %@ is available";
+"Kullandığın sürüm %@. İndirme sayfası açılsın mı?" = "You have version %@. Open the download page?";
+"İndir" = "Download";
+"Sonra" = "Later";
+"GlassBar güncel" = "GlassBar is up to date";
+"Güncellemeler denetlenemedi" = "Couldn't check for updates";
+"Kullandığın sürüm %@ en yenisi." = "Version %@ is the latest.";
+"İnternet bağlantını kontrol edip yeniden dene." = "Check your internet connection and try again.";

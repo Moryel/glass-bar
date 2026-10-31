@@ -85,6 +85,7 @@ final class Temsilci: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NSMen
         goster()
 
         menuKur()
+        Guncelleme.ortak.baslat()
 
         let ws = NSWorkspace.shared.notificationCenter
         izleyiciler.append(ws.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { [weak self] n in
@@ -218,6 +219,10 @@ final class Temsilci: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NSMen
 
     func menuNeedsUpdate(_ m: NSMenu) {
         m.removeAllItems()
+        if let yeni = Guncelleme.ortak.yeniSurum {
+            m.addItem(withTitle: String(format: L("Güncelleme var: GlassBar %@…"), yeni), action: #selector(guncellemeyiAc), keyEquivalent: "").target = self
+            m.addItem(.separator())
+        }
         m.addItem(withTitle: L("GlassBar'ı göster"), action: #selector(goster), keyEquivalent: "").target = self
         m.addItem(withTitle: L("Uygulamanın kendi tuşları"), action: #selector(kucult), keyEquivalent: "").target = self
         m.addItem(.separator())
@@ -266,6 +271,9 @@ final class Temsilci: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NSMen
         giris.target = self
         giris.state = SMAppService.mainApp.status == .enabled ? .on : .off
         m.addItem(.separator())
+        let surum = m.addItem(withTitle: String(format: L("GlassBar %@"), Guncelleme.surum), action: nil, keyEquivalent: "")
+        surum.isEnabled = false
+        m.addItem(withTitle: L("Güncellemeleri denetle…"), action: #selector(guncellemeDenetle), keyEquivalent: "").target = self
         m.addItem(withTitle: L("Çık"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
     }
 
@@ -308,6 +316,8 @@ final class Temsilci: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NSMen
         durum.arkaPlan = .gorsel
     }
     @objc func oneriDegistir() { durum.oneriAcik.toggle() }
+    @objc func guncellemeDenetle() { Guncelleme.ortak.denetle(elle: true) }
+    @objc func guncellemeyiAc() { Guncelleme.ortak.sayfayiAc() }
     @objc func spotifyDegistir() { durum.spotifyOynatici.toggle() }
     @objc func kapakDegistir() { durum.kapakGoster.toggle() }
 
