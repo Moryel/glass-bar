@@ -17,32 +17,6 @@ enum Metrics {
     static let escWidth: CGFloat = 64
 }
 
-/// Appearance theme ("Theme" in the menu). Classic: pronounced glass, bright highlight, light ring.
-/// Minimal: Liquid Glass close to macOS 26; light refracting at the edge, glass thickening toward the edge, no ring. Ambient light is a separate option.
-enum Theme: String, CaseIterable {
-    case classic = "klasik", minimal = "sade"
-
-    var name: String { L(baseName) }
-
-    private var baseName: String {
-        switch self {
-        case .classic: "Classic"
-        case .minimal: "Minimal Liquid Glass"
-        }
-    }
-}
-
-private struct ThemeKey: EnvironmentKey {
-    static let defaultValue = Theme.classic
-}
-
-extension EnvironmentValues {
-    var theme: Theme {
-        get { self[ThemeKey.self] }
-        set { self[ThemeKey.self] = newValue }
-    }
-}
-
 enum Springs {
     /// on press: fast, slight overshoot
     static let press = Animation.spring(response: 0.3, dampingFraction: 0.58)
@@ -52,8 +26,8 @@ enum Springs {
     static let minimalPress = Animation.spring(response: 0.24, dampingFraction: 0.66)
     static let minimalRelease = Animation.spring(response: 0.5, dampingFraction: 0.58)
 
-    static func press(_ t: Theme) -> Animation { t == .minimal ? minimalPress : press }
-    static func release(_ t: Theme) -> Animation { t == .minimal ? minimalRelease : release }
+    static func press(_ t: Theme) -> Animation { t.isMinimal ? minimalPress : press }
+    static func release(_ t: Theme) -> Animation { t.isMinimal ? minimalRelease : release }
     /// while following the finger
     static let follow = Animation.interactiveSpring(response: 0.22, dampingFraction: 0.7)
 }
@@ -88,71 +62,72 @@ struct GlassBackground: View {
         GeometryReader { g in
             let w = max(1, g.size.width), h = max(1, g.size.height)
             let center = UnitPoint(x: b.position.x / w, y: b.position.y / h)
-            if theme == .minimal { minimal(center) } else { classic(w: w, center: center) }
+            if theme.isMinimal { minimal(center, theme.shape(h)) } else { classic(w: w, center: center, theme.shape(h)) }
         }
     }
 
     /// Minimal Liquid Glass: clear in the middle, glass thickening toward the edge; bright at the top edge, reflected light at the bottom.
-    private func minimal(_ center: UnitPoint) -> some View {
-        let p = b.glow
+    private func minimal(_ center: UnitPoint, _ shape: RoundedRectangle) -> some View {
+        let p = b.glow, t = theme, tint = theme.glassTint
         return ZStack {
-            Capsule().fill(EllipticalGradient(stops: [.init(color: .white.opacity(0.07 - 0.03 * p), location: 0.55),
-                                                      .init(color: .white.opacity(0.16 + 0.06 * p), location: 1)]))
+            shape.fill(EllipticalGradient(stops: [.init(color: tint.opacity((0.07 - 0.03 * p) * t.glass), location: 0.55),
+                                                  .init(color: tint.opacity((0.16 + 0.06 * p) * t.glass), location: 1)]))
             if let highlight {
-                Capsule().fill(EllipticalGradient(stops: [.init(color: highlight.opacity(0.82), location: 0.55),
-                                                          .init(color: highlight.opacity(0.95), location: 1)]))
+                shape.fill(EllipticalGradient(stops: [.init(color: highlight.opacity(0.82), location: 0.55),
+                                                      .init(color: highlight.opacity(0.95), location: 1)]))
             }
             // glass thickness
-            Capsule().strokeBorder(.white.opacity(0.06 + 0.1 * p), lineWidth: 2).blur(radius: 1.5).clipShape(Capsule())
+            shape.strokeBorder(tint.opacity((0.06 + 0.1 * p) * t.edge), lineWidth: 2).blur(radius: 1.5).clipShape(shape)
             // light spreading from under the finger
-            Capsule()
-                .fill(RadialGradient(colors: [.white.opacity(0.32 * p), .white.opacity(0.08 * p), .clear],
+            shape
+                .fill(RadialGradient(colors: [tint.opacity(0.32 * p * t.glow), tint.opacity(0.08 * p * t.glow), .clear],
                                      center: center, startRadius: 0, endRadius: 30))
                 .blendMode(.plusLighter)
             // refracting edge
-            Capsule().strokeBorder(LinearGradient(stops: [.init(color: .white.opacity(0.55 + 0.35 * p), location: 0),
-                                                          .init(color: .white.opacity(0.10 + 0.15 * p), location: 0.38),
-                                                          .init(color: .white.opacity(0.06 + 0.12 * p), location: 0.62),
-                                                          .init(color: .white.opacity(0.30 + 0.3 * p), location: 1)],
-                                                  startPoint: .top, endPoint: .bottom), lineWidth: 0.8)
+            shape.strokeBorder(LinearGradient(stops: [.init(color: .white.opacity((0.55 + 0.35 * p) * t.edge), location: 0),
+                                                      .init(color: tint.opacity((0.10 + 0.15 * p) * t.edge), location: 0.38),
+                                                      .init(color: tint.opacity((0.06 + 0.12 * p) * t.edge), location: 0.62),
+                                                      .init(color: tint.opacity((0.30 + 0.3 * p) * t.edge), location: 1)],
+                                              startPoint: .top, endPoint: .bottom), lineWidth: 0.8)
         }
         .compositingGroup()
-        .shadow(color: .black.opacity(0.6), radius: 1.5, y: 0.5)
+        .shadow(color: .black.opacity(0.6 * t.shadow), radius: 1.5, y: 0.5)
     }
 
-    private func classic(w: CGFloat, center: UnitPoint) -> some View {
-            ZStack {
-                Capsule().fill(LinearGradient(colors: [.white.opacity(b.isPressed ? 0.26 : 0.18), .white.opacity(b.isPressed ? 0.1 : 0.05),
-                                                       .white.opacity(b.isPressed ? 0.16 : 0.10)],
-                                              startPoint: .top, endPoint: .bottom))
+    private func classic(w: CGFloat, center: UnitPoint, _ shape: RoundedRectangle) -> some View {
+        let t = theme, tint = theme.glassTint
+        return ZStack {
+                shape.fill(LinearGradient(colors: [tint.opacity((b.isPressed ? 0.26 : 0.18) * t.glass), tint.opacity((b.isPressed ? 0.1 : 0.05) * t.glass),
+                                                   tint.opacity((b.isPressed ? 0.16 : 0.10) * t.glass)],
+                                          startPoint: .top, endPoint: .bottom))
                 if let highlight {
-                    Capsule().fill(LinearGradient(colors: [highlight.opacity(0.85), highlight.opacity(0.5)], startPoint: .top, endPoint: .bottom))
+                    shape.fill(LinearGradient(colors: [highlight.opacity(0.85), highlight.opacity(0.5)], startPoint: .top, endPoint: .bottom))
                 }
                 // highlight on the top edge
-                Capsule()
-                    .fill(LinearGradient(colors: [.white.opacity(0.28), .clear], startPoint: .top, endPoint: .center))
+                shape
+                    .fill(LinearGradient(colors: [.white.opacity(0.28 * t.edge), .clear], startPoint: .top, endPoint: .center))
                     .padding(.horizontal, 4).padding(.top, 0.8).padding(.bottom, 11)
                 // light under the finger
-                Capsule()
-                    .fill(RadialGradient(colors: [.white.opacity(0.75 * b.glow), .white.opacity(0.18 * b.glow), .clear],
+                shape
+                    .fill(RadialGradient(colors: [tint.opacity(0.75 * b.glow * t.glow), tint.opacity(0.18 * b.glow * t.glow), .clear],
                                          center: center, startRadius: 0, endRadius: 14 + 26 * b.glow))
                     .blendMode(.plusLighter)
                 // ring of light spreading on touch
                 Circle()
-                    .strokeBorder(.white.opacity(0.7 * (1 - b.ripple)), lineWidth: 2.5)
+                    .strokeBorder(tint.opacity(0.7 * (1 - b.ripple) * t.glow), lineWidth: 2.5)
                     .blur(radius: 1.5)
                     .frame(width: 8 + w * 1.6 * b.ripple, height: 8 + w * 1.6 * b.ripple)
                     .position(b.position)
                     .blendMode(.plusLighter)
-                    .clipShape(Capsule())
+                    .clipShape(shape)
                 // edge: catches the light while pressed
-                Capsule().strokeBorder(LinearGradient(colors: [.white.opacity(0.42 + 0.45 * b.glow), .white.opacity(0.08 + 0.3 * b.glow),
-                                                               .white.opacity(0.2 + 0.4 * b.glow)],
-                                                      startPoint: .top, endPoint: .bottom), lineWidth: 0.7 + 0.4 * b.glow)
+                shape.strokeBorder(LinearGradient(colors: [.white.opacity((0.42 + 0.45 * b.glow) * t.edge), tint.opacity((0.08 + 0.3 * b.glow) * t.edge),
+                                                           tint.opacity((0.2 + 0.4 * b.glow) * t.edge)],
+                                                  startPoint: .top, endPoint: .bottom), lineWidth: 0.7 + 0.4 * b.glow)
             }
             .compositingGroup()
-            .shadow(color: .black.opacity(0.55), radius: 2.5, y: 1)
-            .shadow(color: .white.opacity(0.35 * b.glow), radius: 6)
+            .shadow(color: .black.opacity(0.55 * t.shadow), radius: 2.5, y: 1)
+            .shadow(color: tint.opacity(0.35 * b.glow * t.glow), radius: 6)
     }
 }
 
@@ -177,10 +152,10 @@ struct LiquidPress: ViewModifier {
     func body(content: Content) -> some View {
         let tx = b.dragOffset.width, ty = b.dragOffset.height
         let stretch = abs(tanh(tx / 60))
-        let minimal = theme == .minimal
+        let minimal = theme.isMinimal, k = CGFloat(theme.bounce)
         content
-            .font(.system(size: 13, weight: .medium))
-            .foregroundStyle(.white)
+            .font(.system(size: 13, weight: theme.weight, design: theme.design))
+            .foregroundStyle(theme.text)
             .frame(maxHeight: .infinity)
             .background {
                 switch kind {
@@ -189,7 +164,7 @@ struct LiquidPress: ViewModifier {
                 case .bubble:
                     ZStack {
                         if let highlight {
-                            let r = Metrics.buttonHeight / 2
+                            let r = theme.radius(Metrics.buttonHeight)
                             UnevenRoundedRectangle(topLeadingRadius: isLeadingEnd ? r : 0, bottomLeadingRadius: isLeadingEnd ? r : 0,
                                                    bottomTrailingRadius: isTrailingEnd ? r : 0, topTrailingRadius: isTrailingEnd ? r : 0)
                                 .fill(highlight.opacity(0.7))
@@ -207,8 +182,8 @@ struct LiquidPress: ViewModifier {
                     .onAppear {
                         b.size = g.size
                         b.frameInBar = g.frame(in: .named("bar"))
-                        // screenshot testing: -tb2basili YES → buttons look pressed
-                        if UserDefaults.standard.bool(forKey: "tb2basili") {
+                        // screenshot testing: -testPressed YES → buttons look pressed
+                        if UserDefaults.standard.bool(forKey: "testPressed") {
                             b.isPressed = true; b.glow = 1; b.ripple = 0.45
                             b.position = CGPoint(x: g.size.width * 0.35, y: g.size.height * 0.4)
                         }
@@ -216,9 +191,9 @@ struct LiquidPress: ViewModifier {
                     .onChange(of: g.frame(in: .named("bar"))) { _, c in b.size = c.size; b.frameInBar = c }
             })
             .contentShape(Rectangle())
-            .scaleEffect(b.isPressed ? (kind == .capsule ? (minimal ? 1.08 : 1.1) : (minimal ? 1.05 : 1.04)) : 1)
-            .scaleEffect(x: 1 + (minimal ? 0.06 : 0.12) * stretch, y: 1 - (minimal ? 0.035 : 0.07) * stretch)
-            .offset(x: (minimal ? 4 : 7) * tanh(tx / 45), y: (minimal ? 1 : 2) * tanh(ty / 25))
+            .scaleEffect(b.isPressed ? 1 + k * (kind == .capsule ? (minimal ? 0.08 : 0.1) : (minimal ? 0.05 : 0.04)) : 1)
+            .scaleEffect(x: 1 + k * (minimal ? 0.06 : 0.12) * stretch, y: 1 - k * (minimal ? 0.035 : 0.07) * stretch)
+            .offset(x: k * (minimal ? 4 : 7) * tanh(tx / 45), y: k * (minimal ? 1 : 2) * tanh(ty / 25))
             .animation(Springs.follow, value: b.dragOffset)
             .animation(b.isPressed ? Springs.press(theme) : Springs.release(theme), value: b.isPressed)
             .zIndex(b.isPressed ? 1 : 0)
@@ -338,11 +313,12 @@ struct ButtonGroup: View {
     var buttonWidth: CGFloat? = nil
     /// when given, the group's glass is tinted this color (typing suggestions are dark blue-gray in the original)
     var backgroundTint: Color? = nil
+    @Environment(\.theme) private var theme
 
     var body: some View {
         HStack(spacing: 0) {
             ForEach(Array(buttons.enumerated()), id: \.offset) { i, t in
-                if i > 0 { Rectangle().fill(.white.opacity(0.13)).frame(width: 0.6).padding(.vertical, 5) }
+                if i > 0 { Rectangle().fill(theme.text.opacity(0.13)).frame(width: 0.6).padding(.vertical, 5) }
                 Group {
                     if let n = t.dot {
                         Circle().fill(n).frame(width: 13, height: 13)
@@ -356,7 +332,7 @@ struct ButtonGroup: View {
             }
         }
         .frame(height: Metrics.buttonHeight)
-        .background(GlassBackground(highlight: backgroundTint).clipShape(Capsule()))
+        .background(GlassBackground(highlight: backgroundTint).clipShape(theme.shape(Metrics.buttonHeight)))
     }
 }
 
@@ -371,7 +347,7 @@ struct GlassSlider: View {
     @Environment(\.theme) private var theme
 
     var body: some View {
-        if theme == .minimal { minimal } else { classic }
+        if theme.isMinimal { minimal } else { classic }
     }
 
     /// Minimal theme: a white capsule knob at rest; while dragging it becomes a clear lens magnifying the track below.
@@ -382,7 +358,7 @@ struct GlassSlider: View {
             let ray: CGFloat = 4
             let isLens = b.isPressed
             let x = min(max(0, w * v - knob.width / 2), w - knob.width)
-            let color = fillColor ?? .white
+            let color = theme.sliderFill ?? fillColor ?? .white
             let trackView = ZStack(alignment: .leading) {
                 Capsule().fill(.white.opacity(0.18)).frame(height: ray)
                 Capsule().fill(color).frame(width: max(ray, w * v), height: ray)
@@ -438,7 +414,7 @@ struct GlassSlider: View {
             ZStack(alignment: .leading) {
                 Capsule().fill(.white.opacity(0.13)).frame(height: ray)
                     .overlay(Capsule().stroke(.black.opacity(0.5), lineWidth: 0.5))
-                Capsule().fill(LinearGradient(colors: fillColor.map { [$0.opacity(0.8), $0] } ?? [.white.opacity(0.55), .white],
+                Capsule().fill(LinearGradient(colors: (theme.sliderFill ?? fillColor).map { [$0.opacity(0.8), $0] } ?? [.white.opacity(0.55), .white],
                                               startPoint: .leading, endPoint: .trailing))
                     .frame(width: max(ray, w * v), height: ray)
                 ZStack {

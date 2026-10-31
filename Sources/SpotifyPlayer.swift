@@ -8,7 +8,7 @@ protocol MenuOption: RawRepresentable, CaseIterable where RawValue == String {
 }
 
 enum SpotifyPlacement: String, MenuOption {
-    case spotifyOnly = "spotify", desktop = "masaustu", everywhere = "her"
+    case spotifyOnly, desktop, everywhere
     var name: String {
         switch self {
         case .spotifyOnly: L("Only when Spotify is in front")
@@ -19,7 +19,7 @@ enum SpotifyPlacement: String, MenuOption {
 }
 
 enum WaveStyle: String, MenuOption {
-    case bars = "cubuk", wave = "dalga", dots = "nokta"
+    case bars, wave, dots
     var name: String {
         switch self {
         case .bars: L("Bars")
@@ -30,7 +30,7 @@ enum WaveStyle: String, MenuOption {
 }
 
 enum WaveColor: String, MenuOption {
-    case artwork = "kapak", green = "yesil", white = "beyaz", blue = "mavi", purple = "mor", orange = "turuncu"
+    case artwork, green, white, blue, purple, orange
     var name: String {
         switch self {
         case .artwork: L("Album colors")
@@ -54,7 +54,7 @@ enum WaveColor: String, MenuOption {
 }
 
 enum WaveWidth: String, MenuOption {
-    case narrow = "dar", medium = "orta", wide = "genis", extraWide = "cokGenis"
+    case narrow, medium, wide, extraWide
     var name: String {
         switch self {
         case .narrow: L("Narrow")
@@ -75,7 +75,7 @@ enum WaveWidth: String, MenuOption {
 
 /// How easily the sound bar reacts: the scale range (dB); a narrow range amplifies small changes.
 enum Sensitivity: String, MenuOption {
-    case low = "dusuk", normal, high = "yuksek"
+    case low, normal, high
     var name: String {
         switch self {
         case .low: L("Low")
@@ -94,7 +94,7 @@ enum Sensitivity: String, MenuOption {
 
 /// How the bars fall: how much of the previous level remains at each measurement.
 enum Smoothness: String, MenuOption {
-    case low = "az", normal, high = "cok"
+    case low, normal, high
     var name: String {
         switch self {
         case .low: L("smoothness.low")

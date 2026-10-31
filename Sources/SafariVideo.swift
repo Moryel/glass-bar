@@ -28,8 +28,22 @@ enum SafariPlayer {
     private static func runJavaScript(_ js: String) -> NSAppleEventDescriptor? {
         let escaped = js.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
         var errorInfo: NSDictionary?
-        let result = NSAppleScript(source: "tell application \"Safari\" to do JavaScript \"\(escaped)\" in current tab of front window")?
-            .executeAndReturnError(&errorInfo)
+        // In full screen the video moves to a separate window without tabs, and the window order is not reliable;
+        // so a tab whose page is in full screen comes first, otherwise the frontmost window that has a tab.
+        let source = """
+        tell application "Safari"
+            set front_tab to missing value
+            repeat with w in windows
+                try
+                    set t to current tab of w
+                    if (do JavaScript "!!(document.fullscreenElement||document.webkitFullscreenElement)" in t) then return do JavaScript "\(escaped)" in t
+                    if front_tab is missing value then set front_tab to t
+                end try
+            end repeat
+            if front_tab is not missing value then return do JavaScript "\(escaped)" in front_tab
+        end tell
+        """
+        let result = NSAppleScript(source: source)?.executeAndReturnError(&errorInfo)
         if let errorInfo, let n = errorInfo[NSAppleScript.errorNumber] as? Int, n != lastErrorNumber {
             lastErrorNumber = n
             SystemControl.log("safari video: JavaScript failed (\(n)) — Develop → Allow JavaScript from Apple Events")

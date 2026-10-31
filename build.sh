@@ -25,7 +25,7 @@ fi
 
 # translations (by system language; English for languages not listed)
 cp -R Resources/*.lproj "$APP/Contents/Resources/"
-# app icon (source: tasarim/uygulama_simgesi.swift)
+# app icon (source: design/app_icon.swift)
 cp Resources/GlassBar.icns "$APP/Contents/Resources/"
 
 cat > "$APP/Contents/Info.plist" <<'PLIST'
@@ -45,6 +45,18 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
   <key>CFBundleVersion</key><string>1</string>
   <key>LSMinimumSystemVersion</key><string>14.0</string>
   <key>LSUIElement</key><true/>
+  <key>CFBundleDocumentTypes</key><array><dict>
+    <key>CFBundleTypeName</key><string>GlassBar Theme</string>
+    <key>CFBundleTypeRole</key><string>Viewer</string>
+    <key>LSHandlerRank</key><string>Owner</string>
+    <key>LSItemContentTypes</key><array><string>com.yukselozge.glasstheme</string></array>
+  </dict></array>
+  <key>UTExportedTypeDeclarations</key><array><dict>
+    <key>UTTypeIdentifier</key><string>com.yukselozge.glasstheme</string>
+    <key>UTTypeDescription</key><string>GlassBar Theme</string>
+    <key>UTTypeConformsTo</key><array><string>public.json</string></array>
+    <key>UTTypeTagSpecification</key><dict><key>public.filename-extension</key><array><string>glasstheme</string></array></dict>
+  </dict></array>
   <key>NSMicrophoneUsageDescription</key><string>GlassBar uses the microphone level to move the Siri waves on the Touch Bar while Siri is listening. Nothing is recorded.</string>
   <key>NSAudioCaptureUsageDescription</key><string>GlassBar listens to Spotify's audio level so the sound bar moves with the music. Nothing is recorded.</string>
   <key>NSAppleEventsUsageDescription</key><string>GlassBar shows what is playing in Music and Spotify and adds Finder tags.</string>

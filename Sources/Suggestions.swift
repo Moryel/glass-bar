@@ -85,8 +85,8 @@ enum Emoji {
     ]
 
     static var recents: [String] {
-        get { Defaults.stringArray("sikEmoji") ?? Array("😂❤️👍🙏😊😍🎉🔥✨😭").map(String.init) }
-        set { Defaults.set("sikEmoji", Array(newValue.prefix(24))) }
+        get { Defaults.stringArray("frequentEmoji") ?? Array("😂❤️👍🙏😊😍🎉🔥✨😭").map(String.init) }
+        set { Defaults.set("frequentEmoji", Array(newValue.prefix(24))) }
     }
 
     static func insert(_ e: String) {

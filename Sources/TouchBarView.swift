@@ -48,6 +48,7 @@ struct TouchBarView: View {
         .background(Color.black)
         .environment(\.theme, d.theme)
         .font(.system(size: 14))
+        .fontDesign(d.theme.design)
         .animation(.spring(response: 0.45, dampingFraction: 0.8), value: d.animationKey)
     }
 }
@@ -421,14 +422,14 @@ struct QuickActionsRow: View {
     private func load() {
         guard let pid = d.frontApp?.processIdentifier else { h.items = []; return }
         SystemControl.workQueue.async {
-            let l = AX.submenuTitles(pid, identifier: nil, titles: ["Servisler", "Services"])
+            let l = AX.submenuTitles(pid, identifier: nil, titles: ["Services"])
             DispatchQueue.main.async { h.items = l }
         }
     }
 
     private func select(_ t: String) {
         guard let pid = d.frontApp?.processIdentifier else { return }
-        SystemControl.workQueue.async { AX.pressSubmenuItem(pid, identifier: nil, titles: ["Servisler", "Services"], t) }
+        SystemControl.workQueue.async { AX.pressSubmenuItem(pid, identifier: nil, titles: ["Services"], t) }
     }
 }
 
@@ -481,7 +482,8 @@ struct PlayerControls: View {
         if c.video {
             FilmstripView(d: d)
             Text(TimeFormat.typeText(Double(d.nowPlayingProgress) * c.duration) + " / " + TimeFormat.typeText(c.duration))
-                .font(.system(size: 10)).monospacedDigit().foregroundStyle(.white.opacity(0.6)).fixedSize()
+                .font(.system(size: 10)).monospacedDigit().foregroundStyle(.white.opacity(0.6))
+                .frame(width: TimeFormat.pairWidth(c.duration))
         } else {
             TrackProgress(d: d, c: c)
             if c.source == NowPlaying.music { GlassButton("heart") { c.love() } }
@@ -494,6 +496,9 @@ enum TimeFormat {
         let s = Int(max(0, s))
         return s >= 3600 ? String(format: "%d:%02d:%02d", s / 3600, s / 60 % 60, s % 60) : String(format: "%d:%02d", s / 60, s % 60)
     }
+
+    /// Width of "elapsed / duration" (fixedSize truncates text on the Touch Bar, so the width is fixed).
+    static func pairWidth(_ duration: Double) -> CGFloat { duration >= 3600 ? 100 : 70 }
 }
 
 struct TrackProgress: View {
@@ -826,7 +831,7 @@ struct MediaAppControls: View {
         if let c = d.nowPlaying, c.source == d.frontBundleID {
             PlayerControls(d: d, c: c)
             if d.frontBundleID == NowPlaying.music {
-                GlassButton("text.line.first.and.arrowtriangle.forward") { d.menu(nil, "Sıradaki Olarak Çal", "Sonra Çal") }
+                GlassButton("text.line.first.and.arrowtriangle.forward") { d.menu(nil, "Play Next") }
             }
         } else {
             Text(L(d.frontBundleID == NowPlaying.quickTime ? "No open video" : "Nothing playing"))
@@ -859,8 +864,8 @@ struct SafariControls: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         GlassButton("square.on.square", action: d.showTabs)
-        // in the minimal theme the primary action is tinted (Apple: tint only the primary action)
-        GlassButton("plus", highlight: theme == .minimal ? Color(hex: 0x0A84FF) : nil) { d.shortcut(17, .maskCommand, "t") }
+        // a theme with an accent tints the primary action (Apple: tint only the primary action)
+        GlassButton("plus", highlight: theme.accentColor) { d.shortcut(17, .maskCommand, "t") }
     }
 }
 
@@ -876,7 +881,8 @@ struct SafariVideoBar: View {
              buttonWidth: Metrics.narrowWidth + 2)
         FilmstripView(d: d, source: .safari)
         Text(TimeFormat.typeText(v.elapsed) + " / " + TimeFormat.typeText(v.duration))
-            .font(.system(size: 10)).monospacedDigit().foregroundStyle(.white.opacity(0.6)).fixedSize()
+            .font(.system(size: 10)).monospacedDigit().foregroundStyle(.white.opacity(0.6))
+            .frame(width: TimeFormat.pairWidth(v.duration))
         GlassButton("magnifyingglass") { d.shortcut(37, .maskCommand, "l") }
     }
 }
@@ -885,29 +891,29 @@ struct NotesControls: View {
     @ObservedObject var d: AppState
     var body: some View {
         if d.suggestions.isActive {
-            GlassButton("checklist") { d.menu(nil, "Yapılacaklar Listesi") }
+            GlassButton("checklist") { d.menu(nil, "Checklist") }
             PopoverButton(d: d, popover: {
-                Popover(items: [PopoverItem(text: "Title") { d.menu(nil, "Ana Başlık") },
-                                PopoverItem(text: "Heading") { d.menu(nil, "Başlık") },
-                                PopoverItem(text: "Subheading") { d.menu(nil, "Alt Başlık") },
-                                PopoverItem(text: "Body") { d.menu(nil, "Gövde") },
+                Popover(items: [PopoverItem(text: "Title") { d.menu(nil, "Title") },
+                                PopoverItem(text: "Heading") { d.menu(nil, "Heading") },
+                                PopoverItem(text: "Subheading") { d.menu(nil, "Subheading") },
+                                PopoverItem(text: "Body") { d.menu(nil, "Body") },
                                 PopoverItem(symbol: "bold") { d.shortcut(11, .maskCommand, "b") },
                                 PopoverItem(symbol: "italic") { d.shortcut(34, .maskCommand, "i") },
                                 PopoverItem(symbol: "underline") { d.shortcut(32, .maskCommand, "u") }])
             }) { Image(systemName: "textformat") }
             PopoverButton(d: d, popover: {
-                Popover(items: [PopoverItem(symbol: "list.bullet") { d.menu(nil, "Madde İşaretli Liste") },
-                                PopoverItem(symbol: "list.dash") { d.menu(nil, "Tire İşaretli Liste") },
-                                PopoverItem(symbol: "list.number") { d.menu(nil, "Numaralı Liste") }])
+                Popover(items: [PopoverItem(symbol: "list.bullet") { d.menu(nil, "Bulleted List") },
+                                PopoverItem(symbol: "list.dash") { d.menu(nil, "Dashed List") },
+                                PopoverItem(symbol: "list.number") { d.menu(nil, "Numbered List") }])
             }) { Image(systemName: "list.bullet") }
             GlassButton("face.smiling") { d.panel = .emoji }
             Spacer(minLength: 0)
             SuggestionStrip(d: d)
         } else {
-            GlassButton("square.and.pencil") { d.menu(nil, "Yeni Not") }
-            GlassButton("checklist") { d.menu(nil, "Yapılacaklar Listesi") }
-            GlassButton("trash") { d.menu(nil, "Sil") }
-            GlassButton("list.bullet") { d.menu(nil, "Madde İşaretli Liste") }
+            GlassButton("square.and.pencil") { d.menu(nil, "New Note") }
+            GlassButton("checklist") { d.menu(nil, "Checklist") }
+            GlassButton("trash") { d.menu(nil, "Delete") }
+            GlassButton("list.bullet") { d.menu(nil, "Bulleted List") }
             Spacer(minLength: 0)
         }
     }
@@ -932,7 +938,7 @@ struct FinderControls: View {
         }) { Image(systemName: "square.grid.2x2") }
         Spacer(minLength: 0)
         GlassButton("eye") { d.shortcut(49) }
-        GlassButton("square.and.arrow.up") { d.menu(nil, "Paylaş…", "Paylaş") }
+        GlassButton("square.and.arrow.up") { d.menu(nil, "Share…") }
         PopoverButton(d: d, popover: {
             Popover(items: tags.map { color, index in PopoverItem(dot: color) { Finder.setLabel(index) } }
                    + [PopoverItem(symbol: "xmark.circle") { Finder.setLabel(0) }])
@@ -950,8 +956,8 @@ struct MailControls: View {
     var body: some View {
         // while composing, like the original: Send, attach a file, then typing suggestions
         if d.suggestions.isActive {
-            GlassButton("paperplane.fill", highlight: Color(hex: 0x0A84FF, 0.6)) { d.menu(nil, "Gönder") }
-            GlassButton("paperclip") { d.menu(nil, "Dosya Ekle…", "Dosyaları Ekle…") }
+            GlassButton("paperplane.fill", highlight: Color(hex: 0x0A84FF, 0.6)) { d.menu(nil, "Send") }
+            GlassButton("paperclip") { d.menu(nil, "Attach Files…") }
             TypingControls(d: d)
         } else {
             messageListControls
@@ -1049,7 +1055,7 @@ struct ContactsControls: View {
         GlassButton("video") { k?.videoCall() }.opacity(k == nil ? 0.4 : 1)
         GlassButton("envelope") { k?.sendEmail() }.opacity(k?.email.isEmpty ?? true ? 0.4 : 1)
         GlassButton(width: nil, action: { d.shortcut(37, .maskCommand, "l") }) { BarText("Edit") }
-        GlassButton("square.and.arrow.up") { d.menu(nil, "Kartı Paylaş…", "Kartı Paylaş", "Paylaş…", "Paylaş") }
+        GlassButton("square.and.arrow.up") { d.menu(nil, "Share Card…", "Share…") }
     }
 }
 
@@ -1058,15 +1064,15 @@ struct PreviewControls: View {
     @ObservedObject var d: AppState
     var body: some View {
         PopoverButton(d: d, popover: {
-            Popover(items: [PopoverItem(text: "Markup") { d.menu(nil, "İşaretleme Araç Çubuğunu Göster", "İşaretleme Araç Çubuğunu Gizle") },
-                            PopoverItem(text: "Adjust Color") { d.menu(nil, "Renk Ayarla…") },
-                            PopoverItem(text: "Adjust Size") { d.menu(nil, "Boyutu Ayarla…") }])
+            Popover(items: [PopoverItem(text: "Markup") { d.menu(nil, "Show Markup Toolbar", "Hide Markup Toolbar") },
+                            PopoverItem(text: "Adjust Color") { d.menu(nil, "Adjust Color…") },
+                            PopoverItem(text: "Adjust Size") { d.menu(nil, "Adjust Size…") }])
         }) { Image(systemName: "slider.horizontal.3") }
         Spacer(minLength: 0)
-        GlassButton("rotate.left") { d.menu(nil, "Sola Döndür") }
-        GlassButton("rotate.right") { d.menu(nil, "Sağa Döndür") }
-        GlassButton(action: { d.menu(nil, "Yatay Olarak Çevir") }) { Image(systemName: "flip.horizontal") }
-        GlassButton(action: { d.menu(nil, "Düşey Olarak Çevir") }) { Image(systemName: "flip.horizontal").rotationEffect(.degrees(90)) }
+        GlassButton("rotate.left") { d.menu(nil, "Rotate Left") }
+        GlassButton("rotate.right") { d.menu(nil, "Rotate Right") }
+        GlassButton(action: { d.menu(nil, "Flip Horizontal") }) { Image(systemName: "flip.horizontal") }
+        GlassButton(action: { d.menu(nil, "Flip Vertical") }) { Image(systemName: "flip.horizontal").rotationEffect(.degrees(90)) }
         Spacer(minLength: 0)
     }
 }
@@ -1110,10 +1116,10 @@ struct TextFormatControls: View {
             Popover(items: [PopoverItem(symbol: "bold") { d.shortcut(11, .maskCommand, "b") },
                             PopoverItem(symbol: "italic") { d.shortcut(34, .maskCommand, "i") },
                             PopoverItem(symbol: "underline") { d.shortcut(32, .maskCommand, "u") },
-                            PopoverItem(symbol: "text.alignleft") { d.menu(nil, "Sola Hizala") },
-                            PopoverItem(symbol: "text.aligncenter") { d.menu(nil, "Ortala") },
-                            PopoverItem(symbol: "text.alignright") { d.menu(nil, "Sağa Hizala") },
-                            PopoverItem(symbol: "text.justify") { d.menu(nil, "İki Yana Yasla") }])
+                            PopoverItem(symbol: "text.alignleft") { d.menu(nil, "Align Left") },
+                            PopoverItem(symbol: "text.aligncenter") { d.menu(nil, "Center") },
+                            PopoverItem(symbol: "text.alignright") { d.menu(nil, "Align Right") },
+                            PopoverItem(symbol: "text.justify") { d.menu(nil, "Justify") }])
         }) { Image(systemName: "textformat") }
     }
 }

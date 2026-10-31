@@ -55,48 +55,48 @@ final class AppState: ObservableObject {
     var buttonFrames: [Panel: CGRect] = [:]
 
     // MARK: settings
-    @Published var theme = Theme(rawValue: Defaults.string("tema")) ?? .classic { didSet { Defaults.set("tema", theme.rawValue) } }
+    @Published var theme = ThemeStore.shared.theme(id: Defaults.string("theme")) ?? .classic { didSet { Defaults.set("theme", theme.id) } }
     /// Behind the glass; starts off if the old "Ambient light" setting was off
-    @Published var colorTemperature = ColorTemperature(rawValue: Defaults.string("renkSicakligi")) ?? .off {
-        didSet { Defaults.set("renkSicakligi", colorTemperature.rawValue) }
+    @Published var colorTemperature = ColorTemperature(rawValue: Defaults.string("colorTemperature")) ?? .off {
+        didSet { Defaults.set("colorTemperature", colorTemperature.rawValue) }
     }
-    @Published var backdrop = Backdrop(rawValue: Defaults.string("arkaPlan")) ?? (Defaults.bool("ortamIsigi", true) ? .app : .off) {
-        didSet { Defaults.set("arkaPlan", backdrop.rawValue); refreshBackdropImage() }
+    @Published var backdrop = Backdrop(rawValue: Defaults.string("backdrop")) ?? (Defaults.bool("ambientLight", true) ? .app : .off) {
+        didSet { Defaults.set("backdrop", backdrop.rawValue); refreshBackdropImage() }
     }
     /// file picked with "Choose Image…"
-    @Published var backdropImagePath = Defaults.string("arkaGorsel") { didSet { Defaults.set("arkaGorsel", backdropImagePath); refreshBackdropImage() } }
+    @Published var backdropImagePath = Defaults.string("backdropImage") { didSet { Defaults.set("backdropImage", backdropImagePath); refreshBackdropImage() } }
     /// bar-sized strip of the wallpaper or the image
     @Published var backdropImage: NSImage?
-    @Published var showsEsc = Defaults.bool("escGoster", !Hardware.hasPhysicalEsc) { didSet { Defaults.set("escGoster", showsEsc) } }
-    @Published var barMode = BarMode(rawValue: Defaults.string("gosterim")) ?? .app { didSet { Defaults.set("gosterim", barMode.rawValue) } }
-    @Published var fnBarMode = BarMode(rawValue: Defaults.string("fnBasili")) ?? .fKeys { didSet { Defaults.set("fnBasili", fnBarMode.rawValue) } }
-    @Published var showsControlStrip = Defaults.bool("seritGoster", true) { didSet { Defaults.set("seritGoster", showsControlStrip) } }
-    @Published var showsSuggestions = Defaults.bool("oneriAcik", true) { didSet { Defaults.set("oneriAcik", showsSuggestions); if !showsSuggestions { suggestions = Suggestions() } } }
+    @Published var showsEsc = Defaults.bool("showsEsc", !Hardware.hasPhysicalEsc) { didSet { Defaults.set("showsEsc", showsEsc) } }
+    @Published var barMode = BarMode(rawValue: Defaults.string("barMode")) ?? .app { didSet { Defaults.set("barMode", barMode.rawValue) } }
+    @Published var fnBarMode = BarMode(rawValue: Defaults.string("fnBarMode")) ?? .fKeys { didSet { Defaults.set("fnBarMode", fnBarMode.rawValue) } }
+    @Published var showsControlStrip = Defaults.bool("showsControlStrip", true) { didSet { Defaults.set("showsControlStrip", showsControlStrip) } }
+    @Published var showsSuggestions = Defaults.bool("showsSuggestions", true) { didSet { Defaults.set("showsSuggestions", showsSuggestions); if !showsSuggestions { suggestions = Suggestions() } } }
     /// Control Strip editing mode ("Customize Control Strip…" in the menu).
     @Published var isEditingControlStrip = false
-    @Published var stripButtons = (Defaults.stringArray("seritTuslari") ?? []).compactMap(StripButton.init(rawValue:)).nilIfEmpty ?? StripButton.defaultButtons {
-        didSet { Defaults.set("seritTuslari", stripButtons.map(\.rawValue)) }
+    @Published var stripButtons = (Defaults.stringArray("stripButtons") ?? []).compactMap(StripButton.init(rawValue:)).nilIfEmpty ?? StripButton.defaultButtons {
+        didSet { Defaults.set("stripButtons", stripButtons.map(\.rawValue)) }
     }
     /// apps that show their own Touch Bar
-    @Published var ownBarApps = Defaults.stringArray("kendiCubugu") ?? [] { didSet { Defaults.set("kendiCubugu", ownBarApps) } }
+    @Published var ownBarApps = Defaults.stringArray("ownBarApps") ?? [] { didSet { Defaults.set("ownBarApps", ownBarApps) } }
     /// apps that always show F1–F12
-    @Published var alwaysFKeys = Defaults.stringArray("hepF") ?? [] { didSet { Defaults.set("hepF", alwaysFKeys) } }
+    @Published var alwaysFKeys = Defaults.stringArray("alwaysFKeys") ?? [] { didSet { Defaults.set("alwaysFKeys", alwaysFKeys) } }
 
     let width = Hardware.width
     /// Shows the front app's own Touch Bar controls (GlassBar minimizes).
     var showAppOwnControls: () -> Void = {}
     /// Spotify player with album art (when off, a plain track bar like in Music).
-    @Published var showsSpotifyPlayer = Defaults.bool("spotifyOynatici", true) { didSet { Defaults.set("spotifyOynatici", showsSpotifyPlayer) } }
-    @Published var showsArtwork = Defaults.bool("kapakGoster", true) { didSet { Defaults.set("kapakGoster", showsArtwork) } }
-    @Published var spotifyPlacement = SpotifyPlacement(rawValue: Defaults.string("spotifyYeri")) ?? .desktop { didSet { Defaults.set("spotifyYeri", spotifyPlacement.rawValue) } }
-    @Published var waveStyle = WaveStyle(rawValue: Defaults.string("dalgaStili")) ?? .bars { didSet { Defaults.set("dalgaStili", waveStyle.rawValue) } }
-    @Published var waveColor = WaveColor(rawValue: Defaults.string("dalgaRengi")) ?? .artwork { didSet { Defaults.set("dalgaRengi", waveColor.rawValue) } }
-    @Published var waveWidth = WaveWidth(rawValue: Defaults.string("dalgaGenisligi")) ?? .medium { didSet { Defaults.set("dalgaGenisligi", waveWidth.rawValue) } }
-    @Published var sensitivity = Sensitivity(rawValue: Defaults.string("hassasiyet")) ?? .normal {
-        didSet { Defaults.set("hassasiyet", sensitivity.rawValue); AudioCapture.dynamicRange = sensitivity.dynamicRange }
+    @Published var showsSpotifyPlayer = Defaults.bool("showsSpotifyPlayer", true) { didSet { Defaults.set("showsSpotifyPlayer", showsSpotifyPlayer) } }
+    @Published var showsArtwork = Defaults.bool("showsArtwork", true) { didSet { Defaults.set("showsArtwork", showsArtwork) } }
+    @Published var spotifyPlacement = SpotifyPlacement(rawValue: Defaults.string("spotifyPlacement")) ?? .desktop { didSet { Defaults.set("spotifyPlacement", spotifyPlacement.rawValue) } }
+    @Published var waveStyle = WaveStyle(rawValue: Defaults.string("waveStyle")) ?? .bars { didSet { Defaults.set("waveStyle", waveStyle.rawValue) } }
+    @Published var waveColor = WaveColor(rawValue: Defaults.string("waveColor")) ?? .artwork { didSet { Defaults.set("waveColor", waveColor.rawValue) } }
+    @Published var waveWidth = WaveWidth(rawValue: Defaults.string("waveWidth")) ?? .medium { didSet { Defaults.set("waveWidth", waveWidth.rawValue) } }
+    @Published var sensitivity = Sensitivity(rawValue: Defaults.string("sensitivity")) ?? .normal {
+        didSet { Defaults.set("sensitivity", sensitivity.rawValue); AudioCapture.dynamicRange = sensitivity.dynamicRange }
     }
-    @Published var smoothness = Smoothness(rawValue: Defaults.string("yumusaklik")) ?? .normal {
-        didSet { Defaults.set("yumusaklik", smoothness.rawValue); AudioCapture.decay = smoothness.decay }
+    @Published var smoothness = Smoothness(rawValue: Defaults.string("smoothness")) ?? .normal {
+        didSet { Defaults.set("smoothness", smoothness.rawValue); AudioCapture.decay = smoothness.decay }
     }
 
     /// Whether to show the Spotify player while Spotify plays and another app is in front (on the desktop or everywhere, per setting).
@@ -245,7 +245,7 @@ final class AppState: ObservableObject {
             showPopover(Popover(items: [PopoverItem(symbol: "light.min") { self.step(.backlightDown) },
                                      PopoverItem(symbol: "light.max") { self.step(.backlightUp) }]))
         case .dictation: menu("startDictation:")
-        case .quickActions: showSubmenu(nil, ["Servisler", "Services"], title: "Quick Actions")
+        case .quickActions: showSubmenu(nil, ["Services"], title: "Quick Actions")
         }
     }
 
@@ -458,7 +458,7 @@ final class AppState: ObservableObject {
     func refreshCalendar() {
         guard frontBundleID == "com.apple.iCal", panel == .app, let pid = frontApp?.processIdentifier else { return }
         SystemControl.workQueue.async {
-            let b: Calendar.Component = AX.isChecked(pid, "Gün") ? .day : AX.isChecked(pid, "Hafta") ? .weekOfYear : .month
+            let b: Calendar.Component = AX.isChecked(pid, "Day") ? .day : AX.isChecked(pid, "Week") ? .weekOfYear : .month
             DispatchQueue.main.async {
                 guard b != self.calendarUnit else { return }
                 self.calendarUnit = b
@@ -524,6 +524,13 @@ final class AppState: ObservableObject {
             if r == nil { SystemControl.log("backdrop: couldn't read image (\(url.lastPathComponent))") }
             DispatchQueue.main.async { self.backdropImage = r }
         }
+    }
+
+    // MARK: Theme
+    /// Switches to a theme; a theme that brings its own background sets it too.
+    func apply(_ t: Theme) {
+        theme = t
+        if let b = Backdrop(rawValue: t.backdrop), b != .customImage { backdrop = b }
     }
 
     // MARK: Safari video

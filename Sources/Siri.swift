@@ -54,14 +54,14 @@ struct SiriOrb: View {
 /// bright inner line make it look like glass; colored Siri lines flow through the middle. The lines rise as you speak and the drop
 /// swells slightly like jelly.
 struct SiriPill: View {
-    static let isDemo = UserDefaults.standard.string(forKey: "tb2kip") == "siriDemo"
+    static let isDemo = UserDefaults.standard.string(forKey: "testPanel") == "siriDemo"
     @ObservedObject private var microphone = Microphone.shared
     @StateObject private var smoother = Smoother()
 
     var body: some View {
         TimelineView(.animation) { tl in
             let t = tl.date.timeIntervalSinceReferenceDate
-            // -tb2kip siriDemo: a level that imitates speech without the microphone (for the README GIF)
+            // -testPanel siriDemo: a level that imitates speech without the microphone (for the README GIF)
             let target = SiriPill.isDemo ? max(0, 0.55 * sin(t * 2.1) + 0.35 * sin(t * 5.3 + 1) + 0.15)
                 : microphone.isRunning ? microphone.level : 0.2 + 0.12 * sin(t * 1.6)
             // the microphone value arrives in steps; it's smoothed every frame so the lines don't jitter

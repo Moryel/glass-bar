@@ -129,18 +129,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
         }
         applyOwnBarApps()
 
-        // for screenshot testing: open GlassBar.app --args -tb2kip genis|parlaklik|ses|siri|fn
-        switch UserDefaults.standard.string(forKey: "tb2kip") {
-        case "genis": state.panel = .expanded
-        case "parlaklik": state.panel = .brightness
-        case "ses": state.panel = .volume
+        // for screenshot testing: open GlassBar.app --args -testPanel expanded|brightness|volume|siri|fn|…
+        switch UserDefaults.standard.string(forKey: "testPanel") {
+        case "expanded": state.panel = .expanded
+        case "brightness": state.panel = .brightness
+        case "volume": state.panel = .volume
         case "siri": DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { self.state.isSiriActive = true; Microphone.shared.start() }
         case "siriDemo": DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { self.state.isSiriActive = true }
         case "fn": state.fn = true
         case "emoji": state.panel = .emoji
-        case "simdi": state.panel = .nowPlaying
-        case "seritDuzenle": state.isEditingControlStrip = true
-        case "sekmeler": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { self.state.showTabs() }
+        case "nowPlaying": state.panel = .nowPlaying
+        case "stripEditor": state.isEditingControlStrip = true
+        case "tabs": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { self.state.showTabs() }
+        case "themeEditor": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { ThemeEditor.open(self.state) }
         default: break
         }
     }
@@ -240,9 +241,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
         m.addItem(submenuItem(L("Press and Hold fn Key to Show"), BarMode.allCases.map { g in
             menuItem(g.name, #selector(selectFnBarMode(_:)), state.fnBarMode == g, g.rawValue)
         }))
-        m.addItem(submenuItem(L("Theme"), Theme.allCases.map { t in
-            menuItem(t.name, #selector(temaSec(_:)), state.theme == t, t.rawValue)
-        }))
+        let themeItems = ThemeStore.shared.all.map { t in menuItem(t.displayName, #selector(selectTheme(_:)), state.theme.id == t.id, t.id) }
+        m.addItem(submenuItem(L("Theme"), themeItems + [.separator(), menuItem(L("Theme Editor…"), #selector(openThemeEditor), false)]))
         m.addItem(submenuItem(L("Color Temperature"), ColorTemperature.allCases.map { r in
             menuItem(r.name, #selector(selectColorTemperature(_:)), state.colorTemperature == r, r.rawValue)
         }))
@@ -343,8 +343,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
         if let g = BarMode(rawValue: o.representedObject as? String ?? "") { state.barMode = g; state.panel = .app }
     }
 
-    @objc func temaSec(_ o: NSMenuItem) {
-        if let t = Theme(rawValue: o.representedObject as? String ?? "") { state.theme = t }
+    @objc func selectTheme(_ o: NSMenuItem) {
+        if let t = ThemeStore.shared.theme(id: o.representedObject as? String ?? "") { state.apply(t) }
+    }
+    @objc func openThemeEditor() { ThemeEditor.open(state) }
+
+    /// Double-clicked .glasstheme files are installed and applied.
+    func application(_ application: NSApplication, open urls: [URL]) {
+        for url in urls where url.pathExtension == "glasstheme" {
+            do { state.apply(try ThemeStore.shared.install(url)) } catch {
+                SystemControl.log("theme: could not install \(url.lastPathComponent): \(error)")
+            }
+        }
     }
     @objc func selectFnBarMode(_ o: NSMenuItem) {
         if let g = BarMode(rawValue: o.representedObject as? String ?? "") { state.fnBarMode = g }
@@ -393,13 +403,14 @@ enum Spotiw {
 
 // The app used to be called TouchBar2: on first launch, copy settings over from the old identifier.
 let legacyDomain = "com.yukselozge.TouchBar2"
-if !UserDefaults.standard.bool(forKey: "ayarlarTasindi") {
+if !UserDefaults.standard.bool(forKey: "ayarlarTasindi") && !UserDefaults.standard.bool(forKey: "legacySettingsCopied") {
     for (key, value) in UserDefaults.standard.persistentDomain(forName: legacyDomain) ?? [:]
     where UserDefaults.standard.object(forKey: key) == nil {
         UserDefaults.standard.set(value, forKey: key)
     }
-    UserDefaults.standard.set(true, forKey: "ayarlarTasindi")
+    UserDefaults.standard.set(true, forKey: "legacySettingsCopied")
 }
+SettingsMigration.run()
 
 let app = NSApplication.shared
 let appDelegate = AppDelegate()

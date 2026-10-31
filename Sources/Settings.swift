@@ -7,7 +7,7 @@ func L(_ s: String) -> String { NSLocalizedString(s, comment: "") }
 
 // Counterpart of the original Keyboard → Touch Bar Settings and Control Strip customization.
 enum BarMode: String, CaseIterable {
-    case app = "uygulama", expanded = "genis", fKeys = "fTuslari", spaces = "alanlar", quickActions = "hizliEylem"
+    case app, expanded, fKeys, spaces, quickActions
 
     var name: String { L(baseName) }
 
@@ -24,10 +24,10 @@ enum BarMode: String, CaseIterable {
 
 /// Buttons that can go in the collapsed Control Strip (from the original "Customize Control Strip" list).
 enum StripButton: String, CaseIterable {
-    case brightness = "parlaklik", volume = "ses", mute = "sessiz", playPause = "oynat", siri, missionControl, launchpad, spotlight,
-         notifications = "bildirim", nightShift, screenshot = "ekranResmi", inputSource = "girisKaynagi", desktop = "masaustu",
-         screenSaver = "ekranKoruyucu", lockScreen = "kilitle", sleep = "uyut", keyboardBrightness = "klavye", dictation = "dikte",
-         quickActions = "hizliEylem"
+    case brightness, volume, mute, playPause, siri, missionControl, launchpad, spotlight,
+         notifications, nightShift, screenshot, inputSource, desktop,
+         screenSaver, lockScreen, sleep, keyboardBrightness, dictation,
+         quickActions
 
     var name: String { L(baseName) }
 
@@ -239,7 +239,7 @@ enum Spaces {
 
 /// True Tone-like color temperature: a warm tint multiplied over the bar (the Touch Bar's ambient light sensor isn't accessible).
 enum ColorTemperature: String, CaseIterable {
-    case off = "kapali", warm = "ilik", warmer = "sicak", nightShift
+    case off, warm, warmer, nightShift
 
     var name: String {
         switch self {
@@ -258,5 +258,54 @@ enum ColorTemperature: String, CaseIterable {
         case .warmer: 1
         case .nightShift: nightShift ? 1 : 0
         }
+    }
+}
+
+/// Settings used to be saved under Turkish keys and values; this moves them to the English ones once.
+enum SettingsMigration {
+    private static let keys = [
+        "tema": "theme", "renkSicakligi": "colorTemperature", "arkaPlan": "backdrop", "ortamIsigi": "ambientLight",
+        "arkaGorsel": "backdropImage", "escGoster": "showsEsc", "gosterim": "barMode", "fnBasili": "fnBarMode",
+        "seritGoster": "showsControlStrip", "oneriAcik": "showsSuggestions", "seritTuslari": "stripButtons",
+        "kendiCubugu": "ownBarApps", "hepF": "alwaysFKeys", "spotifyOynatici": "showsSpotifyPlayer", "kapakGoster": "showsArtwork",
+        "spotifyYeri": "spotifyPlacement", "dalgaStili": "waveStyle", "dalgaRengi": "waveColor", "dalgaGenisligi": "waveWidth",
+        "hassasiyet": "sensitivity", "yumusaklik": "smoothness", "sikEmoji": "frequentEmoji",
+    ]
+
+    /// old value → new value, by new key
+    private static let values: [String: [String: String]] = [
+        "theme": ["klasik": "classic", "sade": "minimal"],
+        "colorTemperature": ["kapali": "off", "ilik": "warm", "sicak": "warmer"],
+        "backdrop": ["kapali": "off", "uygulama": "app", "gunBatimi": "sunset", "okyanus": "ocean", "duvarKagidi": "wallpaper",
+                     "gorsel": "customImage"],
+        "barMode": barModes, "fnBarMode": barModes,
+        "stripButtons": ["parlaklik": "brightness", "ses": "volume", "sessiz": "mute", "oynat": "playPause", "bildirim": "notifications",
+                         "ekranResmi": "screenshot", "girisKaynagi": "inputSource", "masaustu": "desktop", "ekranKoruyucu": "screenSaver",
+                         "kilitle": "lockScreen", "uyut": "sleep", "klavye": "keyboardBrightness", "dikte": "dictation",
+                         "hizliEylem": "quickActions"],
+        "spotifyPlacement": ["spotify": "spotifyOnly", "masaustu": "desktop", "her": "everywhere"],
+        "waveStyle": ["cubuk": "bars", "dalga": "wave", "nokta": "dots"],
+        "waveColor": ["kapak": "artwork", "yesil": "green", "beyaz": "white", "mavi": "blue", "mor": "purple", "turuncu": "orange"],
+        "waveWidth": ["dar": "narrow", "orta": "medium", "genis": "wide", "cokGenis": "extraWide"],
+        "sensitivity": ["dusuk": "low", "yuksek": "high"],
+        "smoothness": ["az": "low", "cok": "high"],
+    ]
+    private static let barModes = ["uygulama": "app", "genis": "expanded", "fTuslari": "fKeys", "alanlar": "spaces", "hizliEylem": "quickActions"]
+
+    static func run() {
+        let d = UserDefaults.standard
+        guard !d.bool(forKey: "englishSettings") else { return }
+        for (old, new) in keys {
+            guard let v = d.object(forKey: old) else { continue }
+            if d.object(forKey: new) == nil {
+                let map = values[new] ?? [:]
+                if let s = v as? String { d.set(map[s] ?? s, forKey: new) }
+                else if let a = v as? [String] { d.set(a.map { map[$0] ?? $0 }, forKey: new) }
+                else { d.set(v, forKey: new) }
+            }
+            d.removeObject(forKey: old)
+        }
+        d.removeObject(forKey: "ayarlarTasindi")
+        d.set(true, forKey: "englishSettings")
     }
 }

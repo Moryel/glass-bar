@@ -24,30 +24,31 @@ enum AX {
         return nil
     }
 
-    /// Trailing ellipses and colons are dropped so titles like "Taşı…" and "Şuraya Taşı:" compare equal.
-    private static func minimal(_ s: String) -> String {
-        s.trimmingCharacters(in: CharacterSet(charactersIn: "…:. ")).lowercased()
-    }
+    /// Trailing ellipses and colons are dropped so titles like "Move…" and "Move to:" compare equal.
+    private static func minimal(_ s: String) -> String { minimalKey(s).lowercased() }
 
-    /// English menu titles: on an English system, an item not found by its Turkish title is found by this one.
+    /// The title without trailing ellipses and colons, as used in `turkishTitles`.
+    private static func minimalKey(_ s: String) -> String { s.trimmingCharacters(in: CharacterSet(charactersIn: "…:. ")) }
+
+    /// Turkish menu titles: on a Turkish system an item is found by these as well as by its English title.
     /// (Mail, Messages, Dictation and Photos buttons use language-independent identifiers and are not listed here.)
-    static let englishTitles: [String: String] = [
-        "Yapılacaklar Listesi": "Checklist", "Ana Başlık": "Title", "Başlık": "Heading", "Alt Başlık": "Subheading",
-        "Gövde": "Body", "Madde İşaretli Liste": "Bulleted List", "Tire İşaretli Liste": "Dashed List",
-        "Numaralı Liste": "Numbered List", "Yeni Not": "New Note", "Sil": "Delete",
-        "Paylaş…": "Share…", "Paylaş": "Share", "Kartı Paylaş…": "Share Card…", "Kartı Paylaş": "Share Card",
-        "İşaretleme Araç Çubuğunu Göster": "Show Markup Toolbar", "İşaretleme Araç Çubuğunu Gizle": "Hide Markup Toolbar",
-        "Renk Ayarla…": "Adjust Color…", "Boyutu Ayarla…": "Adjust Size…",
-        "Sola Döndür": "Rotate Left", "Sağa Döndür": "Rotate Right",
-        "Yatay Olarak Çevir": "Flip Horizontal", "Düşey Olarak Çevir": "Flip Vertical",
-        "Sola Hizala": "Align Left", "Ortala": "Center", "Sağa Hizala": "Align Right", "İki Yana Yasla": "Justify",
-        "Servisler": "Services", "Gönder": "Send", "Dosya Ekle…": "Attach Files…",
-        "Sıradaki Olarak Çal": "Play Next", "Gün": "Day", "Hafta": "Week", "Ay": "Month", "Yıl": "Year",
+    static let turkishTitles: [String: [String]] = [
+        "Checklist": ["Yapılacaklar Listesi"], "Title": ["Ana Başlık"], "Heading": ["Başlık"], "Subheading": ["Alt Başlık"],
+        "Body": ["Gövde"], "Bulleted List": ["Madde İşaretli Liste"], "Dashed List": ["Tire İşaretli Liste"],
+        "Numbered List": ["Numaralı Liste"], "New Note": ["Yeni Not"], "Delete": ["Sil"],
+        "Share": ["Paylaş"], "Share Card": ["Kartı Paylaş"],
+        "Show Markup Toolbar": ["İşaretleme Araç Çubuğunu Göster"], "Hide Markup Toolbar": ["İşaretleme Araç Çubuğunu Gizle"],
+        "Adjust Color": ["Renk Ayarla"], "Adjust Size": ["Boyutu Ayarla"],
+        "Rotate Left": ["Sola Döndür"], "Rotate Right": ["Sağa Döndür"],
+        "Flip Horizontal": ["Yatay Olarak Çevir"], "Flip Vertical": ["Düşey Olarak Çevir"],
+        "Align Left": ["Sola Hizala"], "Center": ["Ortala"], "Align Right": ["Sağa Hizala"], "Justify": ["İki Yana Yasla"],
+        "Services": ["Servisler"], "Send": ["Gönder"], "Attach Files": ["Dosya Ekle", "Dosyaları Ekle"],
+        "Play Next": ["Sıradaki Olarak Çal", "Sonra Çal"], "Day": ["Gün"], "Week": ["Hafta"], "Month": ["Ay"], "Year": ["Yıl"],
     ]
 
     static func menuItem(_ pid: pid_t, identifier: String?, titles: [String]) -> AXUIElement? {
         guard let menuBar = attribute(appElement(pid), kAXMenuBarAttribute) else { return nil }
-        let wantedTitles = Set((titles + titles.compactMap { englishTitles[$0] }).map(minimal))
+        let wantedTitles = Set(titles.flatMap { [$0] + (turkishTitles[minimalKey($0)] ?? []) }.map(minimal))
         return search(menuBar as! AXUIElement, 7) { o in
             guard attribute(o, kAXRoleAttribute) as? String == "AXMenuItem" else { return false }
             let id = attribute(o, kAXIdentifierAttribute) as? String ?? ""

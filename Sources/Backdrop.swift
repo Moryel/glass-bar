@@ -4,8 +4,8 @@ import SwiftUI
 // Behind the glass ("Background" in the menu): off, a glow in the app's color, preset color styles, the Mac's wallpaper
 // or a chosen image. Image and wallpaper are cropped to the bar's size and dimmed so the buttons stay readable.
 enum Backdrop: String, CaseIterable {
-    case off = "kapali", app = "uygulama", aurora, sunset = "gunBatimi", ocean = "okyanus", siri, wallpaper = "duvarKagidi",
-         customImage = "gorsel"
+    case off, app, aurora, sunset, ocean, siri, wallpaper,
+         customImage
 
     var name: String { L(baseName) }
 
