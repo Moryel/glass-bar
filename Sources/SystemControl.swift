@@ -113,7 +113,23 @@ enum SystemControl {
     @discardableResult
     static func runScript(_ source: String) -> NSAppleEventDescriptor? {
         var errorInfo: NSDictionary?
-        return NSAppleScript(source: source)?.executeAndReturnError(&errorInfo)
+        return compiledScript(source)?.executeAndReturnError(&errorInfo)
+    }
+
+    /// Compiling is most of an AppleScript's cost; scripts that run every second (Now Playing, Safari video)
+    /// are compiled once and kept. Scripts are built from a few fixed templates, so the cache stays small.
+    private static var scripts: [String: NSAppleScript] = [:]
+    private static let scriptsLock = NSLock()
+
+    static func compiledScript(_ source: String) -> NSAppleScript? {
+        scriptsLock.lock(); defer { scriptsLock.unlock() }
+        if let s = scripts[source] { return s }
+        guard let s = NSAppleScript(source: source) else { return nil }
+        var errorInfo: NSDictionary?
+        s.compileAndReturnError(&errorInfo)
+        if scripts.count > 64 { scripts.removeAll() }
+        scripts[source] = s
+        return s
     }
 }
 

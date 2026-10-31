@@ -66,6 +66,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
 
     func applicationDidFinishLaunching(_ n: Notification) {
         Theme.current = state.theme
+        state.observeNowPlaying()
         // for diagnostics: ~/Library/Logs/GlassBar.log
         let logURL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Logs/GlassBar.log")
         try? "\(Date()) launched · Accessibility: \(SystemControl.hasAccessibility ? "yes" : "NO") · model: \(Hardware.model)\n"
@@ -118,7 +119,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
         } as Any)
 
         Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            self?.state.refreshNowPlaying()
+            self?.state.tickNowPlaying()
             self?.state.refreshContact()
             self?.state.refreshCalendar()
             self?.state.refreshSafariVideo()

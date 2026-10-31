@@ -303,9 +303,40 @@ final class AppState: ObservableObject {
     private var isReadingNowPlaying = false
     private var isReadingSuggestions = false
 
+    private var lastNowPlayingRead = Date.distantPast
+
+    /// Music and Spotify announce every change (track, play, pause) with a notification, and sources starting or quitting
+    /// are announced by NSWorkspace; each reads Now Playing once instead of asking the apps every second.
+    func observeNowPlaying() {
+        let read: (Notification) -> Void = { [weak self] _ in self?.refreshNowPlaying() }
+        for name in ["com.apple.Music.playerInfo", "com.spotify.client.PlaybackStateChanged"] {
+            DistributedNotificationCenter.default().addObserver(forName: .init(name), object: nil, queue: .main, using: read)
+        }
+        for name in [NSWorkspace.didLaunchApplicationNotification, NSWorkspace.didTerminateApplicationNotification] {
+            NSWorkspace.shared.notificationCenter.addObserver(forName: name, object: nil, queue: .main) { [weak self] n in
+                let id = (n.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)?.bundleIdentifier ?? ""
+                if NowPlaying.sources.contains(id) { self?.refreshNowPlaying() }
+            }
+        }
+    }
+
+    /// Every second. Between reads a playing track's position advances here; Music and Spotify are read again every
+    /// 10 s while playing (to correct drift) and every 30 s otherwise. QuickTime sends no notifications: every 2 s while it runs.
+    func tickNowPlaying() {
+        let since = Date().timeIntervalSince(lastNowPlayingRead)
+        let isQuickTimeRunning = !NSRunningApplication.runningApplications(withBundleIdentifier: NowPlaying.quickTime).isEmpty
+        if since >= 30 || (since >= 10 && nowPlaying?.isPlaying == true) || (isQuickTimeRunning && since >= 2) {
+            refreshNowPlaying()
+            return
+        }
+        guard let c = nowPlaying, c.isPlaying, Date().timeIntervalSince(lastScrub) > 1.5 else { return }
+        nowPlayingProgress = min(1, nowPlayingProgress + Float(1 / c.duration))
+    }
+
     func refreshNowPlaying() {
         guard !isReadingNowPlaying else { return }
         isReadingNowPlaying = true
+        lastNowPlayingRead = Date()
         let front = frontBundleID
         let runningBundleIDs = Set(NSWorkspace.shared.runningApplications.compactMap(\.bundleIdentifier))
         SystemControl.workQueue.async {
