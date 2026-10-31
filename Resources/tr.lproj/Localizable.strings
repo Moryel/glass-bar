@@ -1,1 +1,144 @@
-/* Türkçe: anahtarlar zaten Türkçe metinlerin kendisi, ayrıca çeviri gerekmez. */
+/* GlassBar — Turkish. Keys are the English texts used in the code. */
+
+/* ✨ menu */
+"Show GlassBar" = "GlassBar'ı göster";
+"App's Own Controls" = "Uygulamanın kendi tuşları";
+"Grant Accessibility Permission…" = "Erişilebilirlik izni ver…";
+"Show Own Touch Bar for “%@”" = "“%@” için kendi Touch Bar'ını göster";
+"Always Show F1, F2 Keys for “%@”" = "“%@” için hep F1, F2 tuşlarını göster";
+"Touch Bar Shows" = "Touch Bar gösterir";
+"Press and Hold fn Key to Show" = "fn tuşu basılı tutulunca";
+"Theme" = "Tema";
+"Show Control Strip" = "Control Strip'i göster";
+"Control Strip Buttons (up to %d)" = "Control Strip tuşları (en çok %d)";
+"Show Typing Suggestions" = "Yazma önerilerini göster";
+"esc Key on the Bar" = "Çubukta esc tuşu";
+"Open at Login" = "Mac açılınca başlat";
+"Quit" = "Çık";
+
+/* Touch Bar shows */
+"App Controls" = "Uygulama denetimleri";
+"Expanded Control Strip" = "Genişletilmiş Control Strip";
+"F1, F2, etc. Keys" = "F1, F2 vb. tuşlar";
+"Spaces" = "Masaüstü alanları";
+
+/* themes */
+"Classic" = "Klasik";
+"Minimal Liquid Glass" = "Sade Liquid Glass";
+
+/* Control Strip buttons */
+"Brightness" = "Parlaklık";
+"Volume" = "Ses";
+"Mute" = "Sessiz";
+"Play/Pause" = "Oynat/Duraklat";
+"Apps" = "Uygulamalar";
+"Notification Center" = "Bildirim Merkezi";
+"Screenshot" = "Ekran Resmi";
+"Input Sources" = "Giriş Kaynakları";
+"Show Desktop" = "Masaüstünü Göster";
+"Screen Saver" = "Ekran Koruyucu";
+"Lock Screen" = "Ekranı Kilitle";
+"Sleep" = "Uyut";
+"Keyboard Brightness" = "Klavye Aydınlatması";
+"Dictation" = "Dikte";
+"Quick Actions" = "Hızlı Eylemler";
+
+/* bar */
+"Desktop %d" = "Masaüstü %d";
+"Search or enter website name" = "Ara veya web sitesi adı gir";
+"Loading tabs…" = "Sekmeler okunuyor…";
+"No access to Safari: System Settings → Privacy & Security → Automation" = "Safari'ye erişim izni yok: Sistem Ayarları → Gizlilik ve Güvenlik → Otomasyon";
+"No open Safari windows" = "Açık Safari penceresi yok";
+"No open video" = "Açık video yok";
+"Nothing playing" = "Çalan parça yok";
+"Loading…" = "Okunuyor…";
+"Nothing to choose right now" = "Şu an seçilebilecek bir şey yok";
+
+/* Mail */
+"Reply" = "Yanıtla";
+"Reply All" = "Tümünü Yanıtla";
+"Forward" = "İlet";
+"Move to" = "Şuraya Taşı";
+"Move to…" = "Şuraya Taşı…";
+"Flag" = "Bayrak";
+
+/* Calendar, Contacts, Preview, Notes */
+"Today" = "Bugün";
+"Edit" = "Düzenle";
+"Markup" = "İşaretleme";
+"Adjust Color" = "Renk Ayarla";
+"Adjust Size" = "Boyutu Ayarla";
+"Title" = "Ana Başlık";
+"Heading" = "Başlık";
+"Subheading" = "Alt Başlık";
+"Body" = "Gövde";
+
+/* screenshot (⇧⌘5) */
+"Save to:" = "Şuraya kaydet:";
+"Desktop" = "Masaüstü";
+"Documents" = "Belgeler";
+"Clipboard" = "Pano";
+"Preview" = "Önizleme";
+"Other Location…" = "Başka Bir Yer…";
+
+/* background */
+"Background" = "Arka plan";
+"Off" = "Kapalı";
+"App Color" = "Uygulamanın rengi";
+"Aurora" = "Aurora";
+"Sunset" = "Gün batımı";
+"Ocean" = "Okyanus";
+"Siri Colors" = "Siri renkleri";
+"Wallpaper" = "Duvar kağıdı";
+"Choose Image…" = "Görsel seç…";
+"Choose an image to show behind the Touch Bar" = "Touch Bar'ın arkasında görünecek görseli seç";
+"Done" = "Bitti";
+"Color Temperature" = "Renk sıcaklığı";
+"Warm" = "Ilık";
+"Warmer" = "Sıcak";
+"When Night Shift Is On" = "Night Shift açıkken";
+"Customize Control Strip…" = "Control Strip'i Özelleştir…";
+"Strip full" = "Şerit dolu";
+"Add:" = "Ekle:";
+"Spotify player" = "Spotify oynatıcısı";
+"Album cover and sound bar" = "Kapak ve ses dalgası";
+"Show album cover" = "Kapağı göster";
+"Where to show" = "Nerede gösterilsin";
+"Only when Spotify is in front" = "Yalnız Spotify öndeyken";
+"On the desktop too" = "Masaüstünde de";
+"In every app" = "Her uygulamada";
+"Sound bar" = "Ses dalgası";
+"Bars" = "Çubuklar";
+"Wave" = "Dalga";
+"Dots" = "Noktalar";
+"Color" = "Renk";
+"Album colors" = "Kapak renkleri";
+"Spotify green" = "Spotify yeşili";
+"White" = "Beyaz";
+"Blue" = "Mavi";
+"Purple" = "Mor";
+"Orange" = "Turuncu";
+"Width" = "Genişlik";
+"Narrow" = "Dar";
+"Medium" = "Orta";
+"Wide" = "Geniş";
+"Extra wide" = "Çok geniş";
+"Sensitivity" = "Hassasiyet";
+"Low" = "Düşük";
+"Normal" = "Normal";
+"High" = "Yüksek";
+"Smoothness" = "Yumuşaklık";
+"GlassBar %@" = "GlassBar %@";
+"Check for Updates…" = "Güncellemeleri denetle…";
+"Update available: GlassBar %@…" = "Güncelleme var: GlassBar %@…";
+"GlassBar %@ is available" = "GlassBar %@ çıktı";
+"You have version %@. Open the download page?" = "Kullandığın sürüm %@. İndirme sayfası açılsın mı?";
+"Download" = "İndir";
+"Later" = "Sonra";
+"GlassBar is up to date" = "GlassBar güncel";
+"Couldn't check for updates" = "Güncellemeler denetlenemedi";
+"Version %@ is the latest." = "Kullandığın sürüm %@ en yenisi.";
+"Check your internet connection and try again." = "İnternet bağlantını kontrol edip yeniden dene.";
+
+"smoothness.low" = "Az";
+"smoothness.high" = "Çok";

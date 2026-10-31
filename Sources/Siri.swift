@@ -1,42 +1,42 @@
 import SwiftUI
 
-// iOS 27 Siri'si: kenar ışıltısı yok; koyu Liquid Glass bir küre süzülüp gelir, hafifçe nabız gibi atar,
-// içinde Siri'nin eski renklerini taşıyan tek öğe olan dalga sesle oynar. Renkler WWDC26'nın yumuşak
-// pembe, koyu mavi, mor ve turuncusu.
-enum SiriRenk {
-    static let pembe = Color(hex: 0xE98DBF)
-    static let lacivert = Color(hex: 0x3D5AD6)
-    static let mor = Color(hex: 0x8C6FE8)
-    static let turuncu = Color(hex: 0xF0A066)
-    static let hepsi = [pembe, lacivert, mor, turuncu]
-    static let cam = Color(hex: 0x10132A)
+// The iOS 27 Siri: no edge glow; a dark Liquid Glass orb drifts in and pulses gently,
+// and the wave inside, the only element carrying Siri's old colors, moves with the voice. The colors are WWDC26's soft
+// pink, deep blue, purple and orange.
+enum SiriColors {
+    static let pink = Color(hex: 0xE98DBF)
+    static let indigo = Color(hex: 0x3D5AD6)
+    static let purple = Color(hex: 0x8C6FE8)
+    static let orange = Color(hex: 0xF0A066)
+    static let all = [pink, indigo, purple, orange]
+    static let glass = Color(hex: 0x10132A)
 }
 
-/// Control Strip'teki Siri logosu: koyu cam bir kürenin içinde yavaşça dönen, birbirine karışan
-/// pembe, mavi, mor ve turuncu ışık kurdeleleri; ortada beyaz bir öz, üstte cam parlaması.
-struct SiriKure: View {
-    var aktif = false
-    var boyut: CGFloat = 21
+/// The Siri logo in the Control Strip: light ribbons in pink, blue, purple and orange slowly spinning and blending
+/// inside a dark glass orb; a white core in the middle and a glass highlight on top.
+struct SiriOrb: View {
+    var isActive = false
+    var size: CGFloat = 21
 
-    private static let kurdeleler: [KurdeleGorunum.Kurdele] = [
-        .init(renk: NSColor(srgbRed: 1, green: 0.37, blue: 0.66, alpha: 1), x: -0.16, y: -0.12, w: 0.62, h: 0.34, aci: 25),
-        .init(renk: NSColor(srgbRed: 0.25, green: 0.49, blue: 1, alpha: 1), x: 0.16, y: -0.04, w: 0.6, h: 0.32, aci: -40),
-        .init(renk: NSColor(srgbRed: 0.6, green: 0.36, blue: 1, alpha: 1), x: 0.02, y: 0.16, w: 0.64, h: 0.3, aci: 10),
-        .init(renk: NSColor(srgbRed: 1, green: 0.6, blue: 0.3, alpha: 1), x: -0.12, y: 0.12, w: 0.42, h: 0.24, aci: 70),
+    private static let ribbons: [RibbonView.Ribbon] = [
+        .init(color: NSColor(srgbRed: 1, green: 0.37, blue: 0.66, alpha: 1), x: -0.16, y: -0.12, w: 0.62, h: 0.34, angle: 25),
+        .init(color: NSColor(srgbRed: 0.25, green: 0.49, blue: 1, alpha: 1), x: 0.16, y: -0.04, w: 0.6, h: 0.32, angle: -40),
+        .init(color: NSColor(srgbRed: 0.6, green: 0.36, blue: 1, alpha: 1), x: 0.02, y: 0.16, w: 0.64, h: 0.3, angle: 10),
+        .init(color: NSColor(srgbRed: 1, green: 0.6, blue: 0.3, alpha: 1), x: -0.12, y: 0.12, w: 0.42, h: 0.24, angle: 70),
     ]
 
     var body: some View {
-        let b = boyut
+        let b = size
         ZStack {
             Circle().fill(RadialGradient(colors: [Color(hex: 0x1A1F45), Color(hex: 0x05060F)],
                                          center: .center, startRadius: 0, endRadius: b * 0.55))
-            KurdeleKatmani(kurdeleler: SiriKure.kurdeleler)
+            RibbonLayer(ribbons: SiriOrb.ribbons)
                 .blendMode(.plusLighter)
-            // parlak öz
-            Circle().fill(RadialGradient(colors: [.white.opacity(aktif ? 0.75 : 0.5), .white.opacity(0)],
+            // bright core
+            Circle().fill(RadialGradient(colors: [.white.opacity(isActive ? 0.75 : 0.5), .white.opacity(0)],
                                          center: .center, startRadius: 0, endRadius: b * 0.24))
                 .blendMode(.plusLighter)
-            // cam kenar ve parlama
+            // glass edge and highlight
             Circle().strokeBorder(LinearGradient(colors: [.white.opacity(0.55), .white.opacity(0.04), .white.opacity(0.22)],
                                                  startPoint: .top, endPoint: .bottom), lineWidth: 0.7)
             Ellipse().fill(LinearGradient(colors: [.white.opacity(0.45), .clear], startPoint: .top, endPoint: .bottom))
@@ -45,108 +45,108 @@ struct SiriKure: View {
         }
         .frame(width: b, height: b)
         .clipShape(Circle())
-        .shadow(color: Color(hex: 0x9A5CFF).opacity(aktif ? 0.75 : 0.35), radius: aktif ? 6 : 3)
+        .shadow(color: Color(hex: 0x9A5CFF).opacity(isActive ? 0.75 : 0.35), radius: isActive ? 6 : 3)
     }
 }
 
-/// Dinlerken uygulama alanının ortasında yüzen hap, Apple'ın yeni Siri'si gibi: Dynamic Island'dan akan berrak bir
-/// Liquid Glass damlası. Arkasındaki çubuğu büyüterek kırar (macOS 26'da gerçek cam), kenarı koyu kırılma halkası ve
-/// parlak iç çizgiyle cam gibi durur; ortasında renkli Siri çizgileri akar. Konuştukça çizgiler yükselir ve damla
-/// jöle gibi hafifçe şişer.
-struct SiriHap: View {
-    static let demo = UserDefaults.standard.string(forKey: "tb2kip") == "siriDemo"
-    @ObservedObject private var mikrofon = Mikrofon.ortak
-    @StateObject private var yumusak = Yumusatici()
+/// A pill floating in the middle of the app area while listening, like Apple's new Siri: a clear Liquid Glass drop
+/// flowing out of the Dynamic Island. It magnifies and refracts the bar behind it (real glass on macOS 26), its dark refraction ring and
+/// bright inner line make it look like glass; colored Siri lines flow through the middle. The lines rise as you speak and the drop
+/// swells slightly like jelly.
+struct SiriPill: View {
+    static let isDemo = UserDefaults.standard.string(forKey: "tb2kip") == "siriDemo"
+    @ObservedObject private var microphone = Microphone.shared
+    @StateObject private var smoother = Smoother()
 
     var body: some View {
         TimelineView(.animation) { tl in
             let t = tl.date.timeIntervalSinceReferenceDate
-            // -tb2kip siriDemo: mikrofonsuz, konuşmayı taklit eden seviye (README GIF'i için)
-            let hedef = SiriHap.demo ? max(0, 0.55 * sin(t * 2.1) + 0.35 * sin(t * 5.3 + 1) + 0.15)
-                : mikrofon.calisiyor ? mikrofon.seviye : 0.2 + 0.12 * sin(t * 1.6)
-            // mikrofon değeri kesik kesik gelir; her karede yumuşatılır ki çizgiler titremesin
-            let ses = yumusak.ilerle(hedef, t)
+            // -tb2kip siriDemo: a level that imitates speech without the microphone (for the README GIF)
+            let target = SiriPill.isDemo ? max(0, 0.55 * sin(t * 2.1) + 0.35 * sin(t * 5.3 + 1) + 0.15)
+                : microphone.isRunning ? microphone.level : 0.2 + 0.12 * sin(t * 1.6)
+            // the microphone value arrives in steps; it's smoothed every frame so the lines don't jitter
+            let level = smoother.advance(target, t)
             ZStack {
-                CamDamla()
-                SiriDalga(t: t, ses: ses)
+                GlassDrop()
+                SiriWaves(t: t, level: level)
                     .mask(LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .white, location: 0.2),
                                                  .init(color: .white, location: 0.8), .init(color: .clear, location: 1)],
                                          startPoint: .leading, endPoint: .trailing))
                     .padding(.horizontal, 14).padding(.vertical, 2)
-                // kırılma halkası: camın kenarı arkadakini kırdığı için koyulaşır
+                // refraction ring: the glass edge darkens because it refracts what's behind
                 Capsule().strokeBorder(.black.opacity(0.45), lineWidth: 3).blur(radius: 1.5).clipShape(Capsule())
-                // parlak iç çizgi: üstte ve altta ışığı yakalar
+                // bright inner line: catches the light at the top and bottom
                 Capsule().strokeBorder(LinearGradient(stops: [.init(color: .white.opacity(0.85), location: 0),
                                                               .init(color: .white.opacity(0.12), location: 0.45),
                                                               .init(color: .white.opacity(0.5), location: 1)],
                                                       startPoint: .top, endPoint: .bottom), lineWidth: 0.9)
                     .padding(1.2)
-                // üst sol speküler parlama
+                // specular highlight at the top left
                 Ellipse().fill(.white.opacity(0.35)).frame(width: 70, height: 6).blur(radius: 3)
                     .offset(x: -80, y: -7)
             }
-            .frame(width: 300, height: Olcu.tus)
-            .scaleEffect(x: 1 + 0.035 * ses, y: 1 + 0.07 * ses)
+            .frame(width: 300, height: Metrics.buttonHeight)
+            .scaleEffect(x: 1 + 0.035 * level, y: 1 + 0.07 * level)
             .shadow(color: .black.opacity(0.6), radius: 4, y: 1)
         }
     }
 }
 
-/// Kare kare yumuşatma: hedefe kare süresine göre üstel yaklaşır (yükselirken hızlı, inerken yavaş).
-final class Yumusatici: ObservableObject {
-    private var deger = 0.0
-    private var son = 0.0
+/// Per-frame smoothing: approaches the target exponentially based on frame time (fast rise, slow fall).
+final class Smoother: ObservableObject {
+    private var value = 0.0
+    private var lastTime = 0.0
 
-    func ilerle(_ hedef: Double, _ t: Double) -> Double {
-        let dt = son == 0 ? 0 : min(0.1, max(0, t - son))
-        son = t
-        let k = hedef > deger ? 9.0 : 3.5
-        deger += (hedef - deger) * (1 - exp(-k * dt))
-        return deger
+    func advance(_ target: Double, _ t: Double) -> Double {
+        let dt = lastTime == 0 ? 0 : min(0.1, max(0, t - lastTime))
+        lastTime = t
+        let k = target > value ? 9.0 : 3.5
+        value += (target - value) * (1 - exp(-k * dt))
+        return value
     }
 }
 
-/// Damlanın ortasındaki Siri çizgileri: görseldeki renklerde, uçlara doğru incelen, yavaşça akan ince dalgalar.
-/// Sessizken neredeyse düz; konuştukça her renk biraz farklı yükselir.
-struct SiriDalga: View {
+/// Siri lines in the middle of the drop: thin, slowly flowing waves in the colors of the artwork, tapering toward the ends.
+/// Almost flat when silent; each color rises a little differently as you speak.
+struct SiriWaves: View {
     let t: Double
-    let ses: Double
+    let level: Double
 
-    private static let renkler: [Color] = [Color(hex: 0xFF6A3D), Color(hex: 0x3D8BFF), Color(hex: 0x9B5CFF),
+    private static let colors: [Color] = [Color(hex: 0xFF6A3D), Color(hex: 0x3D8BFF), Color(hex: 0x9B5CFF),
                                            Color(hex: 0x34D399), .white]
 
     var body: some View {
-        Canvas { ctx, boyut in
-            let yollar = SiriDalga.renkler.indices.map { yol(i: $0, boyut: boyut) }
+        Canvas { ctx, size in
+            let paths = SiriWaves.colors.indices.map { path(i: $0, size: size) }
             ctx.blendMode = .plusLighter
             ctx.drawLayer { k in
                 k.addFilter(.blur(radius: 2.5))
-                for (i, p) in yollar.enumerated() { k.stroke(p, with: .color(SiriDalga.renkler[i].opacity(0.75)), lineWidth: 2.6) }
+                for (i, p) in paths.enumerated() { k.stroke(p, with: .color(SiriWaves.colors[i].opacity(0.75)), lineWidth: 2.6) }
             }
-            for (i, p) in yollar.enumerated() {
-                ctx.stroke(p, with: .color(SiriDalga.renkler[i].opacity(i == 4 ? 0.7 : 1)), lineWidth: i == 4 ? 0.8 : 1.2)
+            for (i, p) in paths.enumerated() {
+                ctx.stroke(p, with: .color(SiriWaves.colors[i].opacity(i == 4 ? 0.7 : 1)), lineWidth: i == 4 ? 0.8 : 1.2)
             }
         }
     }
 
-    private func yol(i: Int, boyut: CGSize) -> Path {
+    private func path(i: Int, size: CGSize) -> Path {
         let d = Double(i)
-        // her çizgi kendi yavaş ritmiyle; sesle hepsi yükselir
-        let ritim = 0.55 + 0.45 * sin(t * (0.9 + 0.17 * d) + d * 1.7)
-        let genlik = boyut.height * 0.42 * (0.05 + 0.95 * ses) * ritim
-        let siklik = 1.1 + d * 0.35, faz = t * (1.6 + d * 0.35) + d
+        // each line with its own slow rhythm; all rise with the voice
+        let rhythm = 0.55 + 0.45 * sin(t * (0.9 + 0.17 * d) + d * 1.7)
+        let amplitude = size.height * 0.42 * (0.05 + 0.95 * level) * rhythm
+        let frequency = 1.1 + d * 0.35, phase = t * (1.6 + d * 0.35) + d
         var p = Path()
-        for x in stride(from: 0.0, through: boyut.width, by: 1) {
-            let zarf = pow(sin(.pi * x / boyut.width), 2.2)
-            let y = boyut.height / 2 + sin(x / boyut.width * .pi * 2 * siklik + faz) * genlik * zarf
+        for x in stride(from: 0.0, through: size.width, by: 1) {
+            let envelope = pow(sin(.pi * x / size.width), 2.2)
+            let y = size.height / 2 + sin(x / size.width * .pi * 2 * frequency + phase) * amplitude * envelope
             x == 0 ? p.move(to: .init(x: x, y: y)) : p.addLine(to: .init(x: x, y: y))
         }
         return p
     }
 }
 
-/// Damlanın camı: macOS 26'da Apple'ın gerçek Liquid Glass'ı (arkasını büyütüp kırar), öncesinde hafif buzlu cam.
-struct CamDamla: View {
+/// The drop's glass: Apple's real Liquid Glass on macOS 26 (magnifies and refracts what's behind), light frosted glass before that.
+struct GlassDrop: View {
     var body: some View {
         if #available(macOS 26.0, *) {
             Color.clear.glassEffect(.clear, in: Capsule())
@@ -157,8 +157,8 @@ struct CamDamla: View {
     }
 }
 
-/// Kürenin damla gibi sağdaki Siri tuşundan süzülüp gelmesi.
-struct Damla: ViewModifier {
+/// The orb drifting in like a drop from the Siri button on the right.
+struct DropIn: ViewModifier {
     let p: Double
     func body(content: Content) -> some View {
         content
@@ -170,5 +170,5 @@ struct Damla: ViewModifier {
 }
 
 extension AnyTransition {
-    static var damla: AnyTransition { .modifier(active: Damla(p: 0), identity: Damla(p: 1)) }
+    static var dropIn: AnyTransition { .modifier(active: DropIn(p: 0), identity: DropIn(p: 1)) }
 }

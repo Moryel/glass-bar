@@ -2,407 +2,407 @@ import AppKit
 import ServiceManagement
 import SwiftUI
 
-// Touch Bar'ı sistem kipinde kaplamak için özel API'ler (DFRFoundation ve NSTouchBar'ın gizli sınıf yöntemleri).
-// MTMR ve Pock da aynı yolu kullanır.
+// Private APIs to cover the Touch Bar in system-modal mode (DFRFoundation and hidden NSTouchBar class methods).
+// MTMR and Pock use the same approach.
 enum DFR {
-    private static let kutup = dlopen("/System/Library/PrivateFrameworks/DFRFoundation.framework/DFRFoundation", RTLD_LAZY)
+    private static let library = dlopen("/System/Library/PrivateFrameworks/DFRFoundation.framework/DFRFoundation", RTLD_LAZY)
 
-    static func seritte(_ kimlik: String, _ goster: Bool) {
+    static func setControlStripPresence(_ identifier: String, _ show: Bool) {
         typealias F = @convention(c) (CFString, Bool) -> Void
-        guard let f = dlsym(kutup, "DFRElementSetControlStripPresenceForIdentifier") else { return }
-        unsafeBitCast(f, to: F.self)(kimlik as CFString, goster)
+        guard let f = dlsym(library, "DFRElementSetControlStripPresenceForIdentifier") else { return }
+        unsafeBitCast(f, to: F.self)(identifier as CFString, show)
     }
 
-    static func kapatmaKutusu(_ goster: Bool) {
+    static func setShowsCloseBox(_ show: Bool) {
         typealias F = @convention(c) (Bool) -> Void
-        guard let f = dlsym(kutup, "DFRSystemModalShowsCloseBoxWhenFrontMost") else { return }
-        unsafeBitCast(f, to: F.self)(goster)
+        guard let f = dlsym(library, "DFRSystemModalShowsCloseBoxWhenFrontMost") else { return }
+        unsafeBitCast(f, to: F.self)(show)
     }
 
-    private static func sinifYontemi(_ sinif: AnyClass, _ adlar: [String]) -> (Selector, IMP)? {
-        for ad in adlar {
-            let sel = NSSelectorFromString(ad)
-            if let m = class_getClassMethod(sinif, sel) { return (sel, method_getImplementation(m)) }
+    private static func classMethod(_ cls: AnyClass, _ names: [String]) -> (Selector, IMP)? {
+        for name in names {
+            let sel = NSSelectorFromString(name)
+            if let m = class_getClassMethod(cls, sel) { return (sel, method_getImplementation(m)) }
         }
         return nil
     }
 
-    /// placement 1: çubuğun tamamını (Control Strip dahil) kaplar.
-    static func sun(_ tb: NSTouchBar, tepsi: String) {
-        guard let (sel, imp) = sinifYontemi(NSTouchBar.self, ["presentSystemModalTouchBar:placement:systemTrayItemIdentifier:",
+    /// placement 1: covers the whole bar (including the Control Strip).
+    static func present(_ tb: NSTouchBar, trayIdentifier: String) {
+        guard let (sel, imp) = classMethod(NSTouchBar.self, ["presentSystemModalTouchBar:placement:systemTrayItemIdentifier:",
                                                               "presentSystemModalFunctionBar:placement:systemTrayItemIdentifier:"])
         else { return }
         typealias F = @convention(c) (AnyClass, Selector, NSTouchBar, Int64, NSString) -> Void
-        unsafeBitCast(imp, to: F.self)(NSTouchBar.self, sel, tb, 1, tepsi as NSString)
+        unsafeBitCast(imp, to: F.self)(NSTouchBar.self, sel, tb, 1, trayIdentifier as NSString)
     }
 
-    static func kucult(_ tb: NSTouchBar) { tekli(NSTouchBar.self, ["minimizeSystemModalTouchBar:", "minimizeSystemModalFunctionBar:"], tb) }
-    static func kaldir(_ tb: NSTouchBar) { tekli(NSTouchBar.self, ["dismissSystemModalTouchBar:", "dismissSystemModalFunctionBar:"], tb) }
-    static func tepsiyeEkle(_ o: NSTouchBarItem) { tekli(NSTouchBarItem.self, ["addSystemTrayItem:"], o) }
-    static func tepsidenCikar(_ o: NSTouchBarItem) { tekli(NSTouchBarItem.self, ["removeSystemTrayItem:"], o) }
+    static func minimize(_ tb: NSTouchBar) { callClassMethod(NSTouchBar.self, ["minimizeSystemModalTouchBar:", "minimizeSystemModalFunctionBar:"], tb) }
+    static func dismiss(_ tb: NSTouchBar) { callClassMethod(NSTouchBar.self, ["dismissSystemModalTouchBar:", "dismissSystemModalFunctionBar:"], tb) }
+    static func addSystemTrayItem(_ o: NSTouchBarItem) { callClassMethod(NSTouchBarItem.self, ["addSystemTrayItem:"], o) }
+    static func removeSystemTrayItem(_ o: NSTouchBarItem) { callClassMethod(NSTouchBarItem.self, ["removeSystemTrayItem:"], o) }
 
-    private static func tekli(_ sinif: AnyClass, _ adlar: [String], _ arg: AnyObject) {
-        guard let (sel, imp) = sinifYontemi(sinif, adlar) else { return }
+    private static func callClassMethod(_ cls: AnyClass, _ names: [String], _ arg: AnyObject) {
+        guard let (sel, imp) = classMethod(cls, names) else { return }
         typealias F = @convention(c) (AnyClass, Selector, AnyObject) -> Void
-        unsafeBitCast(imp, to: F.self)(sinif, sel, arg)
+        unsafeBitCast(imp, to: F.self)(cls, sel, arg)
     }
 }
 
-final class Temsilci: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NSMenuDelegate {
-    let durum = Durum()
-    let cubuk = NSTouchBar()
-    let anaKimlik = NSTouchBarItem.Identifier("com.yukselozge.glassbar.ana")
-    let tepsiKimlik = NSTouchBarItem.Identifier("com.yukselozge.glassbar.tepsi")
-    lazy var tepsi: NSCustomTouchBarItem = {
-        let o = NSCustomTouchBarItem(identifier: tepsiKimlik)
+final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NSMenuDelegate {
+    let state = AppState()
+    let modalTouchBar = NSTouchBar()
+    let mainItemIdentifier = NSTouchBarItem.Identifier("com.yukselozge.glassbar.ana")
+    let trayIdentifier = NSTouchBarItem.Identifier("com.yukselozge.glassbar.tepsi")
+    lazy var trayItem: NSCustomTouchBarItem = {
+        let o = NSCustomTouchBarItem(identifier: trayIdentifier)
         let b = NSButton(image: NSImage(systemSymbolName: "sparkles", accessibilityDescription: "GlassBar")!,
-                         target: self, action: #selector(goster))
+                         target: self, action: #selector(show))
         o.view = b
         return o
     }()
-    var durumOgesi: NSStatusItem!
-    var kucuk = false
-    var izleyiciler: [Any] = []
+    var statusItem: NSStatusItem!
+    var isMinimized = false
+    var observers: [Any] = []
 
     func applicationDidFinishLaunching(_ n: Notification) {
-        // tanı için: ~/Library/Logs/GlassBar.log
-        let gunluk = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Logs/GlassBar.log")
-        try? "\(Date()) açıldı · Erişilebilirlik: \(Sistem.erisimVar ? "var" : "YOK") · model: \(Donanim.model)\n"
-            .write(to: gunluk, atomically: true, encoding: .utf8)
-        if !Sistem.erisimVar { Sistem.erisimIste() }
-        durum.yenile()
-        durum.uygulamaDegisti(NSWorkspace.shared.frontmostApplication)
-        durum.uygulamaTuslari = { [weak self] in self?.kucult() }
-        SesYakalayici.aralik = durum.hassasiyet.aralik
-        SesYakalayici.dusus = durum.yumusaklik.dusus
-        durum.arkaResmiYenile()
+        // for diagnostics: ~/Library/Logs/GlassBar.log
+        let logURL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Logs/GlassBar.log")
+        try? "\(Date()) launched · Accessibility: \(SystemControl.hasAccessibility ? "yes" : "NO") · model: \(Hardware.model)\n"
+            .write(to: logURL, atomically: true, encoding: .utf8)
+        if !SystemControl.hasAccessibility { SystemControl.requestAccessibility() }
+        state.refresh()
+        state.frontAppChanged(NSWorkspace.shared.frontmostApplication)
+        state.showAppOwnControls = { [weak self] in self?.minimize() }
+        AudioCapture.dynamicRange = state.sensitivity.dynamicRange
+        AudioCapture.decay = state.smoothness.decay
+        state.refreshBackdropImage()
 
-        cubuk.delegate = self
-        cubuk.defaultItemIdentifiers = [anaKimlik]
-        DFR.tepsiyeEkle(tepsi)
-        DFR.seritte(tepsiKimlik.rawValue, true)
-        DFR.kapatmaKutusu(false)
-        goster()
+        modalTouchBar.delegate = self
+        modalTouchBar.defaultItemIdentifiers = [mainItemIdentifier]
+        DFR.addSystemTrayItem(trayItem)
+        DFR.setControlStripPresence(trayIdentifier.rawValue, true)
+        DFR.setShowsCloseBox(false)
+        show()
 
-        menuKur()
-        Guncelleme.ortak.baslat()
+        setUpStatusMenu()
+        UpdateChecker.shared.start()
 
         let ws = NSWorkspace.shared.notificationCenter
-        izleyiciler.append(ws.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { [weak self] n in
+        observers.append(ws.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { [weak self] n in
             guard let self else { return }
-            self.durum.uygulamaDegisti(n.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)
-            self.listeyiUygula()
+            self.state.frontAppChanged(n.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)
+            self.applyOwnBarApps()
         })
-        izleyiciler.append(ws.addObserver(forName: NSWorkspace.activeSpaceDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
-            self?.durum.alanlar = Alanlar.durum()
-            if self?.durum.arkaPlan == .duvarKagidi { self?.durum.arkaResmiYenile() }
+        observers.append(ws.addObserver(forName: NSWorkspace.activeSpaceDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
+            self?.state.spaces = Spaces.state()
+            if self?.state.backdrop == .wallpaper { self?.state.refreshBackdropImage() }
         })
-        // Spotiw elle açılıp X'iyle kapatılınca sistemin eski çubuğu yerine GlassBar geri gelir
-        izleyiciler.append(DistributedNotificationCenter.default().addObserver(forName: .init(Spotiw.kimlik + ".didHide"), object: nil, queue: .main) { [weak self] _ in
-            guard let self, !self.kucuk else { return }
-            self.goster()
+        // when Spotiw is opened manually and closed with its X, GlassBar comes back instead of the system's old bar
+        observers.append(DistributedNotificationCenter.default().addObserver(forName: .init(Spotiw.identifier + ".didHide"), object: nil, queue: .main) { [weak self] _ in
+            guard let self, !self.isMinimized else { return }
+            self.show()
         })
 
-        // fn basılı tutulunca F1–F12
+        // F1–F12 while fn is held
         let fn: (NSEvent) -> Void = { [weak self] e in
-            let basili = e.modifierFlags.contains(.function)
-            if self?.durum.fn != basili { self?.durum.fn = basili }
+            let isPressed = e.modifierFlags.contains(.function)
+            if self?.state.fn != isPressed { self?.state.fn = isPressed }
         }
-        izleyiciler.append(NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged, handler: fn) as Any)
-        izleyiciler.append(NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { fn($0); return $0 } as Any)
+        observers.append(NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged, handler: fn) as Any)
+        observers.append(NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { fn($0); return $0 } as Any)
 
-        // fiziksel esc de Siri hapını ve kaydırıcıyı kapatsın
-        izleyiciler.append(NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] e in
-            if e.keyCode == 53 { self?.durum.escBasildi() }
+        // the physical esc closes the Siri pill and the slider too
+        observers.append(NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] e in
+            if e.keyCode == 53 { self?.state.handleEsc() }
         } as Any)
 
         Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            self?.durum.calanYenile()
-            self?.durum.kisiYenile()
-            self?.durum.takvimYenile()
-            self?.durum.safariYenile()
+            self?.state.refreshNowPlaying()
+            self?.state.refreshContact()
+            self?.state.refreshCalendar()
+            self?.state.refreshSafariVideo()
         }
         Timer.scheduledTimer(withTimeInterval: 0.35, repeats: true) { [weak self] _ in
-            self?.durum.onerileriYenile()
-            self?.durum.ekranAraciYenile()
-            self?.durum.fotoYenile()
+            self?.state.refreshSuggestions()
+            self?.state.refreshScreenshotTool()
+            self?.state.refreshPhotosVideo()
         }
-        listeyiUygula()
+        applyOwnBarApps()
 
-        // ekran görüntüsü denemeleri için: open GlassBar.app --args -tb2kip genis|parlaklik|ses|siri|fn
+        // for screenshot testing: open GlassBar.app --args -tb2kip genis|parlaklik|ses|siri|fn
         switch UserDefaults.standard.string(forKey: "tb2kip") {
-        case "genis": durum.kip = .genis
-        case "parlaklik": durum.kip = .parlaklik
-        case "ses": durum.kip = .ses
-        case "siri": DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { self.durum.siri = true; Mikrofon.ortak.baslat() }
-        case "siriDemo": DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { self.durum.siri = true }
-        case "fn": durum.fn = true
-        case "emoji": durum.kip = .emoji
-        case "simdi": durum.kip = .simdi
-        case "seritDuzenle": durum.seritDuzenle = true
-        case "sekmeler": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { self.durum.sekmeleriAc() }
+        case "genis": state.panel = .expanded
+        case "parlaklik": state.panel = .brightness
+        case "ses": state.panel = .volume
+        case "siri": DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { self.state.isSiriActive = true; Microphone.shared.start() }
+        case "siriDemo": DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { self.state.isSiriActive = true }
+        case "fn": state.fn = true
+        case "emoji": state.panel = .emoji
+        case "simdi": state.panel = .nowPlaying
+        case "seritDuzenle": state.isEditingControlStrip = true
+        case "sekmeler": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { self.state.showTabs() }
         default: break
         }
     }
 
     func applicationWillTerminate(_ n: Notification) {
-        DFR.kaldir(cubuk)
-        DFR.seritte(tepsiKimlik.rawValue, false)
-        DFR.tepsidenCikar(tepsi)
+        DFR.dismiss(modalTouchBar)
+        DFR.setControlStripPresence(trayIdentifier.rawValue, false)
+        DFR.removeSystemTrayItem(trayItem)
     }
 
-    func touchBar(_ tb: NSTouchBar, makeItemForIdentifier kimlik: NSTouchBarItem.Identifier) -> NSTouchBarItem? {
-        guard kimlik == anaKimlik else { return nil }
-        let o = NSCustomTouchBarItem(identifier: kimlik)
-        let gorunum = NSHostingView(rootView: Cubuk(d: durum))
-        gorunum.translatesAutoresizingMaskIntoConstraints = false
-        let w = gorunum.widthAnchor.constraint(equalToConstant: durum.genislik)
+    func touchBar(_ tb: NSTouchBar, makeItemForIdentifier identifier: NSTouchBarItem.Identifier) -> NSTouchBarItem? {
+        guard identifier == mainItemIdentifier else { return nil }
+        let o = NSCustomTouchBarItem(identifier: identifier)
+        let hostingView = NSHostingView(rootView: TouchBarView(d: state))
+        hostingView.translatesAutoresizingMaskIntoConstraints = false
+        let w = hostingView.widthAnchor.constraint(equalToConstant: state.width)
         w.priority = .defaultHigh
-        NSLayoutConstraint.activate([w, gorunum.heightAnchor.constraint(equalToConstant: Olcu.yukseklik)])
-        o.view = gorunum
+        NSLayoutConstraint.activate([w, hostingView.heightAnchor.constraint(equalToConstant: Metrics.barHeight)])
+        o.view = hostingView
         return o
     }
 
-    @objc func goster() {
-        kucuk = false
-        durum.yenile()
-        DFR.sun(cubuk, tepsi: tepsiKimlik.rawValue)
+    @objc func show() {
+        isMinimized = false
+        state.refresh()
+        DFR.present(modalTouchBar, trayIdentifier: trayIdentifier.rawValue)
     }
 
-    @objc func kucult() {
-        kucuk = true
-        DFR.kucult(cubuk)
+    @objc func minimize() {
+        isMinimized = true
+        DFR.minimize(modalTouchBar)
     }
 
-    /// "Kendi çubuğu" listesindeki uygulamada GlassBar çekilir; başka uygulamaya geçince geri gelir.
-    func listeyiUygula() {
-        if durum.kendiCubugu.contains(durum.paket) {
-            if !kucuk { kucult() }
-        } else if kucuk {
-            goster()
+    /// In apps on the "own Touch Bar" list GlassBar steps aside; it comes back when another app is in front.
+    func applyOwnBarApps() {
+        if state.ownBarApps.contains(state.frontBundleID) {
+            if !isMinimized { minimize() }
+        } else if isMinimized {
+            show()
         }
     }
 
-    // MARK: menü çubuğu
-    /// Uygulama simgesinin tek renkli hâli: çubuk, iki tuş ve dalga (şablon; menü çubuğunda beyaz/siyah olur).
-    static func menuSimgesi() -> NSImage {
-        let simge = NSImage(size: NSSize(width: 26, height: 16), flipped: false) { _ in
-            let serit = NSBezierPath(roundedRect: NSRect(x: 1, y: 3, width: 24, height: 10), xRadius: 5, yRadius: 5)
-            serit.lineWidth = 1.4
-            serit.stroke()
+    // MARK: menu bar
+    /// Monochrome version of the app icon: the bar, two buttons and a wave (template; white/black in the menu bar).
+    static func menuBarIcon() -> NSImage {
+        let icon = NSImage(size: NSSize(width: 26, height: 16), flipped: false) { _ in
+            let outline = NSBezierPath(roundedRect: NSRect(x: 1, y: 3, width: 24, height: 10), xRadius: 5, yRadius: 5)
+            outline.lineWidth = 1.4
+            outline.stroke()
             for x in [4.0, 8.0] {
                 NSBezierPath(roundedRect: NSRect(x: x, y: 5.5, width: 3, height: 5), xRadius: 1, yRadius: 1).fill()
             }
-            let dalga = NSBezierPath()
+            let wave = NSBezierPath()
             for i in 0...24 {
                 let u = Double(i) / 24
-                let nokta = NSPoint(x: 12.5 + u * 10, y: 8 + 2.6 * pow(sin(.pi * u), 2) * sin(u * .pi * 3.2))
-                i == 0 ? dalga.move(to: nokta) : dalga.line(to: nokta)
+                let point = NSPoint(x: 12.5 + u * 10, y: 8 + 2.6 * pow(sin(.pi * u), 2) * sin(u * .pi * 3.2))
+                i == 0 ? wave.move(to: point) : wave.line(to: point)
             }
-            dalga.lineWidth = 1.2
-            dalga.lineCapStyle = .round
-            dalga.stroke()
+            wave.lineWidth = 1.2
+            wave.lineCapStyle = .round
+            wave.stroke()
             return true
         }
-        simge.isTemplate = true
-        simge.accessibilityDescription = "GlassBar"
-        return simge
+        icon.isTemplate = true
+        icon.accessibilityDescription = "GlassBar"
+        return icon
     }
 
-    func menuKur() {
-        durumOgesi = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        durumOgesi.button?.image = Temsilci.menuSimgesi()
+    func setUpStatusMenu() {
+        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        statusItem.button?.image = AppDelegate.menuBarIcon()
         let m = NSMenu()
         m.delegate = self
-        durumOgesi.menu = m
+        statusItem.menu = m
     }
 
     func menuNeedsUpdate(_ m: NSMenu) {
         m.removeAllItems()
-        if let yeni = Guncelleme.ortak.yeniSurum {
-            m.addItem(withTitle: String(format: L("Güncelleme var: GlassBar %@…"), yeni), action: #selector(guncellemeyiAc), keyEquivalent: "").target = self
+        if let version = UpdateChecker.shared.latestVersion {
+            m.addItem(withTitle: String(format: L("Update available: GlassBar %@…"), version), action: #selector(openUpdatePage), keyEquivalent: "").target = self
             m.addItem(.separator())
         }
-        m.addItem(withTitle: L("GlassBar'ı göster"), action: #selector(goster), keyEquivalent: "").target = self
-        m.addItem(withTitle: L("Uygulamanın kendi tuşları"), action: #selector(kucult), keyEquivalent: "").target = self
+        m.addItem(withTitle: L("Show GlassBar"), action: #selector(show), keyEquivalent: "").target = self
+        m.addItem(withTitle: L("App's Own Controls"), action: #selector(minimize), keyEquivalent: "").target = self
         m.addItem(.separator())
-        if !Sistem.erisimVar {
-            m.addItem(withTitle: L("Erişilebilirlik izni ver…"), action: #selector(izinIste), keyEquivalent: "").target = self
+        if !SystemControl.hasAccessibility {
+            m.addItem(withTitle: L("Grant Accessibility Permission…"), action: #selector(requestPermission), keyEquivalent: "").target = self
         }
-        if let ad = durum.uygulama?.localizedName {
-            m.addItem(oge(String(format: L("“%@” için kendi Touch Bar'ını göster"), ad), #selector(kendiDegistir), durum.kendiCubugu.contains(durum.paket)))
-            m.addItem(oge(String(format: L("“%@” için hep F1, F2 tuşlarını göster"), ad), #selector(hepFDegistir), durum.hepF.contains(durum.paket)))
+        if let name = state.frontApp?.localizedName {
+            m.addItem(menuItem(String(format: L("Show Own Touch Bar for “%@”"), name), #selector(toggleOwnBar), state.ownBarApps.contains(state.frontBundleID)))
+            m.addItem(menuItem(String(format: L("Always Show F1, F2 Keys for “%@”"), name), #selector(toggleAlwaysFKeys), state.alwaysFKeys.contains(state.frontBundleID)))
             m.addItem(.separator())
         }
-        m.addItem(altMenu(L("Touch Bar gösterir"), Gosterim.allCases.map { g in
-            oge(g.ad, #selector(gosterimSec(_:)), durum.gosterim == g, g.rawValue)
+        m.addItem(submenuItem(L("Touch Bar Shows"), BarMode.allCases.map { g in
+            menuItem(g.name, #selector(selectBarMode(_:)), state.barMode == g, g.rawValue)
         }))
-        m.addItem(altMenu(L("fn tuşu basılı tutulunca"), Gosterim.allCases.map { g in
-            oge(g.ad, #selector(fnSec(_:)), durum.fnBasili == g, g.rawValue)
+        m.addItem(submenuItem(L("Press and Hold fn Key to Show"), BarMode.allCases.map { g in
+            menuItem(g.name, #selector(selectFnBarMode(_:)), state.fnBarMode == g, g.rawValue)
         }))
-        m.addItem(altMenu(L("Tema"), Tema.allCases.map { t in
-            oge(t.ad, #selector(temaSec(_:)), durum.tema == t, t.rawValue)
+        m.addItem(submenuItem(L("Theme"), Theme.allCases.map { t in
+            menuItem(t.name, #selector(temaSec(_:)), state.theme == t, t.rawValue)
         }))
-        m.addItem(altMenu(L("Renk sıcaklığı"), RenkSicakligi.allCases.map { r in
-            oge(r.ad, #selector(renkSicakligiSec(_:)), durum.renkSicakligi == r, r.rawValue)
+        m.addItem(submenuItem(L("Color Temperature"), ColorTemperature.allCases.map { r in
+            menuItem(r.name, #selector(selectColorTemperature(_:)), state.colorTemperature == r, r.rawValue)
         }))
-        m.addItem(altMenu(L("Arka plan"), ArkaPlan.allCases.map { a in
-            oge(a.ad, #selector(arkaPlanSec(_:)), durum.arkaPlan == a, a.rawValue)
+        m.addItem(submenuItem(L("Background"), Backdrop.allCases.map { a in
+            menuItem(a.name, #selector(selectBackdrop(_:)), state.backdrop == a, a.rawValue)
         }))
-        m.addItem(oge(L("Control Strip'i göster"), #selector(seritDegistir), durum.seritGoster))
-        m.addItem(withTitle: L("Control Strip'i Özelleştir…"), action: #selector(seritiDuzenle), keyEquivalent: "").target = self
-        m.addItem(altMenu(String(format: L("Control Strip tuşları (en çok %d)"), SeritTusu.enFazla), SeritTusu.allCases.map { t in
-            oge(t.ad, #selector(seritTusuDegistir(_:)), durum.seritTuslari.contains(t), t.rawValue)
+        m.addItem(menuItem(L("Show Control Strip"), #selector(toggleControlStrip), state.showsControlStrip))
+        m.addItem(withTitle: L("Customize Control Strip…"), action: #selector(customizeControlStrip), keyEquivalent: "").target = self
+        m.addItem(submenuItem(String(format: L("Control Strip Buttons (up to %d)"), StripButton.maxCount), StripButton.allCases.map { t in
+            menuItem(t.name, #selector(toggleStripButton(_:)), state.stripButtons.contains(t), t.rawValue)
         }))
-        m.addItem(oge(L("Yazma önerilerini göster"), #selector(oneriDegistir), durum.oneriAcik))
-        m.addItem(altMenu(L("Spotify oynatıcısı"), [
-            oge(L("Kapak ve ses dalgası"), #selector(spotifyDegistir), durum.spotifyOynatici),
-            oge(L("Kapağı göster"), #selector(kapakDegistir), durum.kapakGoster),
+        m.addItem(menuItem(L("Show Typing Suggestions"), #selector(toggleSuggestions), state.showsSuggestions))
+        m.addItem(submenuItem(L("Spotify player"), [
+            menuItem(L("Album cover and sound bar"), #selector(toggleSpotifyPlayer), state.showsSpotifyPlayer),
+            menuItem(L("Show album cover"), #selector(toggleArtwork), state.showsArtwork),
             .separator(),
-            secenekMenusu(L("Nerede gösterilsin"), "yer", durum.spotifyYeri),
-            secenekMenusu(L("Ses dalgası"), "stil", durum.dalgaStili),
-            secenekMenusu(L("Renk"), "renk", durum.dalgaRengi),
-            secenekMenusu(L("Genişlik"), "genislik", durum.dalgaGenisligi),
-            secenekMenusu(L("Hassasiyet"), "hassasiyet", durum.hassasiyet),
-            secenekMenusu(L("Yumuşaklık"), "yumusaklik", durum.yumusaklik),
+            optionMenu(L("Where to show"), "placement", state.spotifyPlacement),
+            optionMenu(L("Sound bar"), "style", state.waveStyle),
+            optionMenu(L("Color"), "color", state.waveColor),
+            optionMenu(L("Width"), "width", state.waveWidth),
+            optionMenu(L("Sensitivity"), "sensitivity", state.sensitivity),
+            optionMenu(L("Smoothness"), "smoothness", state.smoothness),
         ]))
-        m.addItem(oge(L("Çubukta esc tuşu"), #selector(escDegistir), durum.escGoster))
-        let giris = m.addItem(withTitle: L("Mac açılınca başlat"), action: #selector(girisDegistir), keyEquivalent: "")
-        giris.target = self
-        giris.state = SMAppService.mainApp.status == .enabled ? .on : .off
+        m.addItem(menuItem(L("esc Key on the Bar"), #selector(toggleEsc), state.showsEsc))
+        let loginItem = m.addItem(withTitle: L("Open at Login"), action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
+        loginItem.target = self
+        loginItem.state = SMAppService.mainApp.status == .enabled ? .on : .off
         m.addItem(.separator())
-        let surum = m.addItem(withTitle: String(format: L("GlassBar %@"), Guncelleme.surum), action: nil, keyEquivalent: "")
-        surum.isEnabled = false
-        m.addItem(withTitle: L("Güncellemeleri denetle…"), action: #selector(guncellemeDenetle), keyEquivalent: "").target = self
-        m.addItem(withTitle: L("Çık"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        let versionItem = m.addItem(withTitle: String(format: L("GlassBar %@"), UpdateChecker.currentVersion), action: nil, keyEquivalent: "")
+        versionItem.isEnabled = false
+        m.addItem(withTitle: L("Check for Updates…"), action: #selector(checkForUpdates), keyEquivalent: "").target = self
+        m.addItem(withTitle: L("Quit"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
     }
 
-    private func oge(_ ad: String, _ eylem: Selector, _ secili: Bool, _ deger: String? = nil) -> NSMenuItem {
-        let o = NSMenuItem(title: ad, action: eylem, keyEquivalent: "")
+    private func menuItem(_ name: String, _ action: Selector, _ isSelected: Bool, _ value: String? = nil) -> NSMenuItem {
+        let o = NSMenuItem(title: name, action: action, keyEquivalent: "")
         o.target = self
-        o.state = secili ? .on : .off
-        o.representedObject = deger
+        o.state = isSelected ? .on : .off
+        o.representedObject = value
         return o
     }
 
-    private func altMenu(_ ad: String, _ ogeler: [NSMenuItem]) -> NSMenuItem {
-        let o = NSMenuItem(title: ad, action: nil, keyEquivalent: "")
-        let alt = NSMenu()
-        ogeler.forEach(alt.addItem)
-        o.submenu = alt
+    private func submenuItem(_ name: String, _ items: [NSMenuItem]) -> NSMenuItem {
+        let o = NSMenuItem(title: name, action: nil, keyEquivalent: "")
+        let menu = NSMenu()
+        items.forEach(menu.addItem)
+        o.submenu = menu
         return o
     }
 
-    @objc func escDegistir() { durum.escGoster.toggle() }
-    @objc func seritDegistir() { durum.seritGoster.toggle() }
-    @objc func renkSicakligiSec(_ o: NSMenuItem) {
-        if let r = RenkSicakligi(rawValue: o.representedObject as? String ?? "") { durum.renkSicakligi = r }
+    @objc func toggleEsc() { state.showsEsc.toggle() }
+    @objc func toggleControlStrip() { state.showsControlStrip.toggle() }
+    @objc func selectColorTemperature(_ o: NSMenuItem) {
+        if let r = ColorTemperature(rawValue: o.representedObject as? String ?? "") { state.colorTemperature = r }
     }
 
-    @objc func arkaPlanSec(_ o: NSMenuItem) {
-        guard let a = ArkaPlan(rawValue: o.representedObject as? String ?? "") else { return }
-        if a == .gorsel { gorselSec() } else { durum.arkaPlan = a }
+    @objc func selectBackdrop(_ o: NSMenuItem) {
+        guard let a = Backdrop(rawValue: o.representedObject as? String ?? "") else { return }
+        if a == .customImage { chooseImage() } else { state.backdrop = a }
     }
 
-    /// Arka plan için görsel seçtirir (uygulama arka planda çalıştığı için önce öne alınır).
-    func gorselSec() {
+    /// Lets the user pick a background image (the app runs in the background, so it's activated first).
+    func chooseImage() {
         let p = NSOpenPanel()
         p.allowedContentTypes = [.image]
         p.allowsMultipleSelection = false
-        p.message = L("Touch Bar'ın arkasında görünecek görseli seç")
+        p.message = L("Choose an image to show behind the Touch Bar")
         NSApp.activate(ignoringOtherApps: true)
         guard p.runModal() == .OK, let url = p.url else { return }
-        durum.arkaGorselYolu = url.path
-        durum.arkaPlan = .gorsel
+        state.backdropImagePath = url.path
+        state.backdrop = .customImage
     }
-    @objc func oneriDegistir() { durum.oneriAcik.toggle() }
-    @objc func guncellemeDenetle() { Guncelleme.ortak.denetle(elle: true) }
-    @objc func guncellemeyiAc() { Guncelleme.ortak.sayfayiAc() }
-    @objc func spotifyDegistir() { durum.spotifyOynatici.toggle() }
-    @objc func kapakDegistir() { durum.kapakGoster.toggle() }
+    @objc func toggleSuggestions() { state.showsSuggestions.toggle() }
+    @objc func checkForUpdates() { UpdateChecker.shared.check(userInitiated: true) }
+    @objc func openUpdatePage() { UpdateChecker.shared.openReleasePage() }
+    @objc func toggleSpotifyPlayer() { state.showsSpotifyPlayer.toggle() }
+    @objc func toggleArtwork() { state.showsArtwork.toggle() }
 
-    private func secenekMenusu<T: Secenek>(_ baslik: String, _ anahtar: String, _ secili: T) -> NSMenuItem {
-        altMenu(baslik, T.allCases.map { oge($0.ad, #selector(spotifyAyari(_:)), $0 == secili, anahtar + ":" + $0.rawValue) })
+    private func optionMenu<T: MenuOption>(_ title: String, _ key: String, _ isSelected: T) -> NSMenuItem {
+        submenuItem(title, T.allCases.map { menuItem($0.name, #selector(selectSpotifyOption(_:)), $0 == isSelected, key + ":" + $0.rawValue) })
     }
 
-    @objc func spotifyAyari(_ o: NSMenuItem) {
+    @objc func selectSpotifyOption(_ o: NSMenuItem) {
         let p = (o.representedObject as? String ?? "").split(separator: ":").map(String.init)
         guard p.count == 2 else { return }
         switch p[0] {
-        case "yer": durum.spotifyYeri = SpotifyYeri(rawValue: p[1]) ?? durum.spotifyYeri
-        case "stil": durum.dalgaStili = DalgaStili(rawValue: p[1]) ?? durum.dalgaStili
-        case "renk": durum.dalgaRengi = DalgaRengi(rawValue: p[1]) ?? durum.dalgaRengi
-        case "genislik": durum.dalgaGenisligi = DalgaGenisligi(rawValue: p[1]) ?? durum.dalgaGenisligi
-        case "hassasiyet": durum.hassasiyet = Hassasiyet(rawValue: p[1]) ?? durum.hassasiyet
-        case "yumusaklik": durum.yumusaklik = Yumusaklik(rawValue: p[1]) ?? durum.yumusaklik
+        case "placement": state.spotifyPlacement = SpotifyPlacement(rawValue: p[1]) ?? state.spotifyPlacement
+        case "style": state.waveStyle = WaveStyle(rawValue: p[1]) ?? state.waveStyle
+        case "color": state.waveColor = WaveColor(rawValue: p[1]) ?? state.waveColor
+        case "width": state.waveWidth = WaveWidth(rawValue: p[1]) ?? state.waveWidth
+        case "sensitivity": state.sensitivity = Sensitivity(rawValue: p[1]) ?? state.sensitivity
+        case "smoothness": state.smoothness = Smoothness(rawValue: p[1]) ?? state.smoothness
         default: break
         }
     }
 
-    @objc func gosterimSec(_ o: NSMenuItem) {
-        if let g = Gosterim(rawValue: o.representedObject as? String ?? "") { durum.gosterim = g; durum.kip = .uygulama }
+    @objc func selectBarMode(_ o: NSMenuItem) {
+        if let g = BarMode(rawValue: o.representedObject as? String ?? "") { state.barMode = g; state.panel = .app }
     }
 
     @objc func temaSec(_ o: NSMenuItem) {
-        if let t = Tema(rawValue: o.representedObject as? String ?? "") { durum.tema = t }
+        if let t = Theme(rawValue: o.representedObject as? String ?? "") { state.theme = t }
     }
-    @objc func fnSec(_ o: NSMenuItem) {
-        if let g = Gosterim(rawValue: o.representedObject as? String ?? "") { durum.fnBasili = g }
-    }
-
-    @objc func seritiDuzenle() {
-        durum.kip = .uygulama
-        durum.seritDuzenle = true
+    @objc func selectFnBarMode(_ o: NSMenuItem) {
+        if let g = BarMode(rawValue: o.representedObject as? String ?? "") { state.fnBarMode = g }
     }
 
-    /// Seçilen tuş sona eklenir; sınır aşılırsa en eskisi çıkar.
-    @objc func seritTusuDegistir(_ o: NSMenuItem) {
-        guard let t = SeritTusu(rawValue: o.representedObject as? String ?? "") else { return }
-        var l = durum.seritTuslari
-        if let i = l.firstIndex(of: t) { l.remove(at: i) } else { l.append(t); if l.count > SeritTusu.enFazla { l.removeFirst() } }
-        durum.seritTuslari = l
+    @objc func customizeControlStrip() {
+        state.panel = .app
+        state.isEditingControlStrip = true
     }
 
-    @objc func kendiDegistir() {
-        let p = durum.paket
-        if let i = durum.kendiCubugu.firstIndex(of: p) { durum.kendiCubugu.remove(at: i) } else { durum.kendiCubugu.append(p) }
-        listeyiUygula()
+    /// The chosen button is appended; past the limit the oldest one is removed.
+    @objc func toggleStripButton(_ o: NSMenuItem) {
+        guard let t = StripButton(rawValue: o.representedObject as? String ?? "") else { return }
+        var l = state.stripButtons
+        if let i = l.firstIndex(of: t) { l.remove(at: i) } else { l.append(t); if l.count > StripButton.maxCount { l.removeFirst() } }
+        state.stripButtons = l
     }
 
-    @objc func hepFDegistir() {
-        let p = durum.paket
-        if let i = durum.hepF.firstIndex(of: p) { durum.hepF.remove(at: i) } else { durum.hepF.append(p) }
+    @objc func toggleOwnBar() {
+        let p = state.frontBundleID
+        if let i = state.ownBarApps.firstIndex(of: p) { state.ownBarApps.remove(at: i) } else { state.ownBarApps.append(p) }
+        applyOwnBarApps()
     }
 
-    @objc func izinIste() {
-        Sistem.erisimIste()
+    @objc func toggleAlwaysFKeys() {
+        let p = state.frontBundleID
+        if let i = state.alwaysFKeys.firstIndex(of: p) { state.alwaysFKeys.remove(at: i) } else { state.alwaysFKeys.append(p) }
+    }
+
+    @objc func requestPermission() {
+        SystemControl.requestAccessibility()
         NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
     }
 
-    @objc func girisDegistir() {
+    @objc func toggleLaunchAtLogin() {
         let s = SMAppService.mainApp
         if s.status == .enabled { try? s.unregister() } else { try? s.register() }
     }
 }
 
-/// Spotiw (github.com/Moryel/spotiw): Spotify oynatıcısını Touch Bar'da gösteren ayrı uygulama.
-/// Çubuğu kapanınca dağıtık "didHide" bildirimi gönderir; GlassBar o zaman geri gelir.
+/// Spotiw (github.com/Moryel/spotiw): a separate app that shows a Spotify player on the Touch Bar.
+/// When its bar closes it posts a distributed "didHide" notification; GlassBar then comes back.
 enum Spotiw {
-    static let kimlik = "com.yuksel.spotiw"
+    static let identifier = "com.yuksel.spotiw"
 }
 
-// Uygulamanın eski adı TouchBar2'ydi: ilk açılışta ayarları eski kimlikten taşı.
-let eskiAyarlar = "com.yukselozge.TouchBar2"
+// The app used to be called TouchBar2: on first launch, copy settings over from the old identifier.
+let legacyDomain = "com.yukselozge.TouchBar2"
 if !UserDefaults.standard.bool(forKey: "ayarlarTasindi") {
-    for (anahtar, deger) in UserDefaults.standard.persistentDomain(forName: eskiAyarlar) ?? [:]
-    where UserDefaults.standard.object(forKey: anahtar) == nil {
-        UserDefaults.standard.set(deger, forKey: anahtar)
+    for (key, value) in UserDefaults.standard.persistentDomain(forName: legacyDomain) ?? [:]
+    where UserDefaults.standard.object(forKey: key) == nil {
+        UserDefaults.standard.set(value, forKey: key)
     }
     UserDefaults.standard.set(true, forKey: "ayarlarTasindi")
 }
 
-let uygulama = NSApplication.shared
-let temsilci = Temsilci()
-uygulama.delegate = temsilci
-uygulama.setActivationPolicy(.accessory)
-uygulama.run()
+let app = NSApplication.shared
+let appDelegate = AppDelegate()
+app.delegate = appDelegate
+app.setActivationPolicy(.accessory)
+app.run()
