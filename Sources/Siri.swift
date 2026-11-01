@@ -76,6 +76,8 @@ struct SiriPill: View {
         let l = theme.layer(nil)
         let c = theme.waveColor
         return ZStack {
+            // outline-only skins would show the receding buttons through the pill
+            Rectangle().fill((theme.skin?.bar?.fill).flatMap { Color(hexString: $0) } ?? .black)
             SkinBackground()
             HStack(spacing: 4) {
                 if l.border == "ascii" { Text(l.opening) }
