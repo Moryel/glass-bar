@@ -1,0 +1,48 @@
+name: Bug report
+description: Something doesn't work or looks wrong
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you expect, and what happened instead? A photo or screenshot of the Touch Bar helps a lot.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How to make it happen
+      placeholder: |
+        1. Open Safari
+        2. Play a video in full screen
+        3. ...
+  - type: input
+    id: mac
+    attributes:
+      label: Mac model
+      description: Apple menu → About This Mac
+      placeholder: MacBook Pro 13-inch, M2, 2022
+    validations:
+      required: true
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+      placeholder: macOS 26.1
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: GlassBar version
+      description: Shown at the bottom of the GlassBar menu (✨ in the menu bar)
+      placeholder: "1.0.2"
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Log (optional)
+      description: The last lines of ~/Library/Logs/GlassBar.log
+      render: text
