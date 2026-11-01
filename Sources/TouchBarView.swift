@@ -164,7 +164,10 @@ struct AmbientLight: View {
 struct SiriButton: View {
     @ObservedObject var d: AppState
     var body: some View {
-        GlassButton(width: Metrics.iconWidth, action: d.toggleSiri) { SiriOrb(isActive: d.isSiriActive) }
+        GlassButton(width: Metrics.iconWidth, action: d.toggleSiri) {
+            // skins show the icon map's "siri" (the glass orb belongs to the glass themes)
+            if !d.theme.isSkin { SiriOrb(isActive: d.isSiriActive) } else if d.theme.icon("siri") != nil { Icon("siri") } else { BarText("Siri") }
+        }
     }
 }
 
@@ -995,7 +998,7 @@ struct CalculatorControls: View {
     var body: some View {
         button("Negate") { Icon("plus.forwardslash.minus") }
         button("Percent") { Icon("percent") }
-        button("Decimal") { Text(",").font(.bar(16, .medium)) }
+        button("Decimal") { BarText(",", size: 16) }
         Color.clear.frame(maxWidth: .infinity, maxHeight: 1)
         button("Divide", .operatorKey) { Icon("divide") }
         button("Multiply", .operatorKey) { Icon("multiply") }

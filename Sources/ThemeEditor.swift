@@ -171,13 +171,29 @@ struct ThemeEditorView: View {
     }
 
     private func swatch(_ t: Theme) -> some View {
+        Group { if t.isSkin { skinSwatch(t) } else { glassSwatch(t) } }
+            .frame(width: 30, height: 22)
+    }
+
+    /// A skin's own colors: the bar, a button (fill or outline) and the operator color as the dot.
+    private func skinSwatch(_ t: Theme) -> some View {
+        let l = t.layer(nil), shape = RoundedRectangle(cornerRadius: min(l.radius, 7))
+        let dot = t.layer(.operatorKey)
+        return ZStack {
+            RoundedRectangle(cornerRadius: 5).fill(t.skin?.bar?.fill.flatMap { Color(hexString: $0) } ?? .black)
+            if let f = l.fill { shape.fill(f).frame(width: 22, height: 14) }
+            shape.strokeBorder(l.border == "none" ? .clear : l.borderColor, lineWidth: 1).frame(width: 22, height: 14)
+            Circle().fill(dot.fill ?? dot.text).frame(width: 5, height: 5).offset(x: 9, y: -6)
+        }
+    }
+
+    private func glassSwatch(_ t: Theme) -> some View {
         ZStack {
             RoundedRectangle(cornerRadius: 5).fill(Color.black)
             t.shape(14).fill(t.glassTint.opacity(min(1, 0.35 * t.glass))).frame(width: 22, height: 14)
             t.shape(14).strokeBorder(t.glassTint.opacity(min(1, 0.6 * t.edge)), lineWidth: 1).frame(width: 22, height: 14)
             if let a = t.accentColor { Circle().fill(a).frame(width: 5, height: 5).offset(x: 9, y: -6) }
         }
-        .frame(width: 30, height: 22)
     }
 
     // MARK: preview

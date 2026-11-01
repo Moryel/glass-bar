@@ -27,7 +27,7 @@
     "press": "pop",
     "sounds": { "tap": "blip" },
     "icons": {
-      "chevron.left": "<", "chevron.right": ">",
+      "chevron.left": "<", "siri": "SIRI", "chevron.right": ">",
       "sun.max.fill": "BRT", "speaker.wave.2.fill": "VOL", "speaker.slash.fill": "MUTE",
       "play.fill": ">", "pause.fill": "II", "playpause.fill": ">II",
       "plus": "+", "minus": "-", "multiply": "X", "divide": "/", "equal": "=", "percent": "%",

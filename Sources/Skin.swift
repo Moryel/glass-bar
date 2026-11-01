@@ -114,6 +114,11 @@ struct ResolvedLayer {
 
 extension Theme {
     var isSkin: Bool { skin != nil }
+    /// Text drawn straight on the bar (track names, times): in a skin the button fill (the button text is meant for the fill),
+    /// or the button text when buttons have no fill.
+    var barText: Color { isSkin ? (layer(nil).fill ?? layer(nil).text) : text }
+    /// Waves and sound bars: the slider color, else the bar text.
+    var waveColor: Color { sliderFill ?? barText }
 
     /// The look of a button for a role, pressed or not.
     func layer(_ role: Role?, pressed: Bool = false) -> ResolvedLayer {

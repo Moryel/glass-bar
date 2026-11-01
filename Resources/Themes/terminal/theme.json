@@ -28,7 +28,7 @@
     "press": "none",
     "sounds": { "tap": "click" },
     "icons": {
-      "chevron.left": "<", "chevron.right": ">",
+      "chevron.left": "<", "siri": "siri", "chevron.right": ">",
       "sun.max.fill": "*", "sun.min.fill": ".", "sun.max": "*", "sun.min": ".",
       "speaker.fill": "vol", "speaker.wave.1.fill": "vol-", "speaker.wave.2.fill": "vol", "speaker.wave.3.fill": "vol+",
       "speaker.slash.fill": "mute",

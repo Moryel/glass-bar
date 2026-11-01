@@ -57,6 +57,7 @@ struct SiriPill: View {
     static let isDemo = UserDefaults.standard.string(forKey: "testPanel") == "siriDemo"
     @ObservedObject private var microphone = Microphone.shared
     @StateObject private var smoother = Smoother()
+    @Environment(\.theme) private var theme
 
     var body: some View {
         TimelineView(.animation) { tl in
@@ -66,6 +67,28 @@ struct SiriPill: View {
                 : microphone.isRunning ? microphone.level : 0.2 + 0.12 * sin(t * 1.6)
             // the microphone value arrives in steps; it's smoothed every frame so the lines don't jitter
             let level = smoother.advance(target, t)
+            if theme.isSkin { skinned(t, level) } else { glass(t, level) }
+        }
+    }
+
+    /// In a skin: the theme's button with waves in the theme's colors, no glass.
+    private func skinned(_ t: Double, _ level: Double) -> some View {
+        let l = theme.layer(nil)
+        let c = theme.waveColor
+        return ZStack {
+            SkinBackground()
+            HStack(spacing: 4) {
+                if l.border == "ascii" { Text(l.opening) }
+                SiriWaves(t: t, level: level, palette: [c, c.opacity(0.6), c.opacity(0.35)], glows: false)
+                if l.border == "ascii" { Text(l.closing) }
+            }
+            .font(theme.font(13)).foregroundStyle(l.text)
+            .padding(.horizontal, 8).padding(.vertical, 2)
+        }
+        .frame(width: 300, height: Metrics.buttonHeight)
+    }
+
+    private func glass(_ t: Double, _ level: Double) -> some View {
             ZStack {
                 GlassDrop()
                 SiriWaves(t: t, level: level)
@@ -88,7 +111,6 @@ struct SiriPill: View {
             .frame(width: 300, height: Metrics.buttonHeight)
             .scaleEffect(x: 1 + 0.035 * level, y: 1 + 0.07 * level)
             .shadow(color: .black.opacity(0.6), radius: 4, y: 1)
-        }
     }
 }
 
@@ -111,20 +133,28 @@ final class Smoother: ObservableObject {
 struct SiriWaves: View {
     let t: Double
     let level: Double
+    var palette = SiriWaves.colors
+    /// soft glow under the lines (the glass look); skins draw only the lines
+    var glows = true
 
     private static let colors: [Color] = [Color(hex: 0xFF6A3D), Color(hex: 0x3D8BFF), Color(hex: 0x9B5CFF),
                                            Color(hex: 0x34D399), .white]
 
     var body: some View {
         Canvas { ctx, size in
-            let paths = SiriWaves.colors.indices.map { path(i: $0, size: size) }
+            let colors = palette
+            let paths = colors.indices.map { path(i: $0, size: size) }
+            guard glows else {
+                for (i, p) in paths.enumerated() { ctx.stroke(p, with: .color(colors[i]), lineWidth: 1.4) }
+                return
+            }
             ctx.blendMode = .plusLighter
             ctx.drawLayer { k in
                 k.addFilter(.blur(radius: 2.5))
-                for (i, p) in paths.enumerated() { k.stroke(p, with: .color(SiriWaves.colors[i].opacity(0.75)), lineWidth: 2.6) }
+                for (i, p) in paths.enumerated() { k.stroke(p, with: .color(colors[i].opacity(0.75)), lineWidth: 2.6) }
             }
             for (i, p) in paths.enumerated() {
-                ctx.stroke(p, with: .color(SiriWaves.colors[i].opacity(i == 4 ? 0.7 : 1)), lineWidth: i == 4 ? 0.8 : 1.2)
+                ctx.stroke(p, with: .color(colors[i].opacity(i == 4 ? 0.7 : 1)), lineWidth: i == 4 ? 0.8 : 1.2)
             }
         }
     }

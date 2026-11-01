@@ -165,24 +165,26 @@ struct SpotifyPlayer: View {
     @ObservedObject var d: AppState
     let c: NowPlaying
     @ObservedObject private var artwork = Artwork.shared
+    @Environment(\.theme) private var theme
 
     var body: some View {
+        let ink = theme.barText
         HStack(spacing: 7) {
             if d.showsArtwork {
             Group {
                 if let image = artwork.image {
                     Image(nsImage: image).resizable().aspectRatio(contentMode: .fill)
                 } else {
-                    Image(systemName: "music.note").font(.system(size: 12)).foregroundStyle(.white.opacity(0.6))
-                        .frame(maxWidth: .infinity, maxHeight: .infinity).background(.white.opacity(0.1))
+                    Icon("music.note").font(.bar(12)).foregroundStyle(ink.opacity(0.6))
+                        .frame(maxWidth: .infinity, maxHeight: .infinity).background(ink.opacity(0.1))
                 }
             }
             .frame(width: 26, height: 26)
-            .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: theme.isSkin ? min(5, theme.layer(nil).radius) : 5, style: .continuous))
             }
             VStack(alignment: .leading, spacing: 0) {
-                Text(c.name).font(.system(size: 11.5, weight: .semibold))
-                Text(c.artist).font(.system(size: 10)).foregroundStyle(.white.opacity(0.6))
+                Text(c.name).font(.bar(11.5, .semibold)).foregroundStyle(ink)
+                Text(c.artist).font(.bar(10)).foregroundStyle(ink.opacity(0.6))
             }
             .lineLimit(1)
             .opacity(c.isPlaying ? 1 : 0.6)
@@ -203,10 +205,10 @@ struct SpotifyPlayer: View {
             GlassSlider(value: $d.nowPlayingProgress, isThin: true, onValueChange: { d.scrubNowPlaying($0) }).frame(height: 10)
             Text("-" + TimeFormat.typeText(c.duration * (1 - Double(d.nowPlayingProgress)))).frame(width: 38, alignment: .leading)
         }
-        .font(.system(size: 10)).monospacedDigit().foregroundStyle(.white.opacity(0.6))
+        .font(.bar(10)).monospacedDigit().foregroundStyle(ink.opacity(0.6))
         .padding(.horizontal, 4)
 
-        SoundBars(isPlaying: c.isPlaying, colors: d.waveColor.color.map { [$0] } ?? artwork.colors, style: d.waveStyle)
+        SoundBars(isPlaying: c.isPlaying, colors: d.waveColor.color.map { [$0] } ?? (theme.isSkin ? [theme.waveColor] : artwork.colors), style: d.waveStyle)
             .frame(width: d.waveWidth.points, height: 20).padding(.trailing, 4)
     }
 }
