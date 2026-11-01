@@ -57,6 +57,8 @@ final class AmbientView: NSView {
             a.repeatCount = .infinity
             a.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
             a.timeOffset = Double(i) * 3
+            // the blobs drift slowly, so a few frames a second look the same and keep the Touch Bar from redrawing at 60 fps
+            a.preferredFrameRateRange = CAFrameRateRange(minimum: 4, maximum: 10, preferred: 8)
             l.add(a, forKey: "sway")
         }
         CATransaction.commit()
@@ -82,6 +84,10 @@ final class RibbonView: NSView {
     private let container = CALayer()
     private var lastSize: CGSize = .zero
     var ribbons: [Ribbon] = []
+    /// A layer animation that never stops makes the Touch Bar redraw 60 times a second, so the ribbons only turn while Siri listens.
+    var isSpinning = false {
+        didSet { if isSpinning != oldValue { updateSpin() } }
+    }
 
     override init(frame: NSRect) {
         super.init(frame: frame)
@@ -108,22 +114,29 @@ final class RibbonView: NSView {
             l.setAffineTransform(CGAffineTransform(rotationAngle: k.angle * .pi / 180))
             container.addSublayer(l)
         }
+        CATransaction.commit()
+        updateSpin()
+    }
+
+    private func updateSpin() {
+        guard isSpinning else { container.removeAnimation(forKey: "spin"); return }
         let a = CABasicAnimation(keyPath: "transform.rotation.z")
         a.fromValue = 0
         a.toValue = -2 * Double.pi
         a.duration = 8
         a.repeatCount = .infinity
         container.add(a, forKey: "spin")
-        CATransaction.commit()
     }
 }
 
 struct RibbonLayer: NSViewRepresentable {
     let ribbons: [RibbonView.Ribbon]
+    var isSpinning = false
     func makeNSView(context: Context) -> RibbonView {
         let v = RibbonView()
+        v.isSpinning = isSpinning
         v.ribbons = ribbons
         return v
     }
-    func updateNSView(_ v: RibbonView, context: Context) {}
+    func updateNSView(_ v: RibbonView, context: Context) { v.isSpinning = isSpinning }
 }
