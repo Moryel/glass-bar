@@ -1,0 +1,11 @@
+name: Feature request
+description: An idea for GlassBar
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like?
+      description: Which app or situation is it for, and what should the Touch Bar show or do?
+    validations:
+      required: true
