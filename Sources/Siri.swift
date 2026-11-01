@@ -30,7 +30,7 @@ struct SiriOrb: View {
         ZStack {
             Circle().fill(RadialGradient(colors: [Color(hex: 0x1A1F45), Color(hex: 0x05060F)],
                                          center: .center, startRadius: 0, endRadius: b * 0.55))
-            RibbonLayer(ribbons: SiriOrb.ribbons)
+            RibbonLayer(ribbons: SiriOrb.ribbons, isSpinning: isActive)
                 .blendMode(.plusLighter)
             // bright core
             Circle().fill(RadialGradient(colors: [.white.opacity(isActive ? 0.75 : 0.5), .white.opacity(0)],
