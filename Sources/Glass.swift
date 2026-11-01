@@ -275,7 +275,9 @@ extension LiquidPress {
     @ViewBuilder func bracketed(_ c: Content) -> some View {
         let l = theme.layer(role, pressed: b.isPressed)
         if theme.isSkin && l.border == "ascii" {
-            HStack(spacing: 2) { Text(l.opening); c; Text(l.closing) }.padding(.horizontal, 3)
+            // the brackets never give up width: in a tight group the Touch Bar otherwise cuts "]" down to a sliver
+            HStack(spacing: 2) { Text(l.opening).fixedSize().layoutPriority(1); c; Text(l.closing).fixedSize().layoutPriority(1) }
+                .padding(.horizontal, 3)
         } else {
             c
         }
@@ -384,7 +386,9 @@ struct ButtonGroup: View {
                     } else if let s = t.symbol { Icon(s) } else { Text(L(t.text ?? "")).lineLimit(1) }
                 }
                 .frame(maxWidth: buttonWidth == nil ? .infinity : nil)
-                .frame(width: buttonWidth)
+                // like GlassButton: in a skin the width is a minimum (text labels, ASCII brackets)
+                .frame(width: theme.isSkin ? nil : buttonWidth)
+                .frame(minWidth: theme.isSkin ? buttonWidth : nil)
                 .modifier(LiquidPress(kind: theme.splitsGroups ? .capsule : .bubble, role: t.highlight, isLeadingEnd: i == 0, isTrailingEnd: i == buttons.count - 1, action: t.action))
             }
         }
