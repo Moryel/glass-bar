@@ -757,6 +757,8 @@ struct AppArea: View {
             }
             if d.showsSpotifyHere, let c = d.nowPlaying {
                 PlayerControls(d: d, c: c)
+            } else if let l = LayoutStore.shared.layout(for: d.frontBundleID) {
+                LayoutBar(d: d, layout: l)
             } else {
             switch d.frontBundleID {
             case "com.apple.Safari": SafariControls(d: d)

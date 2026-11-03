@@ -143,6 +143,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
         case "stripEditor": state.isEditingControlStrip = true
         case "hub": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { Hub.open(self.state, .installed) }
         case "store": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { Hub.open(self.state, .featured) }
+        case "layouts": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { Hub.open(self.state, .featured, .layouts) }
         case "tabs": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { self.state.showTabs() }
         default: break
         }
@@ -249,7 +250,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
                                                         .separator(),
                                                         menuItem(L("Get More Themes…"), #selector(openStore), false),
                                                         menuItem(L("Open Themes Folder"), #selector(openThemesFolder), false),
-                                                        menuItem(L("Reload Themes"), #selector(reloadThemes), false)]))
+                                                        menuItem(L("Open Layouts Folder"), #selector(openLayoutsFolder), false),
+                                                        menuItem(L("Reload Themes and Layouts"), #selector(reloadThemes), false)]))
         m.addItem(submenuItem(L("Color Temperature"), ColorTemperature.allCases.map { r in
             menuItem(r.name, #selector(selectColorTemperature(_:)), state.colorTemperature == r, r.rawValue)
         }))
@@ -361,10 +363,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
         NSWorkspace.shared.open(ThemeStore.shared.folder)
     }
 
-    /// Picks up edits to theme.json files; the theme on the bar is applied again from disk.
+    @objc func openLayoutsFolder() {
+        try? FileManager.default.createDirectory(at: LayoutStore.shared.folder, withIntermediateDirectories: true)
+        NSWorkspace.shared.open(LayoutStore.shared.folder)
+    }
+
+    /// Picks up edits to theme.json and layout.json files; the theme on the bar is applied again from disk.
     @objc func reloadThemes() {
         ThemeStore.shared.reload()
+        LayoutStore.shared.reload()
         state.theme = ThemeStore.shared.theme(id: state.theme.id) ?? .classic
+        state.objectWillChange.send()
     }
     @objc func toggleThemeSounds() { Defaults.set("themeSounds", !ThemeSound.isEnabled) }
 

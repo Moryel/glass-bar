@@ -1,25 +1,27 @@
 import AppKit
 import SwiftUI
 
-/// The GlassBar Hub window: the theme store and your installed themes. Built when opened and let go when closed,
-/// so nothing of it stays in memory while it isn't on screen.
+/// The GlassBar Hub window: the store for themes and layouts, and what you have installed. Built when opened and
+/// let go when closed, so nothing of it stays in memory while it isn't on screen.
 enum Hub {
     enum Page: Hashable {
         case featured, new, popular, updated, name, category(String), installed, updates
     }
+    enum Kind: String { case themes, layouts }
 
     private static var window: NSWindow?
     private static var delegate: HubWindowDelegate?
     private static var model: HubModel?
 
-    static func open(_ d: AppState, _ page: Page = .featured) {
+    static func open(_ d: AppState, _ page: Page = .featured, _ kind: Kind = .themes) {
         NSApp.activate(ignoringOtherApps: true)
         if let window, let model {
+            model.kind = kind
             model.page = page
             window.makeKeyAndOrderFront(nil)
             return
         }
-        let m = HubModel(d, page)
+        let m = HubModel(d, page, kind)
         let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1100, height: 720),
                          styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView], backing: .buffered, defer: false)
         w.title = "GlassBar Hub"
@@ -42,7 +44,7 @@ private final class HubWindowDelegate: NSObject, NSWindowDelegate {
     func windowWillClose(_ n: Notification) { onClose() }
 }
 
-/// One theme in the store's index.json.
+/// One theme or layout in the store's index.json.
 struct StoreItem: Codable, Identifiable, Equatable {
     var id: String
     var name: String
@@ -54,7 +56,7 @@ struct StoreItem: Codable, Identifiable, Equatable {
     var added = ""
     var updated = ""
     var featured = false
-    /// files in the theme's folder, theme.json and preview.png included
+    /// files in the item's folder, theme.json or layout.json and preview.png included
     var files: [String] = []
 
     enum CodingKeys: String, CodingKey { case id, name, author, version, description, category, added, updated, featured, files }
@@ -71,24 +73,26 @@ struct StoreItem: Codable, Identifiable, Equatable {
         files = (try? c.decode([String].self, forKey: .files)) ?? []
     }
 
-    /// Ids and file names come from the internet: nothing that could leave the theme's folder.
-    var isSafe: Bool {
+    /// Ids and file names come from the internet: nothing that could leave the item's folder.
+    func isSafe(_ main: String) -> Bool {
         let ok = { (s: String) in !s.isEmpty && !s.hasPrefix(".") && !s.contains("/") && !s.contains("\\") && !s.contains("..") }
-        return ok(id) && id.allSatisfy { $0.isLowercase || $0.isNumber || $0 == "-" } && files.allSatisfy(ok) && files.contains("theme.json")
+        return ok(id) && id.allSatisfy { $0.isLowercase || $0.isNumber || $0 == "-" } && files.allSatisfy(ok) && files.contains(main)
     }
 
-    /// name of the zip the GitHub workflow uploads to the "themes" release
-    var assetName: String { "\(id)-\(version).glasstheme.zip" }
+    /// name of the zip the GitHub workflow uploads to the "themes" or "layouts" release
+    var assetName: String { "\(id)-\(version).zip" }
 }
 
 final class HubModel: ObservableObject {
     let d: AppState
     @Published var page: Hub.Page
+    @Published var kind: Hub.Kind
     @Published var search = ""
     @Published var themes: [Theme] = []
-    @Published var storeItems: [StoreItem] = []
+    @Published var layouts: [BarLayout] = []
+    @Published var catalog: [Hub.Kind: [StoreItem]] = [:]
     @Published var storeState = StoreState.idle
-    /// installs per theme id, from the download counts of the "themes" release; empty when GitHub can't be asked
+    /// installs per "kind/id", from the download counts of the release zips; empty when GitHub can't be asked
     @Published var installs: [String: Int] = [:]
     @Published var previews: [String: NSImage] = [:]
     @Published var busy: Set<String> = []
@@ -103,28 +107,39 @@ final class HubModel: ObservableObject {
         var id: String { title }
     }
 
-    /// release zips by asset name
+    /// release zips by "kind/asset name"
     private var assets: [String: URL] = [:]
 
-    /// the community themes folder of the repo; `defaults write com.yukselozge.GlassBar storeURL file:///…/themes/` to test a local copy
-    static var storeBase: URL {
+    /// the repo's themes folder; `defaults write com.yukselozge.GlassBar storeURL file:///…/themes/` to test a local copy.
+    /// Layouts live next to it in layouts/.
+    static var themesBase: URL {
         URL(string: Defaults.string("storeURL")).flatMap { $0.scheme == nil ? nil : $0 }
             ?? URL(string: "https://raw.githubusercontent.com/\(UpdateChecker.repository)/main/themes/")!
     }
-    static var isLocalStore: Bool { storeBase.isFileURL }
+    static func base(_ k: Hub.Kind) -> URL {
+        k == .themes ? themesBase : themesBase.deletingLastPathComponent().appendingPathComponent("layouts/")
+    }
+    static var isLocalStore: Bool { themesBase.isFileURL }
 
-    init(_ d: AppState, _ page: Hub.Page) {
+    init(_ d: AppState, _ page: Hub.Page, _ kind: Hub.Kind) {
         self.d = d
         self.page = page
-        refreshThemes()
+        self.kind = kind
+        refreshLocal()
     }
 
-    func refreshThemes() {
+    func refreshLocal() {
         ThemeStore.shared.reload()
+        LayoutStore.shared.reload()
         themes = ThemeStore.shared.all
-        for t in themes where previews["local:" + t.id] == nil {
-            if let u = ThemeStore.shared.preview(t), let i = NSImage(contentsOf: u) { previews["local:" + t.id] = i }
+        layouts = LayoutStore.shared.all
+        for t in themes where previews["local:themes:" + t.id] == nil {
+            if let u = ThemeStore.shared.preview(t), let i = NSImage(contentsOf: u) { previews["local:themes:" + t.id] = i }
         }
+        for l in layouts where previews["local:layouts:" + l.id] == nil {
+            if let u = LayoutStore.shared.preview(l), let i = NSImage(contentsOf: u) { previews["local:layouts:" + l.id] = i }
+        }
+        d.objectWillChange.send()
     }
 
     func apply(_ t: Theme) { d.apply(t) }
@@ -132,17 +147,24 @@ final class HubModel: ObservableObject {
     func delete(_ t: Theme) {
         if d.theme.id == t.id { d.apply(.classic) }
         ThemeStore.shared.delete(t.id)
-        previews["local:" + t.id] = nil
-        refreshThemes()
+        previews["local:themes:" + t.id] = nil
+        refreshLocal()
     }
 
-    func reveal(_ t: Theme) {
-        if let u = ThemeStore.shared.locations[t.id] { NSWorkspace.shared.activateFileViewerSelecting([u]) }
+    func delete(_ l: BarLayout) {
+        LayoutStore.shared.delete(l.id)
+        previews["local:layouts:" + l.id] = nil
+        refreshLocal()
+    }
+
+    func reveal(_ url: URL?) {
+        if let url { NSWorkspace.shared.activateFileViewerSelecting([url]) }
     }
 
     func openFolder() {
-        try? FileManager.default.createDirectory(at: ThemeStore.shared.folder, withIntermediateDirectories: true)
-        NSWorkspace.shared.open(ThemeStore.shared.folder)
+        let f = kind == .themes ? ThemeStore.shared.folder : LayoutStore.shared.folder
+        try? FileManager.default.createDirectory(at: f, withIntermediateDirectories: true)
+        NSWorkspace.shared.open(f)
     }
 
     func openGitHub(_ path: String) {
@@ -151,9 +173,12 @@ final class HubModel: ObservableObject {
 
     // MARK: lists
 
+    var storeItems: [StoreItem] { catalog[kind] ?? [] }
     var categories: [String] { Array(Set(storeItems.map(\.category).filter { !$0.isEmpty })).sorted() }
     var featured: StoreItem? { storeItems.first(where: \.featured) ?? storeItems.first }
-    var updates: [StoreItem] { storeItems.filter { i in installed(i).map { $0.version < i.version } ?? false } }
+    var updates: [StoreItem] { storeItems.filter { i in installedVersion(i).map { $0 < i.version } ?? false } }
+    func installCount(_ i: StoreItem) -> Int? { installs[kind.rawValue + "/" + i.id] }
+    func preview(_ i: StoreItem) -> NSImage? { previews["store:\(kind.rawValue):\(i.id):\(i.version)"] }
 
     func items(_ p: Hub.Page) -> [StoreItem] {
         var list = storeItems
@@ -162,7 +187,7 @@ final class HubModel: ObservableObject {
         }
         switch p {
         case .new, .featured: return list.sorted { $0.added > $1.added }
-        case .popular: return list.sorted { (installs[$0.id] ?? 0) > (installs[$1.id] ?? 0) }
+        case .popular: return list.sorted { (installCount($0) ?? 0) > (installCount($1) ?? 0) }
         case .updated: return list.sorted { $0.updated > $1.updated }
         case .name: return list.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
         case .category(let c): return list.filter { $0.category == c }.sorted { $0.name < $1.name }
@@ -176,87 +201,104 @@ final class HubModel: ObservableObject {
     func loadStore(force: Bool = false) {
         if storeState == .loading || (storeState == .loaded && !force) { return }
         storeState = .loading
-        let base = HubModel.storeBase
-        URLSession.shared.dataTask(with: base.appendingPathComponent("index.json")) { data, response, error in
-            let items = data.flatMap { try? JSONDecoder().decode([String: [StoreItem]].self, from: $0) }?["themes"]
-            DispatchQueue.main.async {
-                guard let items, (response as? HTTPURLResponse).map({ $0.statusCode == 200 }) ?? true else {
-                    SystemControl.log("store: could not load \(base.absoluteString)index.json: \(error?.localizedDescription ?? "bad index")")
-                    self.storeState = .failed
-                    return
+        let group = DispatchGroup()
+        var failed = false
+        for k in [Hub.Kind.themes, .layouts] {
+            group.enter()
+            let base = HubModel.base(k)
+            URLSession.shared.dataTask(with: base.appendingPathComponent("index.json")) { data, response, error in
+                let items = data.flatMap { try? JSONDecoder().decode([String: [StoreItem]].self, from: $0) }?[k.rawValue]
+                DispatchQueue.main.async {
+                    if let items, (response as? HTTPURLResponse).map({ $0.statusCode == 200 }) ?? true {
+                        self.catalog[k] = items.filter { $0.isSafe(k == .themes ? "theme.json" : "layout.json") }
+                        for item in self.catalog[k] ?? [] where item.files.contains("preview.png") { self.loadPreview(item, k) }
+                    } else {
+                        SystemControl.log("store: could not load \(base.absoluteString)index.json: \(error?.localizedDescription ?? "bad index")")
+                        failed = failed || k == .themes
+                    }
+                    group.leave()
                 }
-                self.storeItems = items.filter(\.isSafe)
-                self.storeState = .loaded
-                for item in self.storeItems where item.files.contains("preview.png") { self.loadPreview(item) }
-            }
-        }.resume()
-        if !HubModel.isLocalStore { loadInstallCounts() }
+            }.resume()
+            if !HubModel.isLocalStore { loadInstallCounts(k) }
+        }
+        group.notify(queue: .main) { self.storeState = failed ? .failed : .loaded }
     }
 
-    /// GitHub counts downloads of release files, so every theme is also a zip in the "themes" release
-    /// (made by .github/workflows/themes.yml) and installing downloads that zip.
-    private func loadInstallCounts() {
-        guard let url = URL(string: "https://api.github.com/repos/\(UpdateChecker.repository)/releases/tags/themes") else { return }
+    /// GitHub counts downloads of release files, so every theme and layout is also a zip in the "themes" or "layouts"
+    /// release (made by .github/workflows/store.yml) and installing downloads that zip.
+    private func loadInstallCounts(_ k: Hub.Kind) {
+        guard let url = URL(string: "https://api.github.com/repos/\(UpdateChecker.repository)/releases/tags/\(k.rawValue)") else { return }
         var request = URLRequest(url: url)
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
         URLSession.shared.dataTask(with: request) { data, _, _ in
             let json = data.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
-            let list = json?["assets"] as? [[String: Any]] ?? []
             var counts: [String: Int] = [:], urls: [String: URL] = [:]
-            for a in list {
-                guard let name = a["name"] as? String, name.hasSuffix(".glasstheme.zip") else { continue }
-                // "paper-2.glasstheme.zip": every version counts for the theme
-                let stem = name.dropLast(".glasstheme.zip".count)
+            for a in json?["assets"] as? [[String: Any]] ?? [] {
+                guard let name = a["name"] as? String, name.hasSuffix(".zip") else { continue }
+                // "paper-2.zip": every version counts for the item
+                let stem = name.dropLast(4)
                 guard let dash = stem.lastIndex(of: "-") else { continue }
-                counts[String(stem[..<dash]), default: 0] += a["download_count"] as? Int ?? 0
-                if let u = (a["browser_download_url"] as? String).flatMap(URL.init(string:)) { urls[name] = u }
+                counts[k.rawValue + "/" + stem[..<dash], default: 0] += a["download_count"] as? Int ?? 0
+                if let u = (a["browser_download_url"] as? String).flatMap(URL.init(string:)) { urls[k.rawValue + "/" + name] = u }
             }
             DispatchQueue.main.async {
-                self.installs = counts
-                self.assets = urls
+                self.installs.merge(counts) { _, b in b }
+                self.assets.merge(urls) { _, b in b }
             }
         }.resume()
     }
 
-    private func loadPreview(_ item: StoreItem) {
-        let key = "store:\(item.id):\(item.version)"
+    private func loadPreview(_ item: StoreItem, _ k: Hub.Kind) {
+        let key = "store:\(k.rawValue):\(item.id):\(item.version)"
         guard previews[key] == nil else { return }
-        let url = HubModel.storeBase.appendingPathComponent(item.id).appendingPathComponent("preview.png")
+        let url = HubModel.base(k).appendingPathComponent(item.id).appendingPathComponent("preview.png")
         URLSession.shared.dataTask(with: url) { data, _, _ in
             guard let data, let i = NSImage(data: data) else { return }
             DispatchQueue.main.async { self.previews[key] = i }
         }.resume()
     }
 
-    func installed(_ item: StoreItem) -> Theme? { ThemeStore.shared.userThemes.first { $0.id == item.id } }
+    func installedTheme(_ item: StoreItem) -> Theme? { ThemeStore.shared.userThemes.first { $0.id == item.id } }
 
-    /// Downloads the theme (its release zip, or its files one by one), installs and applies it.
+    func installedVersion(_ item: StoreItem) -> Int? {
+        kind == .themes ? installedTheme(item)?.version : LayoutStore.shared.all.first { $0.id == item.id }?.version
+    }
+
+    /// Downloads the item (its release zip, or its files one by one) and installs it; a theme is also applied.
     func get(_ item: StoreItem) {
-        guard !busy.contains(item.id) else { return }
-        busy.insert(item.id)
+        let k = kind, key = k.rawValue + "/" + item.id
+        guard !busy.contains(key) else { return }
+        busy.insert(key)
         let fm = FileManager.default
         let temp = fm.temporaryDirectory.appendingPathComponent("GlassBar-store-\(UUID().uuidString)")
         try? fm.createDirectory(at: temp, withIntermediateDirectories: true)
+        let zip = assets[k.rawValue + "/" + item.assetName]
         let finish = { (folder: URL?) in
             DispatchQueue.main.async {
-                self.busy.remove(item.id)
+                self.busy.remove(key)
                 defer { try? fm.removeItem(at: temp) }
                 do {
                     guard let folder else { throw CocoaError(.fileReadUnknown) }
-                    if let old = ThemeStore.shared.locations[item.id] { try? fm.trashItem(at: old, resultingItemURL: nil) }
-                    let t = try ThemeStore.shared.install(folder)
-                    self.previews["local:" + t.id] = nil
-                    self.refreshThemes()
-                    self.d.apply(t)
-                    self.installs[item.id, default: 0] += self.assets[item.assetName] == nil ? 0 : 1
-                    self.message = String(format: L("%@ is installed and on your Touch Bar."), t.name)
+                    if k == .themes {
+                        if let old = ThemeStore.shared.locations[item.id] { try? fm.trashItem(at: old, resultingItemURL: nil) }
+                        let t = try ThemeStore.shared.install(folder)
+                        self.previews["local:themes:" + t.id] = nil
+                        self.d.apply(t)
+                        self.message = String(format: L("%@ is installed and on your Touch Bar."), t.name)
+                    } else {
+                        let l = try LayoutStore.shared.install(folder)
+                        self.previews["local:layouts:" + l.id] = nil
+                        self.message = String(format: L("%@ is installed. It shows on the Touch Bar when its app is in front."), l.name)
+                    }
+                    self.refreshLocal()
+                    if zip != nil { self.installs[key, default: 0] += 1 }
                 } catch {
-                    SystemControl.log("store: could not install \(item.id): \(error.short)")
+                    SystemControl.log("store: could not install \(key): \(error.short)")
                     self.message = String(format: L("%@ couldn't be installed. Try again later."), item.name)
                 }
             }
         }
-        if let zip = assets[item.assetName] {
+        if let zip {
             URLSession.shared.downloadTask(with: zip) { file, response, _ in
                 guard let file, (response as? HTTPURLResponse)?.statusCode == 200 else { return finish(nil) }
                 let unzip = Process()
@@ -265,17 +307,17 @@ final class HubModel: ObservableObject {
                 try? unzip.run()
                 unzip.waitUntilExit()
                 let folder = temp.appendingPathComponent(item.id)
-                finish(unzip.terminationStatus == 0 && fm.fileExists(atPath: folder.appendingPathComponent("theme.json").path) ? folder : nil)
+                finish(unzip.terminationStatus == 0 && fm.fileExists(atPath: folder.path) ? folder : nil)
             }.resume()
             return
         }
-        let folder = temp.appendingPathComponent(item.id + ".glasstheme")
+        let folder = temp.appendingPathComponent(k == .themes ? item.id + ".glasstheme" : item.id)
         try? fm.createDirectory(at: folder, withIntermediateDirectories: true)
         let group = DispatchGroup()
         var failed = false
         for f in item.files {
             group.enter()
-            let url = HubModel.storeBase.appendingPathComponent(item.id).appendingPathComponent(f)
+            let url = HubModel.base(k).appendingPathComponent(item.id).appendingPathComponent(f)
             URLSession.shared.dataTask(with: url) { data, response, _ in
                 let ok = (response as? HTTPURLResponse).map { $0.statusCode == 200 } ?? true
                 if let data, ok { try? data.write(to: folder.appendingPathComponent(f)) } else { failed = true }
@@ -317,11 +359,15 @@ struct HubView: View {
                     Button { m.comingSoon = .init(title: "Theme Studio", version: "2.1") } label: {
                         Label("Theme Studio", systemImage: "paintbrush.pointed")
                     }
-                    Button { m.comingSoon = .init(title: "Bar Layout", version: "2.3") } label: {
-                        Label("Bar Layout", systemImage: "rectangle.split.3x1")
+                    Button { m.comingSoon = .init(title: L("Layout Editor"), version: "2.2") } label: {
+                        Label(L("Layout Editor"), systemImage: "rectangle.split.3x1")
                     }
-                    Button { m.openFolder() } label: { Label(L("Themes Folder"), systemImage: "folder") }
-                    Button { m.openGitHub("tree/main/themes") } label: { Label(L("Submit a Theme…"), systemImage: "arrow.up.forward.square") }
+                    Button { m.openFolder() } label: {
+                        Label(m.kind == .themes ? L("Themes Folder") : L("Layouts Folder"), systemImage: "folder")
+                    }
+                    Button { m.openGitHub("tree/main/\(m.kind.rawValue)") } label: {
+                        Label(m.kind == .themes ? L("Submit a Theme…") : L("Submit a Layout…"), systemImage: "arrow.up.forward.square")
+                    }
                 }
                 .buttonStyle(.plain)
             }
@@ -335,9 +381,13 @@ struct HubView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    Picker("", selection: Binding(get: { 0 }, set: { v in
-                        if v == 1 { m.comingSoon = .init(title: L("Widgets"), version: "2.3") }
-                        if v == 2 { m.comingSoon = .init(title: L("Layouts"), version: "2.3") }
+                    Picker("", selection: Binding(get: { m.kind == .themes ? 0 : 2 }, set: { v in
+                        switch v {
+                        case 0: m.kind = .themes
+                        case 2: m.kind = .layouts
+                        default: m.comingSoon = .init(title: L("Widgets"), version: "2.3")
+                        }
+                        if case .category = m.page { m.page = .featured }
                     })) {
                         Text(L("Themes")).tag(0)
                         Text(L("Widgets")).tag(1)
@@ -347,7 +397,7 @@ struct HubView: View {
                     .fixedSize()
                 }
             }
-            .searchable(text: $m.search, prompt: L("Search Themes"))
+            .searchable(text: $m.search, prompt: m.kind == .themes ? L("Search Themes") : L("Search Layouts"))
             .onChange(of: m.search) { s in if !s.isEmpty && (m.page == .featured || m.page == .installed) { m.page = .name } }
         }
         .alert(item: $m.comingSoon) { c in
@@ -373,14 +423,18 @@ private struct StorePage: View {
                 case .idle, .loading: ProgressView().frame(maxWidth: .infinity).padding(60)
                 case .failed:
                     VStack(spacing: 10) {
-                        Text(L("The theme store couldn't be reached. Check your connection and try again.")).foregroundStyle(.secondary)
+                        Text(L("The store couldn't be reached. Check your connection and try again.")).foregroundStyle(.secondary)
                         Button(L("Try Again")) { m.loadStore(force: true) }
                     }
                     .frame(maxWidth: .infinity).padding(60)
                 case .loaded:
                     if m.page == .featured && m.search.isEmpty {
+                        if m.kind == .layouts {
+                            Text(L("A layout replaces GlassBar's buttons for one app with your own: shortcuts, menu commands, links. Write one as JSON, the guide is docs/LAYOUTS.md on GitHub."))
+                                .foregroundStyle(.secondary)
+                        }
                         if let f = m.featured { Hero(m: m, item: f) }
-                        Shelf(m: m, title: L("New Themes"), items: Array(m.items(.new).prefix(4))) { m.page = .new }
+                        Shelf(m: m, title: m.kind == .themes ? L("New Themes") : L("New Layouts"), items: Array(m.items(.new).prefix(4))) { m.page = .new }
                         if !m.installs.isEmpty {
                             Shelf(m: m, title: L("Most Installed"), items: Array(m.items(.popular).prefix(4))) { m.page = .popular }
                         }
@@ -391,9 +445,9 @@ private struct StorePage: View {
                         Text(title).font(.largeTitle.bold())
                         let list = m.items(m.page)
                         if list.isEmpty {
-                            Text(m.page == .updates ? L("Everything is up to date.") : L("No themes yet.")).foregroundStyle(.secondary)
+                            Text(m.page == .updates ? L("Everything is up to date.") : L("Nothing here yet.")).foregroundStyle(.secondary)
                         }
-                        ThemeGrid(m: m, items: list)
+                        ItemGrid(m: m, items: list)
                     }
                 }
             }
@@ -422,7 +476,7 @@ private struct Hero: View {
     var body: some View {
         HStack(spacing: 28) {
             VStack(alignment: .leading, spacing: 10) {
-                Text(L("FEATURED THEME")).font(.caption.bold()).tracking(1).foregroundStyle(.white.opacity(0.7))
+                Text(m.kind == .themes ? L("FEATURED THEME") : L("FEATURED LAYOUT")).font(.caption.bold()).tracking(1).foregroundStyle(.white.opacity(0.7))
                 Text(item.name).font(.system(size: 32, weight: .bold)).foregroundStyle(.white)
                 if !item.description.isEmpty { Text(item.description).foregroundStyle(.white.opacity(0.8)) }
                 HStack(spacing: 12) {
@@ -432,7 +486,7 @@ private struct Hero: View {
             }
             .frame(maxWidth: 300, alignment: .leading)
             Spacer(minLength: 0)
-            BarCrop(image: m.previews["store:\(item.id):\(item.version)"], fraction: 0.32)
+            BarCrop(image: m.preview(item), fraction: m.kind == .themes ? 0.32 : 0.62, fromLeft: m.kind == .layouts)
                 .frame(maxWidth: 560)
                 .shadow(color: .black.opacity(0.6), radius: 14, y: 8)
         }
@@ -459,13 +513,13 @@ private struct Shelf: View {
                     Spacer()
                     Button(L("See All"), action: seeAll).buttonStyle(.link)
                 }
-                ThemeGrid(m: m, items: items)
+                ItemGrid(m: m, items: items)
             }
         }
     }
 }
 
-private struct ThemeGrid: View {
+private struct ItemGrid: View {
     @ObservedObject var m: HubModel
     let items: [StoreItem]
 
@@ -473,7 +527,7 @@ private struct ThemeGrid: View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 190), spacing: 16)], alignment: .leading, spacing: 20) {
             ForEach(items) { item in
                 VStack(alignment: .leading, spacing: 10) {
-                    Stage { BarCrop(image: m.previews["store:\(item.id):\(item.version)"], fraction: 0.22) }
+                    Stage { BarCrop(image: m.preview(item), fraction: m.kind == .themes ? 0.22 : 0.4, fromLeft: m.kind == .layouts) }
                     HStack(alignment: .center, spacing: 8) {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(item.name).font(.headline).lineLimit(1)
@@ -491,7 +545,7 @@ private struct ThemeGrid: View {
 
 private func byline(_ item: StoreItem, _ m: HubModel) -> String {
     var parts = [item.category.isEmpty ? "" : L(item.category), item.author].filter { !$0.isEmpty }
-    if let n = m.installs[item.id], n > 0 { parts.append(String(format: L("%d installs"), n)) }
+    if let n = m.installCount(item), n > 0 { parts.append(String(format: L("%d installs"), n)) }
     return parts.joined(separator: " · ")
 }
 
@@ -502,17 +556,19 @@ private struct GetButton: View {
     @EnvironmentObject var d: AppState
 
     var body: some View {
-        let local = m.installed(item)
-        if m.busy.contains(item.id) {
+        let version = m.installedVersion(item)
+        if m.busy.contains(m.kind.rawValue + "/" + item.id) {
             ProgressView().controlSize(.small).frame(width: 60)
-        } else if let local, local.version >= item.version {
-            if d.theme.id == local.id {
-                Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).help(L("In Use")).frame(width: 60)
+        } else if let version, version >= item.version {
+            if m.kind == .layouts {
+                Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).help(L("Installed")).frame(width: 60)
+            } else if let t = m.installedTheme(item), d.theme.id != t.id {
+                pill(L("Apply")) { m.apply(t) }
             } else {
-                pill(L("Apply")) { m.apply(local) }
+                Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).help(L("In Use")).frame(width: 60)
             }
         } else {
-            pill(local == nil ? L("Get") : L("Update")) { m.get(item) }
+            pill(version == nil ? L("Get") : L("Update")) { m.get(item) }
         }
     }
 
@@ -538,16 +594,18 @@ private struct Stage<Content: View>: View {
     }
 }
 
-/// The right end of a bar screenshot (the Control Strip shows a theme best). The full bar is far too wide for a card.
+/// Part of a bar screenshot: the right end for themes (the Control Strip shows a theme best), the left for layouts
+/// (where the app's buttons are). The full bar is far too wide for a card.
 private struct BarCrop: View {
     let image: NSImage?
-    /// how much of the bar's width, from the right
+    /// how much of the bar's width
     let fraction: CGFloat
+    var fromLeft = false
 
     var body: some View {
         if let image, let cg = image.cgImage(forProposedRect: nil, context: nil, hints: nil) {
             let w = CGFloat(cg.width) * fraction
-            let crop = cg.cropping(to: CGRect(x: CGFloat(cg.width) - w, y: 0, width: w, height: CGFloat(cg.height)))
+            let crop = cg.cropping(to: CGRect(x: fromLeft ? 0 : CGFloat(cg.width) - w, y: 0, width: w, height: CGFloat(cg.height)))
             if let crop {
                 Image(decorative: crop, scale: 1).resizable().interpolation(.high)
                     .aspectRatio(w / CGFloat(cg.height), contentMode: .fit)
@@ -569,42 +627,76 @@ private struct InstalledPage: View {
                 HStack {
                     Text(L("Installed")).font(.largeTitle.bold())
                     Spacer()
-                    Button(L("Open Themes Folder")) { m.openFolder() }
-                    Button(L("Reload Themes")) { m.refreshThemes(); d.theme = ThemeStore.shared.theme(id: d.theme.id) ?? .classic }
+                    Button(m.kind == .themes ? L("Open Themes Folder") : L("Open Layouts Folder")) { m.openFolder() }
+                    Button(L("Reload")) { m.refreshLocal(); d.theme = ThemeStore.shared.theme(id: d.theme.id) ?? .classic }
                 }
-                Text(L("Write your own theme as JSON in the themes folder. The guide is in docs/THEMES.md on GitHub."))
+                Text(m.kind == .themes ? L("Write your own theme as JSON in the themes folder. The guide is in docs/THEMES.md on GitHub.")
+                                       : L("Write your own layout as JSON in the layouts folder. The guide is in docs/LAYOUTS.md on GitHub."))
                     .foregroundStyle(.secondary)
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 190), spacing: 16)], alignment: .leading, spacing: 20) {
-                    ForEach(m.themes) { t in
-                        VStack(alignment: .leading, spacing: 10) {
-                            Stage {
-                                if let i = m.previews["local:" + t.id] { BarCrop(image: i, fraction: 0.22) } else { Swatch(theme: t) }
-                            }
-                            HStack(spacing: 8) {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(t.displayName).font(.headline).lineLimit(1)
-                                    Text(t.isBuiltIn ? L("Built in") : t.author).font(.caption).foregroundStyle(.secondary).lineLimit(1)
-                                }
-                                Spacer(minLength: 4)
-                                if d.theme.id == t.id {
-                                    Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).help(L("In Use"))
-                                } else {
-                                    Button(L("Apply")) { m.apply(t) }
-                                }
-                                if !t.isBuiltIn {
-                                    Menu {
-                                        Button(L("Show in Finder")) { m.reveal(t) }
-                                        Button(L("Move to Trash"), role: .destructive) { m.delete(t) }
-                                    } label: { Image(systemName: "ellipsis.circle") }
-                                        .menuStyle(.borderlessButton).fixedSize()
-                                }
-                            }
-                        }
+                    if m.kind == .themes {
+                        ForEach(m.themes) { t in themeCard(t) }
+                    } else {
+                        ForEach(m.layouts) { l in layoutCard(l) }
                     }
                 }
+                if m.kind == .layouts && m.layouts.isEmpty { Text(L("No layouts installed yet.")).foregroundStyle(.secondary) }
             }
             .padding(24)
         }
+    }
+
+    private func themeCard(_ t: Theme) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Stage {
+                if let i = m.previews["local:themes:" + t.id] { BarCrop(image: i, fraction: 0.22) } else { Swatch(theme: t) }
+            }
+            HStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(t.displayName).font(.headline).lineLimit(1)
+                    Text(t.isBuiltIn ? L("Built in") : t.author).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                }
+                Spacer(minLength: 4)
+                if d.theme.id == t.id {
+                    Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).help(L("In Use"))
+                } else {
+                    Button(L("Apply")) { m.apply(t) }
+                }
+                if !t.isBuiltIn {
+                    Menu {
+                        Button(L("Show in Finder")) { m.reveal(ThemeStore.shared.locations[t.id]) }
+                        Button(L("Move to Trash"), role: .destructive) { m.delete(t) }
+                    } label: { Image(systemName: "ellipsis.circle") }
+                        .menuStyle(.borderlessButton).fixedSize()
+                }
+            }
+        }
+    }
+
+    private func layoutCard(_ l: BarLayout) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Stage { BarCrop(image: m.previews["local:layouts:" + l.id], fraction: 0.4, fromLeft: true) }
+            HStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(l.name).font(.headline).lineLimit(1)
+                    Text(appNames(l)).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                }
+                Spacer(minLength: 4)
+                Menu {
+                    Button(L("Show in Finder")) { m.reveal(LayoutStore.shared.locations[l.id]) }
+                    Button(L("Move to Trash"), role: .destructive) { m.delete(l) }
+                } label: { Image(systemName: "ellipsis.circle") }
+                    .menuStyle(.borderlessButton).fixedSize()
+            }
+        }
+    }
+
+    private func appNames(_ l: BarLayout) -> String {
+        l.apps.map { id in
+            NSWorkspace.shared.urlForApplication(withBundleIdentifier: id).map { FileManager.default.displayName(atPath: $0.path) } ?? id
+        }
+        .map { $0.replacingOccurrences(of: ".app", with: "") }
+        .joined(separator: ", ")
     }
 }
 

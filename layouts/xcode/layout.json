@@ -1,0 +1,62 @@
+{
+  "id": "xcode",
+  "name": "Xcode Basics",
+  "author": "Moryel",
+  "version": 1,
+  "description": "Build, run, stop and the panels you toggle all day.",
+  "apps": [
+    "com.apple.dt.Xcode"
+  ],
+  "items": [
+    {
+      "icon": "sidebar.left",
+      "action": {
+        "shortcut": "cmd+0"
+      }
+    },
+    {
+      "type": "group",
+      "items": [
+        {
+          "icon": "hammer",
+          "action": {
+            "shortcut": "cmd+b"
+          }
+        },
+        {
+          "icon": "play.fill",
+          "action": {
+            "shortcut": "cmd+r"
+          }
+        },
+        {
+          "icon": "stop.fill",
+          "action": {
+            "shortcut": "cmd+."
+          }
+        }
+      ]
+    },
+    {
+      "label": "Open Quickly",
+      "action": {
+        "shortcut": "cmd+shift+o"
+      }
+    },
+    {
+      "type": "space"
+    },
+    {
+      "icon": "rectangle.bottomthird.inset.filled",
+      "action": {
+        "shortcut": "cmd+shift+y"
+      }
+    },
+    {
+      "icon": "sidebar.right",
+      "action": {
+        "shortcut": "cmd+alt+0"
+      }
+    }
+  ]
+}

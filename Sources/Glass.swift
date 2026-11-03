@@ -294,6 +294,7 @@ struct BarText: View {
     init(_ text: String, size: CGFloat = 13, weight: NSFont.Weight = .medium) {
         self.text = L(text); self.size = size; self.weight = weight
     }
+    init(verbatim text: String) { self.text = text }
     var body: some View {
         let s = theme.cased(text)
         let w = (s as NSString).size(withAttributes: [.font: theme.nsFont(size, weight), .kern: theme.tracking]).width
@@ -364,6 +365,8 @@ struct GroupButton: Identifiable {
     var text: String? = nil
     var dot: Color? = nil
     var highlight: Role? = nil
+    /// shown as written, not translated (labels from layouts)
+    var isVerbatim = false
     let action: () -> Void
 }
 
@@ -383,7 +386,7 @@ struct ButtonGroup: View {
                         Circle().fill(n).frame(width: 13, height: 13)
                             .overlay(Circle().fill(LinearGradient(colors: [.white.opacity(0.45), .clear],
                                                                   startPoint: .top, endPoint: .center)))
-                    } else if let s = t.symbol { Icon(s) } else { Text(L(t.text ?? "")).lineLimit(1) }
+                    } else if let s = t.symbol { Icon(s) } else { Text(t.isVerbatim ? t.text ?? "" : L(t.text ?? "")).lineLimit(1) }
                 }
                 .frame(maxWidth: buttonWidth == nil ? .infinity : nil)
                 // like GlassButton: in a skin the width is a minimum (text labels, ASCII brackets)

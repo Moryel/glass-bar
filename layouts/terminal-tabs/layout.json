@@ -1,0 +1,63 @@
+{
+  "id": "terminal-tabs",
+  "name": "Terminal Tabs",
+  "author": "Moryel",
+  "version": 1,
+  "description": "Tabs, clear and Ctrl-C without reaching for the keyboard.",
+  "apps": [
+    "com.apple.Terminal"
+  ],
+  "items": [
+    {
+      "type": "group",
+      "items": [
+        {
+          "icon": "chevron.left",
+          "action": {
+            "shortcut": "cmd+shift+["
+          }
+        },
+        {
+          "icon": "chevron.right",
+          "action": {
+            "shortcut": "cmd+shift+]"
+          }
+        }
+      ]
+    },
+    {
+      "icon": "plus",
+      "action": {
+        "shortcut": "cmd+t"
+      }
+    },
+    {
+      "label": "clear",
+      "action": {
+        "shortcut": "cmd+k"
+      }
+    },
+    {
+      "type": "space"
+    },
+    {
+      "label": "^C",
+      "role": "operator",
+      "action": {
+        "shortcut": "ctrl+c"
+      }
+    },
+    {
+      "icon": "rectangle.split.1x2",
+      "action": {
+        "shortcut": "cmd+d"
+      }
+    },
+    {
+      "icon": "xmark",
+      "action": {
+        "shortcut": "cmd+w"
+      }
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "id": "figma-tools",
+  "name": "Figma Tools",
+  "author": "Moryel",
+  "version": 1,
+  "description": "The drawing tools and zoom, one tap each.",
+  "apps": [
+    "com.figma.Desktop"
+  ],
+  "items": [
+    {
+      "type": "group",
+      "items": [
+        {
+          "label": "Move",
+          "action": {
+            "shortcut": "v"
+          }
+        },
+        {
+          "label": "Frame",
+          "action": {
+            "shortcut": "f"
+          }
+        },
+        {
+          "label": "Rect",
+          "action": {
+            "shortcut": "r"
+          }
+        },
+        {
+          "label": "Pen",
+          "action": {
+            "shortcut": "p"
+          }
+        },
+        {
+          "label": "Text",
+          "action": {
+            "shortcut": "t"
+          }
+        }
+      ]
+    },
+    {
+      "type": "space"
+    },
+    {
+      "label": "Fit",
+      "action": {
+        "shortcut": "shift+1"
+      }
+    },
+    {
+      "icon": "minus.magnifyingglass",
+      "action": {
+        "shortcut": "cmd+-"
+      }
+    },
+    {
+      "icon": "plus.magnifyingglass",
+      "action": {
+        "shortcut": "cmd+="
+      }
+    }
+  ]
+}

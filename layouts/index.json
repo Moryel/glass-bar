@@ -1,0 +1,64 @@
+{
+  "layouts": [
+    {
+      "id": "xcode",
+      "name": "Xcode Basics",
+      "author": "Moryel",
+      "version": 1,
+      "description": "Build, run, stop and the panels you toggle all day.",
+      "category": "Developer",
+      "added": "2026-11-03",
+      "updated": "2026-11-03",
+      "featured": true,
+      "files": [
+        "layout.json",
+        "preview.png"
+      ]
+    },
+    {
+      "id": "vscode",
+      "name": "VS Code Essentials",
+      "author": "Moryel",
+      "version": 1,
+      "description": "Command palette, files, terminal and run.",
+      "category": "Developer",
+      "added": "2026-11-03",
+      "updated": "2026-11-03",
+      "featured": false,
+      "files": [
+        "layout.json",
+        "preview.png"
+      ]
+    },
+    {
+      "id": "terminal-tabs",
+      "name": "Terminal Tabs",
+      "author": "Moryel",
+      "version": 1,
+      "description": "Tabs, clear and Ctrl-C without reaching for the keyboard.",
+      "category": "Developer",
+      "added": "2026-11-03",
+      "updated": "2026-11-03",
+      "featured": false,
+      "files": [
+        "layout.json",
+        "preview.png"
+      ]
+    },
+    {
+      "id": "figma-tools",
+      "name": "Figma Tools",
+      "author": "Moryel",
+      "version": 1,
+      "description": "The drawing tools and zoom, one tap each.",
+      "category": "Design",
+      "added": "2026-11-03",
+      "updated": "2026-11-03",
+      "featured": false,
+      "files": [
+        "layout.json",
+        "preview.png"
+      ]
+    }
+  ]
+}

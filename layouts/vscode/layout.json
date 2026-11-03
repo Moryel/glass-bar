@@ -1,0 +1,58 @@
+{
+  "id": "vscode",
+  "name": "VS Code Essentials",
+  "author": "Moryel",
+  "version": 1,
+  "description": "Command palette, files, terminal and run.",
+  "apps": [
+    "com.microsoft.VSCode"
+  ],
+  "items": [
+    {
+      "icon": "sidebar.left",
+      "action": {
+        "shortcut": "cmd+b"
+      }
+    },
+    {
+      "label": "Commands",
+      "role": "primary",
+      "action": {
+        "shortcut": "cmd+shift+p"
+      }
+    },
+    {
+      "label": "Go to File",
+      "action": {
+        "shortcut": "cmd+p"
+      }
+    },
+    {
+      "icon": "magnifyingglass",
+      "action": {
+        "shortcut": "cmd+shift+f"
+      }
+    },
+    {
+      "type": "space"
+    },
+    {
+      "icon": "terminal",
+      "action": {
+        "shortcut": "ctrl+`"
+      }
+    },
+    {
+      "icon": "rectangle.split.2x1",
+      "action": {
+        "shortcut": "cmd+\\"
+      }
+    },
+    {
+      "icon": "play.fill",
+      "action": {
+        "shortcut": "f5"
+      }
+    }
+  ]
+}

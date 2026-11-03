@@ -1,0 +1,39 @@
+# Zips every theme in themes/ and layout in layouts/ into the "themes" and "layouts" releases.
+# The store in GlassBar Hub installs from these zips, and their download counts are the install counts it shows.
+name: Store packages
+
+on:
+  push:
+    branches: [main]
+    paths: ["themes/**", "layouts/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Upload new versions
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p dist
+          for kind in themes layouts; do
+            main=$([ "$kind" = themes ] && echo theme.json || echo layout.json)
+            gh release view "$kind" >/dev/null 2>&1 || \
+              gh release create "$kind" --title "Store: $kind" --prerelease \
+                --notes "Packages for the store in GlassBar Hub. Install them from the app."
+            existing=$(gh release view "$kind" --json assets --jq '.assets[].name')
+            for dir in "$kind"/*/; do
+              id=$(basename "$dir")
+              [ -f "$dir$main" ] || continue
+              version=$(jq -r '.version // 1' "$dir$main")
+              name="$id-$version.zip"
+              if echo "$existing" | grep -qx "$name"; then continue; fi
+              (cd "$kind" && zip -qr "../dist/$name" "$id")
+              gh release upload "$kind" "dist/$name"
+            done
+          done
