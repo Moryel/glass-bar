@@ -242,7 +242,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
             menuItem(g.name, #selector(selectFnBarMode(_:)), state.fnBarMode == g, g.rawValue)
         }))
         let themeItems = ThemeStore.shared.all.map { t in menuItem(t.displayName, #selector(selectTheme(_:)), state.theme.id == t.id, t.id) }
-        m.addItem(submenuItem(L("Theme"), themeItems + [.separator(), menuItem(L("Play Theme Sounds"), #selector(toggleThemeSounds), ThemeSound.isEnabled)]))
+        m.addItem(submenuItem(L("Theme"), themeItems + [.separator(), menuItem(L("Play Theme Sounds"), #selector(toggleThemeSounds), ThemeSound.isEnabled),
+                                                        .separator(),
+                                                        menuItem(L("Open Themes Folder"), #selector(openThemesFolder), false),
+                                                        menuItem(L("Reload Themes"), #selector(reloadThemes), false)]))
         m.addItem(submenuItem(L("Color Temperature"), ColorTemperature.allCases.map { r in
             menuItem(r.name, #selector(selectColorTemperature(_:)), state.colorTemperature == r, r.rawValue)
         }))
@@ -345,6 +348,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
 
     @objc func selectTheme(_ o: NSMenuItem) {
         if let t = ThemeStore.shared.theme(id: o.representedObject as? String ?? "") { state.apply(t) }
+    }
+    @objc func openThemesFolder() {
+        try? FileManager.default.createDirectory(at: ThemeStore.shared.folder, withIntermediateDirectories: true)
+        NSWorkspace.shared.open(ThemeStore.shared.folder)
+    }
+
+    /// Picks up edits to theme.json files; the theme on the bar is applied again from disk.
+    @objc func reloadThemes() {
+        ThemeStore.shared.reload()
+        state.theme = ThemeStore.shared.theme(id: state.theme.id) ?? .classic
     }
     @objc func toggleThemeSounds() { Defaults.set("themeSounds", !ThemeSound.isEnabled) }
 

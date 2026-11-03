@@ -190,6 +190,8 @@
 "Bold" = "Kalın";
 "Keep current" = "Mevcut kalsın";
 "Play Theme Sounds" = "Tema Seslerini Çal";
+"Open Themes Folder" = "Temalar Klasörünü Aç";
+"Reload Themes" = "Temaları Yeniden Yükle";
 "Terminal" = "Terminal";
 "8-Bit Arcade" = "8-Bit Arcade";
 "This theme draws its own skin (theme.json in its package). The settings below change only its name and the parts it doesn’t set; Theme Studio will edit skins." = "Bu tema kendi görünümünü çiziyor (paketindeki theme.json). Aşağıdaki ayarlar yalnız adını ve temanın belirlemediği kısımları değiştirir; görünümü Theme Studio düzenleyecek.";
