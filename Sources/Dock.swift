@@ -16,6 +16,8 @@ final class DockModel: ObservableObject {
 
     @Published private(set) var pinned: [DockApp] = []
     @Published private(set) var recents: [DockApp] = []
+    /// folders from the right side of the Dock, then the Trash
+    @Published private(set) var others: [DockApp] = []
     @Published private(set) var running: [DockApp] = []
     @Published private(set) var hidden: Set<String> = []
     @Published private(set) var badges: [String: String] = [:]
@@ -128,6 +130,9 @@ final class DockModel: ObservableObject {
         dockShowsRecents = CFPreferencesCopyAppValue("show-recents" as CFString, domain) as? Bool ?? true
         if p != pinned { pinned = p }
         if r != recents { recents = r }
+        let trash = FileManager.default.urls(for: .trashDirectory, in: .userDomainMask)[0]
+        let o = apps("persistent-others") + [DockApp(id: "trash", url: trash, name: L("Trash"))]
+        if o != others { others = o }
     }
 
     private func loadRunning() {
@@ -257,6 +262,14 @@ final class DockModel: ObservableObject {
     }
 
     func revealInFinder(_ a: DockApp) { NSWorkspace.shared.activateFileViewerSelecting([a.url]) }
+
+    /// A folder's newest items first, like a Dock stack sorted by Date Added.
+    func folderContents(_ a: DockApp, limit: Int = 12) -> [URL] {
+        let keys: [URLResourceKey] = [.addedToDirectoryDateKey]
+        let l = (try? FileManager.default.contentsOfDirectory(at: a.url, includingPropertiesForKeys: keys, options: .skipsHiddenFiles)) ?? []
+        func added(_ u: URL) -> Date { (try? u.resourceValues(forKeys: Set(keys)).addedToDirectoryDate) ?? .distantPast }
+        return Array(l.map { ($0, added($0)) }.sorted { $0.1 > $1.1 }.prefix(limit).map(\.0))
+    }
 }
 
 // MARK: settings
@@ -277,11 +290,12 @@ enum DockIconSize: String, CaseIterable {
 }
 
 enum DockPreset: String, CaseIterable {
-    case macOS, running, launcher
+    case macOS, status, running, launcher
 
     var name: String {
         switch self {
         case .macOS: L("Like macOS Dock")
+        case .status: L("Dock with Folders and Status")
         case .running: L("Running Apps Only")
         case .launcher: L("Launcher")
         }
@@ -302,21 +316,27 @@ final class DockSettings: ObservableObject {
     @Published var frontTap = DockFrontTap(rawValue: Defaults.string("dockFrontTap")) ?? .hide { didSet { Defaults.set("dockFrontTap", frontTap.rawValue) } }
     @Published var iconStyle = DockIconStyle(rawValue: Defaults.string("dockIconStyle")) ?? .auto { didSet { Defaults.set("dockIconStyle", iconStyle.rawValue) } }
     @Published var iconSize = DockIconSize(rawValue: Defaults.string("dockIconSize")) ?? .auto { didSet { Defaults.set("dockIconSize", iconSize.rawValue) } }
+    @Published var showsOthers = Defaults.bool("dockShowsOthers", false) { didSet { Defaults.set("dockShowsOthers", showsOthers) } }
+    @Published var showsStatus = Defaults.bool("dockShowsStatus", false) { didSet { Defaults.set("dockShowsStatus", showsStatus) } }
     @Published var order = Defaults.stringArray("dockOrder") ?? [] { didSet { Defaults.set("dockOrder", order) } }
 
     var recentsShown: Bool { showsRecents ?? DockModel.shared.dockShowsRecents }
 
     var preset: DockPreset? {
-        switch (content, showsBadges, showsDots, recentsShown) {
-        case (.dock, true, true, _): .macOS
-        case (.running, true, _, false): .running
-        case (.pinned, false, false, false): .launcher
+        switch (content, showsBadges, showsDots, recentsShown, showsOthers, showsStatus) {
+        case (.dock, true, true, _, false, false): .macOS
+        case (.dock, true, true, false, true, true): .status
+        case (.running, true, _, false, false, false): .running
+        case (.pinned, false, false, false, false, false): .launcher
         default: nil
         }
     }
 
     func apply(_ p: DockPreset) {
+        showsOthers = p == .status
+        showsStatus = p == .status
         switch p {
+        case .status: content = .dock; showsBadges = true; showsDots = true; showsRecents = false
         case .macOS: content = .dock; showsBadges = true; showsDots = true; showsRecents = nil
         case .running: content = .running; showsBadges = true; showsRecents = false
         case .launcher: content = .pinned; showsBadges = false; showsDots = false; showsRecents = false
@@ -332,8 +352,9 @@ enum DockIcons {
 
     static func icon(_ url: URL) -> NSImage {
         if let i = color[url.path] { return i }
+        let isTrash = url == FileManager.default.urls(for: .trashDirectory, in: .userDomainMask)[0]
         // a small bitmap instead of the multi-resolution icon: less memory, cheaper to draw on every bar update
-        let i = render(NSWorkspace.shared.icon(forFile: url.path), 64)
+        let i = render(isTrash ? NSImage(named: NSImage.trashEmptyName)! : NSWorkspace.shared.icon(forFile: url.path), 64)
         color[url.path] = i
         return i
     }

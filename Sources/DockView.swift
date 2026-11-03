@@ -1,3 +1,4 @@
+import IOKit.ps
 import SwiftUI
 
 /// The Dock on the Touch Bar ("Dock" in Touch Bar Shows). Looks come from theme roles: the shelf is the group,
@@ -13,16 +14,29 @@ struct DockRow: View {
         let items = dock.items(s.content, order: s.order)
         let recents = s.recentsShown ? dock.recents.filter { r in !items.contains { $0.id == r.id } } : []
         let style = iconStyle
+        let others = s.showsOthers ? dock.others : []
+        HStack(spacing: Metrics.spacing) {
+            strip(items, recents, others, style)
+            if s.showsStatus { DockStatus().fixedSize().layoutPriority(1) }
+        }
+        .onAppear { dock.setVisible(true) }
+        .onDisappear { dock.setVisible(false) }
+    }
+
+    private func strip(_ items: [DockApp], _ recents: [DockApp], _ others: [DockApp], _ style: DockIconStyle) -> some View {
         ScrollingStrip(isLocked: { [drag] in drag.id != nil }) {
             Color.clear.frame(width: 2)
             ForEach(items) { a in item(a, style, items: items) }
             if !recents.isEmpty {
-                if style == .text {
-                    Text("|").font(.bar(12)).foregroundStyle(theme.barText.opacity(0.4))
-                } else {
-                    Rectangle().fill(theme.barText.opacity(0.25)).frame(width: 1, height: 16)
-                }
+                separator(style)
                 ForEach(recents) { a in item(a, style, items: nil) }
+            }
+            if !others.isEmpty {
+                separator(style)
+                ForEach(others) { a in
+                    DockItemView(app: a, style: style, size: iconSize, isFront: false, isRunning: false, isHidden: false, showsDot: false,
+                                 badge: nil, spacing: CGFloat(theme.widget?.dock?.spacing ?? 0)) { openOther(a) }
+                }
             }
             Color.clear.frame(width: 2)
         }
@@ -34,8 +48,23 @@ struct DockRow: View {
         }
         .frame(height: Metrics.buttonHeight)
         .background { if !theme.splitsGroups { GroupBackground() } }
-        .onAppear { dock.setVisible(true) }
-        .onDisappear { dock.setVisible(false) }
+    }
+
+    @ViewBuilder private func separator(_ style: DockIconStyle) -> some View {
+        if style == .text {
+            Text("|").font(.bar(12)).foregroundStyle(theme.barText.opacity(0.4))
+        } else {
+            Rectangle().fill(theme.barText.opacity(0.25)).frame(width: 1, height: 16)
+        }
+    }
+
+    /// The Trash opens in Finder; a folder opens as a stack on the bar, newest first.
+    private func openOther(_ a: DockApp) {
+        guard a.id != "trash" else { NSWorkspace.shared.open(a.url); return }
+        let files = dock.folderContents(a)
+        var l = files.map { u in PopoverItem(text: FileManager.default.displayName(atPath: u.path)) { NSWorkspace.shared.open(u) } }
+        l.append(PopoverItem(text: "Open in Finder") { NSWorkspace.shared.open(a.url) })
+        d.showPopover(Popover(title: a.name, items: l))
     }
 
     private var iconStyle: DockIconStyle {
@@ -195,6 +224,49 @@ struct DockItemView: View {
             .background { if let fill { RoundedRectangle(cornerRadius: radius, style: .continuous).fill(fill) } }
             .offset(x: -1, y: -1)
             .allowsHitTesting(false)
+    }
+}
+
+/// Battery and clock on the right, read once a minute.
+struct DockStatus: View {
+    @Environment(\.theme) private var theme
+
+    var body: some View {
+        TimelineView(.everyMinute) { t in
+            HStack(spacing: 8) {
+                if let b = Battery.read() {
+                    HStack(spacing: 3) {
+                        Icon(b.symbol)
+                        Text("\(b.percent)%").monospacedDigit()
+                    }
+                }
+                Text(t.date, format: .dateTime.hour().minute()).monospacedDigit()
+            }
+            .font(.bar(12))
+            .foregroundStyle(theme.barText)
+            .padding(.horizontal, 8)
+            .frame(height: Metrics.buttonHeight)
+            .background { if !theme.splitsGroups { GroupBackground() } }
+        }
+    }
+}
+
+enum Battery {
+    /// nil on Macs without a battery
+    static func read() -> (percent: Int, symbol: String)? {
+        let info = IOPSCopyPowerSourcesInfo().takeRetainedValue()
+        let list = IOPSCopyPowerSourcesList(info).takeRetainedValue() as [CFTypeRef]
+        for ps in list {
+            guard let p = IOPSGetPowerSourceDescription(info, ps)?.takeUnretainedValue() as? [String: Any],
+                  p[kIOPSTypeKey] as? String == kIOPSInternalBatteryType,
+                  let now = p[kIOPSCurrentCapacityKey] as? Int, let max = p[kIOPSMaxCapacityKey] as? Int, max > 0
+            else { continue }
+            let percent = now * 100 / max
+            if p[kIOPSIsChargingKey] as? Bool == true { return (percent, "battery.100.bolt") }
+            let level = [0, 25, 50, 75, 100].min { abs($0 - percent) < abs($1 - percent) }!
+            return (percent, "battery.\(level)")
+        }
+        return nil
     }
 }
 

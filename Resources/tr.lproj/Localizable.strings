@@ -263,6 +263,7 @@
 
 /* Dock */
 "Dock" = "Dock";
+"Trash" = "Çöp";
 "No apps" = "Uygulama yok";
 "New Window" = "Yeni Pencere";
 "Show All Windows" = "Tüm Pencereleri Göster";
@@ -272,6 +273,10 @@
 "Keep in Dock" = "Dock’ta Tut";
 "Remove from Dock" = "Dock’tan Çıkar";
 "Like macOS Dock" = "macOS Dock’u gibi";
+"Dock with Folders and Status" = "Klasörler ve durumla Dock";
+"Folders and Trash after a separator" = "Ayraçtan sonra klasörler ve Çöp";
+"Battery and clock on the right" = "Sağda pil ve saat";
+"Open in Finder" = "Finder’da Aç";
 "Running Apps Only" = "Yalnız açık uygulamalar";
 "Launcher" = "Başlatıcı";
 "Dock Settings" = "Dock Ayarları";

@@ -45,6 +45,8 @@ struct DockSettingsView: View {
                 if s.preset == nil { Text(L("Custom")).tag(DockPreset?.none) }
             }
             Toggle(L("Recent apps after a separator"), isOn: Binding(get: { s.recentsShown }, set: { s.showsRecents = $0 }))
+            Toggle(L("Folders and Trash after a separator"), isOn: $s.showsOthers)
+            Toggle(L("Battery and clock on the right"), isOn: $s.showsStatus)
             Toggle(L("Badges"), isOn: $s.showsBadges)
             Toggle(L("Dots under running apps"), isOn: $s.showsDots)
             Picker(L("Icon size"), selection: $s.iconSize) {
