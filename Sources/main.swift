@@ -146,7 +146,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
         case "nowPlaying": state.panel = .nowPlaying
         case "stripEditor": state.isEditingControlStrip = true
         case "tabs": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { self.state.showTabs() }
-        case "themeEditor": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { ThemeEditor.open(self.state) }
         default: break
         }
     }
@@ -247,8 +246,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
             menuItem(g.name, #selector(selectFnBarMode(_:)), state.fnBarMode == g, g.rawValue)
         }))
         let themeItems = ThemeStore.shared.all.map { t in menuItem(t.displayName, #selector(selectTheme(_:)), state.theme.id == t.id, t.id) }
-        m.addItem(submenuItem(L("Theme"), themeItems + [.separator(), menuItem(L("Play Theme Sounds"), #selector(toggleThemeSounds), ThemeSound.isEnabled),
-                                                        menuItem(L("Theme Editor…"), #selector(openThemeEditor), false)]))
+        m.addItem(submenuItem(L("Theme"), themeItems + [.separator(), menuItem(L("Play Theme Sounds"), #selector(toggleThemeSounds), ThemeSound.isEnabled)]))
         m.addItem(submenuItem(L("Color Temperature"), ColorTemperature.allCases.map { r in
             menuItem(r.name, #selector(selectColorTemperature(_:)), state.colorTemperature == r, r.rawValue)
         }))
@@ -352,7 +350,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
     @objc func selectTheme(_ o: NSMenuItem) {
         if let t = ThemeStore.shared.theme(id: o.representedObject as? String ?? "") { state.apply(t) }
     }
-    @objc func openThemeEditor() { ThemeEditor.open(state) }
     @objc func toggleThemeSounds() { Defaults.set("themeSounds", !ThemeSound.isEnabled) }
 
     /// Double-clicked .glasstheme files are installed and applied.
