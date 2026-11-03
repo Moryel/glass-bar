@@ -464,3 +464,20 @@
 "Shows for" = "Gösterildiği uygulamalar";
 "Space" = "Boşluk";
 "Widget" = "Widget";
+
+/* Script widgets */
+"Choose a widget folder (with widget.json)." = "Bir widget klasörü seç (içinde widget.json olan).";
+"Install “%@”?" = "“%@” kurulsun mu?";
+"Install" = "Kur";
+"Install…" = "Kur…";
+"May:" = "Şunları yapabilir:";
+"Needs no permissions." = "İzin gerektirmez.";
+"New Script Widget" = "Yeni Betik Widget’ı";
+"No script widgets yet." = "Henüz betik widget’ı yok.";
+"Script Widgets" = "Betik Widget’ları";
+"That folder has no readable widget.json." = "O klasörde okunabilir bir widget.json yok.";
+"Widgets written in JavaScript. They run only while they are on the bar and can only do what their permissions allow." = "JavaScript ile yazılmış widget’lar. Yalnız çubuktayken çalışırlar ve yalnız izinlerinin izin verdiğini yapabilirler.";
+"stopped" = "durdu";
+"Use the internet" = "İnternete bağlanmak";
+"Open links and apps" = "Bağlantı ve uygulama açmak";
+"Press keyboard shortcuts" = "Klavye kısayollarına basmak";

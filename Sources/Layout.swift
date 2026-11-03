@@ -194,7 +194,7 @@ extension BarLayout {
                     }
                 }
                 if let s = item.action?.shortcut, KeyNames.parse(s) == nil { log("\(here): can't read the shortcut \"\(s)\""); item.action?.shortcut = nil }
-                if type == "widget" && WidgetKind(rawValue: item.widget ?? "") == nil {
+                if type == "widget" && WidgetKind(rawValue: item.widget ?? "") == nil && !(item.widget ?? "").hasPrefix("script:") {
                     log("\(here): unknown widget \"\(item.widget ?? "")\", skipped"); return nil
                 }
                 if type == "button" && item.label == nil && item.icon == nil { log("\(here): a button needs a label or an icon, skipped"); return nil }
@@ -222,7 +222,7 @@ struct LayoutBar: View {
             switch item.type ?? "button" {
             case "space": Spacer(minLength: 0)
             case "widget":
-                if let k = WidgetKind(rawValue: item.widget ?? "") { WidgetView(d: d, kind: k, option: item.option) }
+                if let w = item.widget { AnyWidgetView(d: d, id: w, option: item.option) }
             case "text":
                 Text(item.label ?? "").font(.bar(12, .medium)).foregroundStyle(.white.opacity(0.7)).lineLimit(1).padding(.horizontal, 4)
             case "group":

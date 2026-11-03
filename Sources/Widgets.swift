@@ -74,7 +74,7 @@ final class WidgetData: ObservableObject {
     @Published private(set) var cpu: Double = 0
     @Published private(set) var memoryUsed: Double = 0
     @Published private(set) var memoryTotal = Double(ProcessInfo.processInfo.physicalMemory)
-    @Published private(set) var battery: (percent: Int, symbol: String, isCharging: Bool)?
+    @Published private(set) var battery = Battery.read()
     @Published private(set) var clipboard: String?
 
     private var timer: Timer?
@@ -144,18 +144,17 @@ final class WidgetData: ObservableObject {
 final class WidgetSettings: ObservableObject {
     static let shared = WidgetSettings()
 
-    @Published var strip = (Defaults.stringArray("barWidgets") ?? []).compactMap(WidgetKind.init(rawValue:)) {
-        didSet { Defaults.set("barWidgets", strip.map(\.rawValue)) }
-    }
+    /// built-in kinds by name, script widgets as "script:<id>"
+    @Published var strip = Defaults.stringArray("barWidgets") ?? [] { didSet { Defaults.set("barWidgets", strip) } }
     @Published var worldClockZone = Defaults.string("worldClockZone").nilIfEmpty ?? "Europe/London" {
         didSet { Defaults.set("worldClockZone", worldClockZone) }
     }
 
-    func toggle(_ k: WidgetKind) {
+    func toggle(_ k: String) {
         if let i = strip.firstIndex(of: k) { strip.remove(at: i) } else { strip.append(k) }
     }
 
-    func move(_ k: WidgetKind, by step: Int) {
+    func move(_ k: String, by step: Int) {
         guard let i = strip.firstIndex(of: k) else { return }
         let j = min(max(0, i + step), strip.count - 1)
         strip.swapAt(i, j)
@@ -182,7 +181,7 @@ struct WidgetStrip: View {
     var body: some View {
         if !s.strip.isEmpty {
             HStack(spacing: Metrics.spacing) {
-                ForEach(s.strip) { WidgetView(d: d, kind: $0) }
+                ForEach(s.strip, id: \.self) { AnyWidgetView(d: d, id: $0) }
             }
             .fixedSize()
         }
@@ -301,6 +300,7 @@ struct WidgetsPage: View {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: 14, alignment: .top)], spacing: 14) {
                     ForEach(WidgetKind.allCases) { card($0) }
                 }
+                ScriptWidgetsSection(m: m)
             }
             .padding(24)
         }
@@ -310,10 +310,10 @@ struct WidgetsPage: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(L("On the Bar")).font(.headline)
             HStack(spacing: 8) {
-                ForEach(s.strip) { k in
+                ForEach(s.strip, id: \.self) { k in
                     HStack(spacing: 4) {
                         Button { s.move(k, by: -1) } label: { Image(systemName: "chevron.left") }.disabled(s.strip.first == k)
-                        Text(k.name)
+                        Text(WidgetKind(rawValue: k)?.name ?? ScriptWidgetStore.shared.widget(String(k.dropFirst(7)))?.name ?? k)
                         Button { s.move(k, by: 1) } label: { Image(systemName: "chevron.right") }.disabled(s.strip.last == k)
                     }
                     .buttonStyle(.borderless)
@@ -330,7 +330,7 @@ struct WidgetsPage: View {
                 Label(k.name, systemImage: k.symbol).font(.headline)
                 Spacer()
                 if WidgetKind.stripKinds.contains(k) {
-                    Toggle(L("On the Bar"), isOn: Binding(get: { s.strip.contains(k) }, set: { _ in s.toggle(k) }))
+                    Toggle(L("On the Bar"), isOn: Binding(get: { s.strip.contains(k.rawValue) }, set: { _ in s.toggle(k.rawValue) }))
                         .toggleStyle(.switch).labelsHidden()
                 } else {
                     Button(L("Dock Settings…")) { m.page = .dock }

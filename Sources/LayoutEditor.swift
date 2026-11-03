@@ -199,7 +199,11 @@ private struct LayoutList: View {
 private struct LayoutLibrary: View {
     @ObservedObject var m: LayoutEditorModel
 
-    static let entries: [(String, String, LayoutItem)] = [
+    static var entries: [(String, String, LayoutItem)] { builtIn + ScriptWidgetStore.shared.all.map { w in
+        (w.name, "curlybraces", LayoutItem(type: "widget", widget: "script:" + w.id))
+    } }
+
+    private static let builtIn: [(String, String, LayoutItem)] = [
         (L("Button"), "button.horizontal", LayoutItem(label: L("Button"))),
         (L("Icon Button"), "star", LayoutItem(icon: "star")),
         (L("Group"), "rectangle.split.2x1", LayoutItem(type: "group", items: [LayoutItem(icon: "chevron.left"), LayoutItem(icon: "chevron.right")])),
@@ -359,6 +363,7 @@ private struct ItemSettings: View {
             case "widget":
                 Picker(L("Widget"), selection: Binding(get: { item.widget ?? "clock" }, set: { item.widget = $0 })) {
                     ForEach(WidgetKind.allCases) { Text($0.name).tag($0.rawValue) }
+                    ForEach(ScriptWidgetStore.shared.all) { Text($0.name).tag("script:" + $0.id) }
                 }
                 if item.widget == WidgetKind.worldClock.rawValue {
                     Picker(L("City"), selection: Binding(get: { item.option ?? WidgetSettings.shared.worldClockZone }, set: { item.option = $0 })) {
