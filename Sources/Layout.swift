@@ -150,6 +150,10 @@ final class LayoutStore {
     /// Copies a layout folder into the layouts folder (replacing an older copy).
     @discardableResult func install(_ url: URL) throws -> BarLayout {
         let l = try LayoutStore.load(url)
+        guard isSafeID(l.id) else {
+            SystemControl.log("layout \(l.id): id can't be used as a folder name, not installed")
+            throw CocoaError(.fileWriteInvalidFileName)
+        }
         let fm = FileManager.default
         try fm.createDirectory(at: folder, withIntermediateDirectories: true)
         if let old = locations[l.id] { try? fm.trashItem(at: old, resultingItemURL: nil) }

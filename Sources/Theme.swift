@@ -191,6 +191,12 @@ extension UTType {
     static let glassTheme = UTType(exportedAs: "com.yukselozge.glasstheme", conformingTo: .package)
 }
 
+/// Theme and layout ids name their folder on disk and come from downloaded files: nothing that could leave it.
+func isSafeID(_ id: String) -> Bool {
+    !id.isEmpty && id.count <= 100 && !id.hasPrefix(".") && !id.contains("..")
+        && !id.contains { $0 == "/" || $0 == "\\" || $0 == ":" || $0 == "\0" || $0.isNewline }
+}
+
 /// Built-in and installed themes.
 final class ThemeStore {
     static let shared = ThemeStore()
@@ -252,6 +258,10 @@ final class ThemeStore {
     /// Writes a theme to the themes folder. A package theme keeps its files: they are copied over when it moves
     /// (a built-in package saved as a copy) and theme.json is rewritten.
     @discardableResult func save(_ t: Theme) throws -> Theme {
+        guard isSafeID(t.id) else {
+            SystemControl.log("theme \(t.id): id can't be used as a file name, not saved")
+            throw CocoaError(.fileWriteInvalidFileName)
+        }
         let fm = FileManager.default
         try fm.createDirectory(at: folder, withIntermediateDirectories: true)
         var t = t
@@ -284,7 +294,8 @@ final class ThemeStore {
 
     /// Moves a user theme to the Trash.
     func delete(_ id: String) {
-        try? FileManager.default.trashItem(at: locations[id] ?? target(id), resultingItemURL: nil)
+        guard let u = locations[id] ?? (isSafeID(id) ? target(id) : nil) else { return }
+        try? FileManager.default.trashItem(at: u, resultingItemURL: nil)
         reload()
     }
 
