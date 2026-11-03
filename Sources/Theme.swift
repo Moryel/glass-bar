@@ -108,13 +108,16 @@ extension Theme {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         var t = Theme(id: try c.decode(String.self, forKey: .id), name: (try? c.decode(String.self, forKey: .name)) ?? "")
         func read<T: Decodable>(_ k: CodingKeys, _ p: WritableKeyPath<Theme, T>) {
-            if let v = try? c.decode(T.self, forKey: k) { t[keyPath: p] = v }
+            guard c.contains(k) else { return }
+            do { t[keyPath: p] = try c.decode(T.self, forKey: k) } catch { SystemControl.log("theme \(t.id): \(k.stringValue) ignored: \(error.short)") }
         }
         read(.author, \.author); read(.version, \.version); read(.style, \.style); read(.glassColor, \.glassColor)
         read(.glass, \.glass); read(.edge, \.edge); read(.glow, \.glow); read(.shadow, \.shadow); read(.bounce, \.bounce)
         read(.cornerRadius, \.cornerRadius); read(.textColor, \.textColor); read(.accent, \.accent); read(.sliderColor, \.sliderColor)
         read(.fontDesign, \.fontDesign); read(.fontWeight, \.fontWeight); read(.backdrop, \.backdrop); read(.roles, \.roles)
-        if let s = try? c.decode(Skin.self, forKey: .skin) { t.skin = s }
+        if c.contains(.skin) {
+            do { t.skin = try c.decode(Skin.self, forKey: .skin) } catch { SystemControl.log("theme \(t.id): skin ignored: \(error.short)") }
+        }
         self = t
     }
 }
@@ -217,13 +220,19 @@ final class ThemeStore {
     static func load(_ url: URL) throws -> Theme {
         var isFolder: ObjCBool = false
         FileManager.default.fileExists(atPath: url.path, isDirectory: &isFolder)
-        if isFolder.boolValue {
-            var t = try JSONDecoder().decode(Theme.self, from: Data(contentsOf: url.appendingPathComponent("theme.json")))
-            t.baseURL = url
-            return t
+        let file = isFolder.boolValue ? url.appendingPathComponent("theme.json") : url
+        guard isFolder.boolValue || url.pathExtension == "glasstheme" || url.pathExtension == "json" else {
+            throw CocoaError(.fileReadUnsupportedScheme)
         }
-        guard url.pathExtension == "glasstheme" || url.pathExtension == "json" else { throw CocoaError(.fileReadUnsupportedScheme) }
-        return try JSONDecoder().decode(Theme.self, from: Data(contentsOf: url))
+        var t: Theme
+        do { t = try JSONDecoder().decode(Theme.self, from: Data(contentsOf: file)) } catch {
+            SystemControl.log("theme \(url.lastPathComponent): could not read it: \(error.short)")
+            throw error
+        }
+        if isFolder.boolValue { t.baseURL = url }
+        let name = url.lastPathComponent
+        t.check { SystemControl.log("theme \(name): \($0)") }
+        return t
     }
 
     func theme(id: String) -> Theme? { all.first { $0.id == id } }
@@ -288,5 +297,128 @@ final class ThemeStore {
         if t.isBuiltIn { t.id = ThemeStore.newID(t.name) }
         if t.name.isEmpty { t.name = url.deletingPathExtension().lastPathComponent }
         return try save(t)
+    }
+}
+
+// MARK: checking values
+
+/// Values that parse but would break the bar (a text scale of 0 hides every label) are clamped or dropped here,
+/// one log line each, so a theme author can see what was ignored.
+extension Theme {
+    mutating func check(_ log: (String) -> Void) {
+        func color(_ s: inout String, _ key: String, _ fallback: String, emptyOK: Bool = false) {
+            if emptyOK && s.isEmpty { return }
+            if Color(hexString: s) == nil { log("\(key) \"\(s)\" is not a hex color, using \(fallback.isEmpty ? "none" : fallback)"); s = fallback }
+        }
+        func clamp(_ v: inout Double, _ key: String, _ r: ClosedRange<Double>) {
+            let c = v.isFinite ? min(max(v, r.lowerBound), r.upperBound) : r.lowerBound
+            if c != v { log("\(key) \(v) is out of range \(r.lowerBound)...\(r.upperBound), using \(c)"); v = c }
+        }
+        if id.trimmingCharacters(in: .whitespaces).isEmpty { id = ThemeStore.newID(name); log("empty id, using \(id)") }
+        color(&glassColor, "glassColor", "#FFFFFF")
+        color(&textColor, "textColor", "#FFFFFF")
+        color(&accent, "accent", "", emptyOK: true)
+        color(&sliderColor, "sliderColor", "", emptyOK: true)
+        clamp(&glass, "glass", 0...2.5); clamp(&edge, "edge", 0...2.5); clamp(&glow, "glow", 0...2.5)
+        clamp(&shadow, "shadow", 0...2); clamp(&bounce, "bounce", 0...2)
+        clamp(&cornerRadius, "cornerRadius", 0...100)
+        if !backdrop.isEmpty && Backdrop(rawValue: backdrop) == nil { log("unknown backdrop \"\(backdrop)\", ignored"); backdrop = "" }
+        for (k, var p) in roles {
+            if Role.keys.contains(k) { p.check("roles.\(k)", log); roles[k] = p } else { log("unknown role \"\(k)\", ignored"); roles[k] = nil }
+        }
+        skin?.check(baseURL, log)
+    }
+}
+
+extension Error {
+    /// "skin.text.scale: expected Double" instead of the whole DecodingError dump
+    var short: String {
+        guard let e = self as? DecodingError else { return localizedDescription }
+        func path(_ c: DecodingError.Context) -> String { c.codingPath.map(\.stringValue).joined(separator: ".") }
+        switch e {
+        case .typeMismatch(let t, let c): return "\(path(c)): expected \(t)"
+        case .valueNotFound(let t, let c): return "\(path(c)): expected \(t)"
+        case .keyNotFound(let k, _): return "missing \"\(k.stringValue)\""
+        case .dataCorrupted(let c):
+            let detail = (c.underlyingError as NSError?)?.userInfo[NSDebugDescriptionErrorKey] as? String ?? c.debugDescription
+            return path(c).isEmpty ? "not valid JSON (\(detail))" : "\(path(c)): \(detail)"
+        @unknown default: return "\(e)"
+        }
+    }
+}
+
+extension Role {
+    static let keys: Set = ["active", "primary", "accent", "operator", "suggestions"]
+}
+
+extension LayerPatch {
+    static let borders: Set = ["none", "solid", "dashed", "pixel", "ascii", "sketch"]
+
+    mutating func check(_ at: String, _ log: (String) -> Void) {
+        func color(_ v: inout String?, _ key: String, noneOK: Bool = false) {
+            guard let s = v, !(noneOK && s == "none"), Color(hexString: s) == nil else { return }
+            log("\(at).\(key) \"\(s)\" is not a hex color, ignored"); v = nil
+        }
+        func clamp(_ v: inout Double?, _ key: String, _ r: ClosedRange<Double>) {
+            guard let x = v else { return }
+            let c = x.isFinite ? min(max(x, r.lowerBound), r.upperBound) : r.lowerBound
+            if c != x { log("\(at).\(key) \(x) is out of range \(r.lowerBound)...\(r.upperBound), using \(c)"); v = c }
+        }
+        color(&fill, "fill", noneOK: true); color(&fill2, "fill2"); color(&text, "text")
+        color(&borderColor, "borderColor"); color(&glowColor, "glowColor")
+        if let b = border, !LayerPatch.borders.contains(b) { log("\(at).border \"\(b)\" is unknown, ignored"); border = nil }
+        clamp(&borderWidth, "borderWidth", 0...6); clamp(&radius, "radius", 0...100)
+        clamp(&glow, "glow", 0...12); clamp(&shadow, "shadow", 0...4)
+        if let c = chars, c.trimmingCharacters(in: .whitespaces).isEmpty { log("\(at).chars is empty, using \"[ ]\""); chars = "[ ]" }
+    }
+}
+
+extension Skin {
+    mutating func check(_ base: URL?, _ log: (String) -> Void) {
+        let fm = FileManager.default
+        func exists(_ file: String) -> Bool { base.map { fm.fileExists(atPath: $0.appendingPathComponent(file).path) } ?? false }
+        button?.check("skin.button", log); pressed?.check("skin.pressed", log); group?.check("skin.group", log)
+        bar?.check(log)
+        text?.check(base, exists, log)
+        if let p = press, PressEffect(rawValue: p) == nil { log("skin.press \"\(p)\" is unknown, ignored"); press = nil }
+        if let i = icons {
+            icons = i.filter { k, v in
+                if v.isEmpty { log("skin.icons.\(k) is empty, ignored"); return false }
+                if v.hasPrefix("image:"), !exists(String(v.dropFirst(6))) { log("skin.icons.\(k): \(v.dropFirst(6)) not found, ignored"); return false }
+                return true
+            }
+        }
+        if let s = sounds {
+            sounds = s.filter { k, v in
+                if ["click", "blip", "tick"].contains(v) || exists(v) { return true }
+                log("skin.sounds.\(k): \(v) not found, ignored"); return false
+            }
+        }
+    }
+}
+
+extension BarStyle {
+    mutating func check(_ log: (String) -> Void) {
+        for (k, p) in [("fill", \BarStyle.fill), ("fill2", \.fill2), ("patternColor", \.patternColor)] {
+            if let s = self[keyPath: p], Color(hexString: s) == nil { log("skin.bar.\(k) \"\(s)\" is not a hex color, ignored"); self[keyPath: p] = nil }
+        }
+        if let p = pattern, !["stars", "grid", "none"].contains(p) { log("skin.bar.pattern \"\(p)\" is unknown, ignored"); pattern = nil }
+        if let o = overlay, !["scanlines", "none"].contains(o) { log("skin.bar.overlay \"\(o)\" is unknown, ignored"); overlay = nil }
+    }
+}
+
+extension TextStyle {
+    mutating func check(_ base: URL?, _ exists: (String) -> Bool, _ log: (String) -> Void) {
+        if let s = scale {
+            let c = s.isFinite ? min(max(s, 0.5), 2) : 1
+            if c != s { log("skin.text.scale \(s) is out of range 0.5...2, using \(c)"); scale = c }
+        }
+        if let t = tracking, !t.isFinite || abs(t) > 6 { log("skin.text.tracking \(t) is out of range -6...6, ignored"); tracking = nil }
+        if let w = weight, !["regular", "medium", "semibold", "bold", "heavy"].contains(w) { log("skin.text.weight \"\(w)\" is unknown, ignored"); weight = nil }
+        if let c = letterCase, !["upper", "lower", "none"].contains(c) { log("skin.text.case \"\(c)\" is unknown, ignored"); letterCase = nil }
+        if let f = font, !f.isEmpty, !["system", "mono", "rounded", "serif"].contains(f) {
+            let isFile = f.hasSuffix(".ttf") || f.hasSuffix(".otf")
+            if isFile ? !exists(f) : NSFont(name: f, size: 12) == nil { log("skin.text.font \(f) not found, using the system font"); font = nil }
+        }
     }
 }

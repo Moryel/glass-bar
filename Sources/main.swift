@@ -67,10 +67,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
     func applicationDidFinishLaunching(_ n: Notification) {
         Theme.current = state.theme
         state.observeNowPlaying()
-        // for diagnostics: ~/Library/Logs/GlassBar.log
-        let logURL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Logs/GlassBar.log")
-        try? "\(Date()) launched · Accessibility: \(SystemControl.hasAccessibility ? "yes" : "NO") · model: \(Hardware.model)\n"
-            .write(to: logURL, atomically: true, encoding: .utf8)
         if !SystemControl.hasAccessibility { SystemControl.requestAccessibility() }
         state.refresh()
         state.frontAppChanged(NSWorkspace.shared.frontmostApplication)
@@ -416,6 +412,9 @@ if !UserDefaults.standard.bool(forKey: "ayarlarTasindi") && !UserDefaults.standa
 }
 SettingsMigration.run()
 
+// for diagnostics: ~/Library/Logs/GlassBar.log, started before the themes load so their problems end up in it
+try? "\(Date()) launched · Accessibility: \(SystemControl.hasAccessibility ? "yes" : "NO") · model: \(Hardware.model)\n"
+    .write(to: FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Logs/GlassBar.log"), atomically: true, encoding: .utf8)
 let app = NSApplication.shared
 let appDelegate = AppDelegate()
 app.delegate = appDelegate
