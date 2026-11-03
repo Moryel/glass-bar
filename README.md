@@ -2,6 +2,10 @@
 
 # GlassBar
 
+A free, open-source replacement for the Touch Bar on MacBook Pros from 2018 on (macOS 14 or later). It keeps the original layout (esc, app buttons, Control Strip) and redraws it with a Liquid Glass look. You can also change the whole look with themes, give any app your own buttons, and get both from a small store inside the app.
+
+![GlassBar in Finder](images/finder.png)
+
 > **A personal note**
 > GlassBar is the result of about four months of work, and I've been using it every day on my own MacBook for the past two months. It took much longer than I expected, and it still needs more time: some features are missing or only partly working. If you run into any of them, I'd really appreciate it if you let me know.
 >
@@ -9,20 +13,69 @@
 >
 > I haven't been able to measure any direct impact on battery life; in my use, CPU usage stays around 1%.
 >
-> — Yüksel Özge
+> Yüksel Özge
 
-A native macOS replacement for the Touch Bar on the 13" M2 MacBook Pro. The layout and features match the original (esc · app area · Control Strip, expanded Control Strip, brightness/volume sliders, F1–F12 with fn), redrawn with a Liquid Glass look. Siri appears as a clear glass drop with colorful waves, inspired by Apple's new Siri design.
+## Download
 
-## Screenshots
+**[⬇ Download GlassBar.zip](https://github.com/Moryel/glass-bar/releases/latest/download/GlassBar.zip)** · Intel and Apple Silicon · macOS 14 Sonoma or later · MacBook Pro with a Touch Bar, 2018 or later (2016 and 2017 models can't run macOS 14)
 
-**Siri**: a glass drop with colorful waves that react to your voice
+1. Unzip it and drag **GlassBar.app** into **Applications**.
+2. Open it. GlassBar is free and not notarized by Apple, so the first time macOS blocks it:
+   - **macOS 15 and later:** System Settings > Privacy & Security > scroll down > **Open Anyway**.
+   - **macOS 14:** right-click GlassBar.app > **Open** > **Open**.
+
+   Or, in Terminal: `xattr -dr com.apple.quarantine /Applications/GlassBar.app`
+3. Give GlassBar **Accessibility** permission when asked (see [Permissions](#permissions)).
+4. A GlassBar icon appears in the menu bar. Turn on **Launch at Login** there to have it start with your Mac.
+
+GlassBar checks for updates itself and tells you when a new version is out.
+
+## Themes
+
+Six themes are built in. Classic, Minimal Liquid Glass, Graphite and Neon keep the glass look. Terminal and 8-Bit Arcade draw the bar their own way, with their own font, borders, icons and an optional tap sound.
+
+![Terminal theme](images/terminal.png)
+![8-Bit Arcade theme](images/arcade.png)
+
+A theme is a JSON file. To write your own, choose Theme > Open Themes Folder from the menu, add a `theme.json`, and use Theme > Reload Themes and Layouts after each save. Every field is described in [docs/THEMES.md](docs/THEMES.md). Bad values are skipped and written to `~/Library/Logs/GlassBar.log` instead of breaking the bar. The format is still alpha and may change.
+
+Made a theme you like? Send it with a pull request and it shows up in the store for everyone, see [themes/README.md](themes/README.md). Themes can also be shared as `.glasstheme` packages, which install with a double-click.
+
+## GlassBar Hub
+
+Menu > **GlassBar Hub…** opens the store and your library. It has a featured pick, new and most installed themes, categories and search. One click installs a theme and puts it on the bar. The store is just the [themes](themes) and [layouts](layouts) folders of this repo, so there's no account or server.
+
+![GlassBar Hub store](images/hub-store.png)
+
+Your installed themes and layouts are under Library, with updates when an author changes theirs.
+
+![Installed themes](images/hub-installed.png)
+
+Widgets, Theme Studio (a visual theme editor) and a layout editor already show up in the Hub but are still in development. The Hub window was built with AI assistance so I could spend more time on the theme engine and performance.
+
+## Layouts
+
+A layout gives one app your own Touch Bar buttons: keyboard shortcuts, menu commands, links, or opening another app. Xcode, VS Code, Terminal and Figma layouts are in the store to start with.
+
+![Layouts in the Hub](images/hub-layouts.png)
+
+Layouts are JSON too. How to write one is in [docs/LAYOUTS.md](docs/LAYOUTS.md), and they're shared the same way as themes ([layouts/README.md](layouts/README.md)).
+
+## What it does
+
+- **App bars.** Safari, Finder, Mail, Notes, Messages, Calculator, Calendar, Contacts, Preview, Photos, TextEdit, Reminders and the ⇧⌘5 screenshot tool get bars that follow the originals. For any other app, press and hold the app icon on the left to see the app's own Touch Bar.
+- **Control Strip.** Collapsed and expanded, like the original. You can pick up to five of 19 buttons, such as Spotlight, Night Shift, Screenshot or Lock Screen.
+- **Brightness and volume sliders.** Touch the button and slide without lifting, as on the original.
+- **fn keys.** Hold fn for F1 to F12, the expanded Control Strip, app controls or desktop spaces. Some apps can always show F keys.
+- **Siri.** A clear glass drop with colorful waves that follow your voice.
+- **Now Playing and Spotify.** Play controls and scrubbing for Music, Spotify and QuickTime. Spotify shows the album cover and a sound bar in its colors.
+- **Typing suggestions and emoji.** Word suggestions while you type, and the nine emoji categories with momentum scrolling.
+- **Backgrounds.** The app's color, a few color styles, your wallpaper or your own image behind the glass.
+- **esc.** On Macs with a physical esc key (late 2019 and later) the bar is shorter and has no esc. Older models get esc on the bar.
+
+**Siri**
 
 <p align="center"><img src="images/siri.gif" width="720" alt="Siri animation"></p>
-
-![Siri on the bar](images/siri-bar.gif)
-
-**Finder**
-![Finder](images/finder.png)
 
 **Safari**
 ![Safari](images/safari.png)
@@ -37,81 +90,51 @@ A native macOS replacement for the Touch Bar on the 13" M2 MacBook Pro. The layo
 ![Brightness](images/brightness.png)
 ![Volume](images/volume.png)
 
-**fn → F1–F12**
+**fn: F1 to F12**
 ![F keys](images/fn.png)
 
 **Emoji**
 ![Emoji](images/emoji.png)
 
-**Terminal and 8-Bit Arcade themes**
-![Terminal theme](images/terminal.png)
-![8-Bit Arcade theme](images/arcade.png)
+The full list, with what's still missing compared to Apple's Touch Bar, is in [FEATURES.md](FEATURES.md) (Turkish: [FEATURES.tr.md](FEATURES.tr.md)).
 
-**Hardware detection** (`SystemControl.swift` → `Hardware`): the model is read from `hw.model`. On Touch Bar MacBook Pros from late 2019 onward (MacBookPro16,x, 17,1, Mac14,7), esc is a physical key, the bar is 1004 pt wide, and no esc is shown on the bar. On earlier models the bar is 1085 pt and esc lives on the bar. The "esc on the bar" menu option overrides this. The physical esc key also closes the Siri pill and the sliders.
+## Performance
 
-## Download
+GlassBar only redraws the bar when something on it changes, so it sits at about 1% CPU or less and around 40 MB of memory. The moving background styles cost a bit more, because the system's Touch Bar process has to draw them. Turn the background off and that cost goes away.
 
-**[⬇ Download GlassBar.zip](https://github.com/Moryel/glass-bar/releases/latest/download/GlassBar.zip)** · Intel and Apple Silicon · macOS 14 Sonoma or later · MacBook Pro with a Touch Bar, 2018 or later (2016–2017 models cannot run macOS 14)
+## Permissions
 
-1. Unzip it and drag **GlassBar.app** into **Applications**.
-2. Open it. GlassBar is free and not notarized by Apple, so the first time macOS blocks it:
-   - **macOS 15 and later:** System Settings → Privacy & Security → scroll down → **Open Anyway**.
-   - **macOS 14:** right-click GlassBar.app → **Open** → **Open**.
+**Accessibility** is required (System Settings > Privacy & Security > Accessibility > GlassBar). GlassBar uses it for esc, F1 to F12, shortcuts, media keys, typing suggestions, fn and menu commands. The permission status at launch is written to `~/Library/Logs/GlassBar.log`.
 
-   Or, in Terminal: `xattr -dr com.apple.quarantine /Applications/GlassBar.app`
-3. Give GlassBar **Accessibility** permission when asked (details below).
-4. A GlassBar icon appears in the menu bar. Turn on **Launch at Login** from there to have it start with your Mac.
+Other permissions are asked for only when a feature needs them: Automation for Music, Spotify, Safari, Photos and Finder tags, the microphone for the Siri waves, and system audio recording for the Spotify sound bar (only the level is measured, nothing is recorded).
 
-## Build from source
-Requires the Xcode command line tools.
-```
-./build.sh --ac      # builds, installs to ~/Applications and opens it
-./build.sh release   # universal (Intel + Apple Silicon) build and build/GlassBar.zip
-```
-
-**Accessibility permission is required** (System Settings → Privacy & Security → Accessibility → GlassBar) to detect esc, F1–F12, shortcuts, media keys, typing suggestions and fn. When building from source, if a code-signing certificate named "TouchBar2 Yerel Imza" exists in your keychain, `build.sh` signs the app with it, so the permission survives rebuilds. Without it the app is signed ad hoc, and you have to grant the permission again after every build. The permission status at launch is written to `~/Library/Logs/GlassBar.log`. Automation permission is requested on first use for Music, Spotify, Safari, Photos and Finder tags. The Siri waves ask for microphone access, and the Spotify sound bar asks for system audio recording permission (only the audio level is measured; nothing is recorded).
+Switching desktop spaces uses ⌃1 to ⌃9, so turn on "Switch to Desktop N" in System Settings > Keyboard > Keyboard Shortcuts > Mission Control.
 
 ## How it works
-- To cover the Touch Bar in system-modal mode, GlassBar uses the same private APIs as MTMR and Pock (`NSTouchBar presentSystemModalTouchBar…`, DFRFoundation). It may break if Apple changes them.
-- The app icon button (next to esc) shrinks GlassBar and shows the front app's own Touch Bar items (typing suggestions, etc.). The ✨ button in the Control Strip, or switching to another app, brings GlassBar back.
-- Brightness: DisplayServices; keyboard backlight: CoreBrightness; volume: CoreAudio. Step buttons send media keys so the system HUD appears.
-- Since macOS 26, the Launchpad button opens "Apps".
-- The Siri button opens the real Siri. The waves in the glass drop follow the microphone level (background noise is filtered out). The pill closes after 12 seconds, on tap, with esc, or when you switch apps.
 
-## Menu (✨)
-What the Touch Bar shows, and what it shows while fn is held (app controls, expanded Control Strip, F keys, desktop spaces); show the Control Strip; Control Strip buttons; typing suggestions; esc on the bar; theme (Classic, Minimal Liquid Glass, Graphite, Neon, Terminal, 8-Bit Arcade or your own); background (app color, styles, wallpaper, custom image, or off); and, for the front app, "show its own Touch Bar" / "always F keys".
+- GlassBar covers the Touch Bar using the same private APIs as MTMR and Pock (`NSTouchBar presentSystemModalTouchBar…`, DFRFoundation). It may break if Apple changes them.
+- Brightness uses DisplayServices, keyboard backlight CoreBrightness, volume CoreAudio. The step buttons send media keys so the system HUD appears.
+- App buttons press the app's own menu items through Accessibility, so they work in English and Turkish and with any keyboard layout.
+- The interface follows the system language (English and Turkish, other languages fall back to English). Turkish strings are in `Resources/tr.lproj/Localizable.strings`.
 
-Switching between desktop spaces uses the ⌃1…⌃9 shortcuts, so the "Switch to Desktop N" shortcuts must be enabled in System Settings → Keyboard → Keyboard Shortcuts → Mission Control. Suggestions and emoji need the Accessibility permission; Spotify asks for Automation permission on first use.
+## Build from source
 
-## Themes
+Requires the Xcode command line tools.
 
-Besides the glass themes, 2.0 can draw the whole bar its own way: flat or gradient buttons, ASCII brackets, pixel borders, a font that comes with the theme, its own icons and a tap sound. Terminal and 8-Bit Arcade are built in.
+```
+./build.sh --ac      # builds, installs to ~/Applications and opens it
+./build.sh release   # universal build and build/GlassBar.zip
+```
 
-**GlassBar Hub** (menu > GlassBar Hub…) is a small theme store: a featured theme, new themes, categories, the most installed ones, and your own library with updates. One click installs and applies a theme. The store is just the [themes](themes) folder of this repo, so it needs no account or server. Widgets, Theme Studio and the layout editor are already there but still in development.
+If a code-signing certificate named "TouchBar2 Yerel Imza" is in your keychain, `build.sh` signs with it so the Accessibility permission survives rebuilds. Without it the app is signed ad hoc, and you have to grant the permission again after every build.
 
-**Layouts** give any app your own Touch Bar buttons: shortcuts, menu commands, links. Like themes they're JSON for now, see [docs/LAYOUTS.md](docs/LAYOUTS.md). Xcode, VS Code, Terminal and Figma layouts are in the store, and you can share yours the same way ([layouts/README.md](layouts/README.md)).
+For screenshots: `open ~/Applications/GlassBar.app --args -testPanel expanded|brightness|volume|siri|siriDemo|fn|emoji|nowPlaying|stripEditor|tabs|hub|store|layouts` (add `-testPressed YES` for the pressed look), then `screencapture -b bar.png`.
 
-You can write your own theme as a JSON file. Choose Theme > Open Themes Folder from the menu, drop in a `theme.json`, and use Theme > Reload Themes and Layouts after each save. Everything you can set is in [docs/THEMES.md](docs/THEMES.md). The format is still alpha and may change. A visual editor (Theme Studio) is planned for 2.1.
-
-Made a theme you like? Send it with a pull request and it shows up in the store, see [themes/README.md](themes/README.md).
-
-Full feature list: [FEATURES.md](FEATURES.md) (Turkish: [FEATURES.tr.md](FEATURES.tr.md)).
-
-## Files
-`Sources/main.swift` (private API, app delegate, menu), `AppState.swift` (state and button actions), `TouchBarView.swift` (layout and app-specific buttons: Safari, Notes, Music, Finder…), `Glass.swift` (glass button, group, slider), `Popover.swift` (popover bar), `Siri.swift` (Siri glass drop and waves), `Microphone.swift` (microphone level), `SystemControl.swift` (system calls, hardware, brightness, volume), `Settings.swift` (settings, Control Strip buttons, Night Shift, input source, spaces), `NowPlaying.swift` (Now Playing, video filmstrips), `SpotifyPlayer.swift` (Spotify player, album art, sound bar), `AudioCapture.swift` (Spotify audio tap and FFT), `Suggestions.swift` (suggestions, emoji, scrolling strip), `Backdrop.swift` (background styles), `AnimatedLayers.swift` (Core Animation glows), `AXHelpers.swift` (menu commands through Accessibility), `ScreenshotTool.swift`, `SafariTab.swift`, `SafariVideo.swift`, `PhotosVideo.swift`, `Contact.swift`, `UpdateChecker.swift`.
-
-The interface follows the system language (English and Turkish; other languages fall back to English). Strings are written in English in the code; Turkish translations live in `Resources/tr.lproj/Localizable.strings`.
-
-## Liquid glass touch (`Glass.swift` → `LiquidPress`)
-When you touch a button, it grows by 10%, light appears under your finger, a ring of light spreads out from there, the edge glows, and the ambient light behind the glass lights up at that spot. As your finger slides, the button stretches in that direction; when you let go, it springs back into place. In grouped buttons a glass drop swells up inside the group, and a slider's knob turns into a clear lens while you drag it. The action runs when you lift your finger while it is still on the button.
-
-Screenshot testing: `open ~/Applications/GlassBar.app --args -testPanel expanded|brightness|volume|siri|siriDemo|fn|emoji|nowPlaying|stripEditor|tabs|hub|store` (add `-testPressed YES` for the pressed look), then `screencapture -b bar.png`. `siriDemo` animates Siri without the microphone.
+The code is in `Sources/`: `main.swift` (app delegate and menu), `TouchBarView.swift` (the bar and the app bars), `Glass.swift` (buttons, groups, sliders), `Theme.swift` and `Skin.swift` (themes), `Layout.swift` (layouts), `Hub.swift` (Hub and store), `Siri.swift`, `NowPlaying.swift`, `SpotifyPlayer.swift`, `Suggestions.swift`, `SystemControl.swift` and a few smaller files.
 
 ## Roadmap
 
-GlassBar is becoming a free, open-source Touch Bar hub: themes that can look like anything (glass, a terminal, pixel art), a visual Theme Studio, a store for themes, layouts and widgets, editable bars for any app, and widgets that follow the theme. Every planned feature is described in [ROADMAP.md](ROADMAP.md).
-
-Also coming: Spotify integration — sign in to browse playlists, search, Add to Queue and pick Spotify Connect devices from the Touch Bar.
+Theme Studio comes next (2.1), then a bigger store, a layout editor and widgets that follow the theme. Spotify sign-in with playlists, search and device picking is planned too. Everything is in [ROADMAP.md](ROADMAP.md).
 
 ---
 
