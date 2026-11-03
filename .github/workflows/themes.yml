@@ -1,0 +1,37 @@
+# Zips every theme in themes/ into the "themes" release. The store installs from these zips,
+# and their download counts are the install counts it shows.
+name: Theme packages
+
+on:
+  push:
+    branches: [main]
+    paths: ["themes/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Upload new theme versions
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view themes >/dev/null 2>&1 || \
+            gh release create themes --title "Community themes" --prerelease \
+              --notes "Theme packages for the store in GlassBar Hub. Install them from the app, or download one and double-click it."
+          existing=$(gh release view themes --json assets --jq '.assets[].name')
+          mkdir -p dist
+          cd themes
+          for dir in */; do
+            id=${dir%/}
+            [ -f "$id/theme.json" ] || continue
+            version=$(jq -r '.version // 1' "$id/theme.json")
+            name="$id-$version.glasstheme.zip"
+            if echo "$existing" | grep -qx "$name"; then continue; fi
+            zip -qr "../dist/$name" "$id"
+            gh release upload themes "../dist/$name"
+          done

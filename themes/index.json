@@ -9,7 +9,10 @@
       "files": [
         "theme.json",
         "preview.png"
-      ]
+      ],
+      "category": "Minimal",
+      "added": "2026-11-03",
+      "updated": "2026-11-03"
     },
     {
       "id": "amber",
@@ -20,7 +23,11 @@
       "files": [
         "theme.json",
         "preview.png"
-      ]
+      ],
+      "category": "Retro",
+      "added": "2026-11-03",
+      "updated": "2026-11-03",
+      "featured": true
     },
     {
       "id": "blueprint",
@@ -31,7 +38,10 @@
       "files": [
         "theme.json",
         "preview.png"
-      ]
+      ],
+      "category": "Minimal",
+      "added": "2026-11-03",
+      "updated": "2026-11-03"
     },
     {
       "id": "sunset-glass",
@@ -42,7 +52,10 @@
       "files": [
         "theme.json",
         "preview.png"
-      ]
+      ],
+      "category": "Glass",
+      "added": "2026-11-03",
+      "updated": "2026-11-03"
     }
   ]
 }

@@ -141,8 +141,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
         case "emoji": state.panel = .emoji
         case "nowPlaying": state.panel = .nowPlaying
         case "stripEditor": state.isEditingControlStrip = true
-        case "hub": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { Hub.open(self.state) }
-        case "store": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { Hub.open(self.state, .store) }
+        case "hub": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { Hub.open(self.state, .installed) }
+        case "store": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { Hub.open(self.state, .featured) }
         case "tabs": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { self.state.showTabs() }
         default: break
         }
@@ -354,7 +354,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
         if let t = ThemeStore.shared.theme(id: o.representedObject as? String ?? "") { state.apply(t) }
     }
     @objc func openHub() { Hub.open(state) }
-    @objc func openStore() { Hub.open(state, .store) }
+    @objc func openStore() { Hub.open(state, .featured) }
 
     @objc func openThemesFolder() {
         try? FileManager.default.createDirectory(at: ThemeStore.shared.folder, withIntermediateDirectories: true)
