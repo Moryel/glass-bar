@@ -6,6 +6,9 @@ import SwiftUI
 enum Hub {
     enum Page: Hashable {
         case featured, new, popular, updated, name, category(String), installed, updates
+        case general, controlStrip, dock
+
+        var isSettings: Bool { self == .general || self == .controlStrip || self == .dock }
     }
     enum Kind: String { case themes, layouts }
 
@@ -192,7 +195,7 @@ final class HubModel: ObservableObject {
         case .name: return list.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
         case .category(let c): return list.filter { $0.category == c }.sorted { $0.name < $1.name }
         case .updates: return updates
-        case .installed: return []
+        case .installed, .general, .controlStrip, .dock: return []
         }
     }
 
@@ -355,6 +358,11 @@ struct HubView: View {
                     Label(L("Updates"), systemImage: "arrow.triangle.2.circlepath").tag(Hub.Page.updates)
                         .badge(m.updates.count)
                 }
+                Section(L("Settings")) {
+                    Label(L("General"), systemImage: "gearshape").tag(Hub.Page.general)
+                    Label(L("Control Strip"), systemImage: "slider.horizontal.3").tag(Hub.Page.controlStrip)
+                    Label(L("Dock"), systemImage: "dock.rectangle").tag(Hub.Page.dock)
+                }
                 Section(L("Create")) {
                     Button { m.comingSoon = .init(title: "Theme Studio", version: "2.1") } label: {
                         Label("Theme Studio", systemImage: "paintbrush.pointed")
@@ -376,18 +384,22 @@ struct HubView: View {
             Group {
                 switch m.page {
                 case .installed: InstalledPage(m: m)
+                case .general: GeneralSettingsView(d: m.d)
+                case .controlStrip: ControlStripSettingsView(d: m.d)
+                case .dock: DockSettingsView(d: m.d)
                 default: StorePage(m: m)
                 }
             }
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    Picker("", selection: Binding(get: { m.kind == .themes ? 0 : 2 }, set: { v in
+                    Picker("", selection: Binding(get: { m.page == .dock ? 1 : m.kind == .themes ? 0 : 2 }, set: { v in
                         switch v {
                         case 0: m.kind = .themes
                         case 2: m.kind = .layouts
-                        default: m.comingSoon = .init(title: L("Widgets"), version: "2.3")
+                        default: m.page = .dock; return
                         }
                         if case .category = m.page { m.page = .featured }
+                        if m.page.isSettings { m.page = .featured }
                     })) {
                         Text(L("Themes")).tag(0)
                         Text(L("Widgets")).tag(1)
@@ -398,7 +410,7 @@ struct HubView: View {
                 }
             }
             .searchable(text: $m.search, prompt: m.kind == .themes ? L("Search Themes") : L("Search Layouts"))
-            .onChange(of: m.search) { s in if !s.isEmpty && (m.page == .featured || m.page == .installed) { m.page = .name } }
+            .onChange(of: m.search) { s in if !s.isEmpty && (m.page == .featured || m.page == .installed || m.page.isSettings) { m.page = .name } }
         }
         .alert(item: $m.comingSoon) { c in
             Alert(title: Text(String(format: L("%@ is in development"), c.title)),

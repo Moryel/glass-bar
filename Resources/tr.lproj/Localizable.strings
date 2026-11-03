@@ -276,6 +276,12 @@
 "Dock with Folders and Status" = "Klasörler ve durumla Dock";
 "Folders and Trash after a separator" = "Ayraçtan sonra klasörler ve Çöp";
 "Open in Finder" = "Finder’da Aç";
+"Settings…" = "Ayarlar…";
+"Settings" = "Ayarlar";
+"General" = "Genel";
+"Look" = "Görünüm";
+"Touch Bar" = "Touch Bar";
+"Drag to reorder right on the Touch Bar." = "Sırayı doğrudan Touch Bar’da sürükleyerek değiştir.";
 "Items" = "Öğeler";
 "Finder" = "Finder";
 "Size" = "Boyut";

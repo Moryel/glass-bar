@@ -1,32 +1,6 @@
-import AppKit
 import SwiftUI
 
-/// The small "Dock Settings…" window: a preset and a handful of switches. Built when opened, let go when closed.
-enum DockSettingsWindow {
-    private static var window: NSWindow?
-    private static var delegate: CloseDelegate?
-
-    static func open(_ d: AppState) {
-        NSApp.activate(ignoringOtherApps: true)
-        if let window { window.makeKeyAndOrderFront(nil); return }
-        let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 420, height: 420), styleMask: [.titled, .closable], backing: .buffered, defer: false)
-        w.title = L("Dock Settings")
-        w.contentView = NSHostingView(rootView: DockSettingsView(d: d))
-        w.isReleasedWhenClosed = false
-        w.center()
-        delegate = CloseDelegate { window = nil; delegate = nil }
-        w.delegate = delegate
-        window = w
-        w.makeKeyAndOrderFront(nil)
-    }
-
-    private final class CloseDelegate: NSObject, NSWindowDelegate {
-        let onClose: () -> Void
-        init(_ onClose: @escaping () -> Void) { self.onClose = onClose }
-        func windowWillClose(_ n: Notification) { onClose() }
-    }
-}
-
+/// The Dock page in the Hub's Settings.
 struct DockSettingsView: View {
     @ObservedObject var d: AppState
     @ObservedObject private var s = DockSettings.shared
@@ -115,7 +89,5 @@ struct DockSettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 440)
-        .fixedSize(horizontal: false, vertical: true)
     }
 }

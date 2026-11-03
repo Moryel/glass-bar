@@ -150,7 +150,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
         case "store": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { Hub.open(self.state, .featured) }
         case "layouts": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { Hub.open(self.state, .featured, .layouts) }
         case "tabs": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { self.state.showTabs() }
-        case "dockSettings": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { DockSettingsWindow.open(self.state) }
+        case "dockSettings": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { Hub.open(self.state, .dock) }
+        case "settings": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { Hub.open(self.state, .general) }
+        case "stripSettings": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { Hub.open(self.state, .controlStrip) }
         default: break
         }
         // the bar drawn to a PNG without the screen (works while the Mac is locked): -testSnapshot /path/bar.png
@@ -252,6 +254,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
         m.addItem(withTitle: L("Show GlassBar"), action: #selector(show), keyEquivalent: "").target = self
         m.addItem(withTitle: L("App's Own Controls"), action: #selector(minimize), keyEquivalent: "").target = self
         m.addItem(withTitle: L("GlassBar Hub…"), action: #selector(openHub), keyEquivalent: "").target = self
+        m.addItem(withTitle: L("Settings…"), action: #selector(openSettings), keyEquivalent: ",").target = self
         m.addItem(.separator())
         if !SystemControl.hasAccessibility {
             m.addItem(withTitle: L("Grant Accessibility Permission…"), action: #selector(requestPermission), keyEquivalent: "").target = self
@@ -342,16 +345,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
     }
 
     /// Lets the user pick a background image (the app runs in the background, so it's activated first).
-    func chooseImage() {
-        let p = NSOpenPanel()
-        p.allowedContentTypes = [.image]
-        p.allowsMultipleSelection = false
-        p.message = L("Choose an image to show behind the Touch Bar")
-        NSApp.activate(ignoringOtherApps: true)
-        guard p.runModal() == .OK, let url = p.url else { return }
-        state.backdropImagePath = url.path
-        state.backdrop = .customImage
-    }
+    func chooseImage() { state.chooseBackdropImage() }
     @objc func toggleSuggestions() { state.showsSuggestions.toggle() }
     @objc func checkForUpdates() { UpdateChecker.shared.check(userInitiated: true) }
     @objc func openUpdatePage() { UpdateChecker.shared.openReleasePage() }
@@ -385,7 +379,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
     }
     @objc func openHub() { Hub.open(state) }
     @objc func switchToRelease() { Edition.switchToReleaseApp() }
-    @objc func openDockSettings() { DockSettingsWindow.open(state) }
+    @objc func openDockSettings() { Hub.open(state, .dock) }
+    @objc func openSettings() { Hub.open(state, .general) }
 
     @objc func selectDockPreset(_ o: NSMenuItem) {
         guard let p = DockPreset(rawValue: o.representedObject as? String ?? "") else { return }
@@ -431,12 +426,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
         state.isEditingControlStrip = true
     }
 
-    /// The chosen button is appended; past the limit the oldest one is removed.
     @objc func toggleStripButton(_ o: NSMenuItem) {
-        guard let t = StripButton(rawValue: o.representedObject as? String ?? "") else { return }
-        var l = state.stripButtons
-        if let i = l.firstIndex(of: t) { l.remove(at: i) } else { l.append(t); if l.count > StripButton.maxCount { l.removeFirst() } }
-        state.stripButtons = l
+        if let t = StripButton(rawValue: o.representedObject as? String ?? "") { state.toggleStripButton(t) }
     }
 
     @objc func toggleOwnBar() {
