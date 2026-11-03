@@ -154,6 +154,8 @@ struct LayoutEditorView: View {
                     Spacer()
                     Button(L("Revert"), action: m.revert).disabled(!m.isDirty || m.saved == nil)
                     Button(L("Export…"), action: m.exportLayout)
+                    Button(L("Publish…")) { if let l = m.saved, let s = try? Submission.layout(l) { PublishWindow.open(s) } }
+                        .disabled(m.isDirty || m.saved == nil)
                     Button(L("Save"), action: m.save).keyboardShortcut("s").disabled(!m.isDirty)
                 }
                 .padding(12)

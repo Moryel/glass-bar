@@ -329,6 +329,7 @@ struct ScriptWidgetsSection: View {
                     Spacer()
                     Toggle(L("On the Bar"), isOn: Binding(get: { s.strip.contains("script:" + w.id) }, set: { _ in s.toggle("script:" + w.id) }))
                         .toggleStyle(.switch).labelsHidden()
+                    Button(L("Publish…")) { PublishWindow.open(Submission.widget(w)) }
                     Button(L("Show in Finder")) { if let u = w.baseURL { NSWorkspace.shared.activateFileViewerSelecting([u]) } }
                     Button(L("Remove"), role: .destructive) {
                         s.strip.removeAll { $0 == "script:" + w.id }

@@ -247,6 +247,9 @@ struct ThemeStudioView: View {
             Button(L("Revert"), action: m.revert).disabled(!m.isDirty)
             Button(L("Duplicate"), action: m.duplicate)
             Button(L("Export…"), action: m.export)
+            Button(L("Publish…")) { if let s = try? Submission.theme(m.saved) { PublishWindow.open(s) } }
+                .disabled(m.isDirty || m.draft.isBuiltIn || ThemeStore.shared.theme(id: m.draft.id) == nil)
+                .help(L("Save the theme first. Built-in themes can’t be published."))
             Button(L("Save"), action: m.save).keyboardShortcut("s").disabled(!m.isDirty && !m.draft.isBuiltIn)
         }
         .padding(12)
