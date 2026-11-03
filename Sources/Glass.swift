@@ -410,88 +410,89 @@ struct GlassSlider: View {
     @StateObject private var b = PressState()
     @Environment(\.theme) private var theme
 
+    // One gesture on a container that outlives the three looks: switching between a glass and a skinned theme
+    // mid-drag replaces the look, and a gesture attached to it would end without onEnded (the knob stays a lens).
     var body: some View {
-        if theme.isSkin { skinned } else if theme.isMinimal { minimal } else { classic }
-    }
-
-    /// Skinned theme: a track in the theme's colors and a knob drawn like its buttons; with ASCII borders, [====|----].
-    private var skinned: some View {
         GeometryReader { g in
-            let w = max(1, g.size.width), v = CGFloat(value)
-            // the track keeps its normal look while held (a pressed look such as inverted colors would hide it)
-            let l = theme.layer(nil)
-            let fill = theme.sliderFill ?? theme.layer(.primary).fill ?? l.borderColor
-            Group {
-                if l.border == "ascii" {
-                    let font = theme.nsFont(13, .medium)
-                    let charWidth = max(1, ("=" as NSString).size(withAttributes: [.font: font]).width)
-                    let count = max(4, Int(w / charWidth) - 3), filled = Int((v * CGFloat(count)).rounded())
-                    Text(l.opening + String(repeating: "=", count: filled) + "|" + String(repeating: "-", count: max(0, count - filled)) + l.closing)
-                        .font(theme.font(13)).foregroundStyle(l.text).lineLimit(1).fixedSize()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    let knob = CGSize(width: isThin ? 12 : 26, height: isThin ? 12 : 20)
-                    ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: min(l.radius, 3)).fill(l.borderColor.opacity(0.3)).frame(height: isThin ? 4 : 6)
-                        RoundedRectangle(cornerRadius: min(l.radius, 3)).fill(fill).frame(width: max(6, w * v), height: isThin ? 4 : 6)
-                        SkinBackground(isPressed: b.isPressed)
-                            .frame(width: knob.width, height: knob.height)
-                            .scaleEffect(b.isPressed ? 1.15 : 1)
-                            .offset(x: min(max(0, w * v - knob.width / 2), w - knob.width))
-                            .animation(Springs.minimalPress, value: b.isPressed)
-                    }
-                    .frame(maxHeight: .infinity)
-                }
-            }
-            .contentShape(Rectangle())
-            .gesture(dragGesture(w))
-        }
-        .frame(height: Metrics.buttonHeight)
-    }
-
-    /// Minimal theme: a white capsule knob at rest; while dragging it becomes a clear lens magnifying the track below.
-    private var minimal: some View {
-        GeometryReader { g in
-            let w = max(1, g.size.width), v = CGFloat(value)
-            let knob: CGSize = isThin ? .init(width: 12, height: 12) : .init(width: 30, height: 20)
-            let ray: CGFloat = 4
-            let isLens = b.isPressed
-            let x = min(max(0, w * v - knob.width / 2), w - knob.width)
-            let color = theme.sliderFill ?? fillColor ?? .white
-            let trackView = ZStack(alignment: .leading) {
-                Capsule().fill(.white.opacity(0.18)).frame(height: ray)
-                Capsule().fill(color).frame(width: max(ray, w * v), height: ray)
-            }
-            ZStack(alignment: .leading) {
-                trackView
-                ZStack {
-                    Capsule().fill(isLens ? Color.white.opacity(0.06) : Color(hex: 0xF2F2F7))
-                    if isLens {
-                        // lens: the track under the knob looks 30% larger
-                        trackView
-                            .frame(width: w, height: knob.height)
-                            .scaleEffect(1.3, anchor: UnitPoint(x: (x + knob.width / 2) / w, y: 0.5))
-                            .offset(x: -x)
-                            .frame(width: knob.width, height: knob.height, alignment: .leading)
-                            .clipShape(Capsule())
-                        Capsule().strokeBorder(.white.opacity(0.18), lineWidth: 2).blur(radius: 1.5).clipShape(Capsule())
-                        Capsule().strokeBorder(LinearGradient(stops: [.init(color: .white.opacity(0.85), location: 0),
-                                                                      .init(color: .white.opacity(0.25), location: 0.4),
-                                                                      .init(color: .white.opacity(0.4), location: 1)],
-                                                              startPoint: .top, endPoint: .bottom), lineWidth: 0.8)
-                    }
-                }
-                .frame(width: knob.width, height: knob.height)
-                .shadow(color: .black.opacity(isLens ? 0.4 : 0.55), radius: isLens ? 1.5 : 1, y: 0.5)
-                .scaleEffect(x: isLens ? 1.32 : 1, y: isLens ? 1.22 : 1)
-                .offset(x: x)
-                .animation(isLens ? Springs.minimalPress : Springs.minimalRelease, value: isLens)
+            let w = max(1, g.size.width)
+            ZStack {
+                if theme.isSkin { skinned(w) } else if theme.isMinimal { minimal(w) } else { classic(w) }
             }
             .frame(maxHeight: .infinity)
             .contentShape(Rectangle())
             .gesture(dragGesture(w))
         }
         .frame(height: Metrics.buttonHeight)
+    }
+
+    /// Skinned theme: a track in the theme's colors and a knob drawn like its buttons; with ASCII borders, [====|----].
+    @ViewBuilder private func skinned(_ w: CGFloat) -> some View {
+        let v = CGFloat(value)
+        // the track keeps its normal look while held (a pressed look such as inverted colors would hide it)
+        let l = theme.layer(nil)
+        let fill = theme.sliderFill ?? theme.layer(.primary).fill ?? l.borderColor
+        Group {
+            if l.border == "ascii" {
+                let font = theme.nsFont(13, .medium)
+                let charWidth = max(1, ("=" as NSString).size(withAttributes: [.font: font]).width)
+                let count = max(4, Int(w / charWidth) - 3), filled = Int((v * CGFloat(count)).rounded())
+                Text(l.opening + String(repeating: "=", count: filled) + "|" + String(repeating: "-", count: max(0, count - filled)) + l.closing)
+                    .font(theme.font(13)).foregroundStyle(l.text).lineLimit(1).fixedSize()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                let knob = CGSize(width: isThin ? 12 : 26, height: isThin ? 12 : 20)
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: min(l.radius, 3)).fill(l.borderColor.opacity(0.3)).frame(height: isThin ? 4 : 6)
+                    RoundedRectangle(cornerRadius: min(l.radius, 3)).fill(fill).frame(width: max(6, w * v), height: isThin ? 4 : 6)
+                    SkinBackground(isPressed: b.isPressed)
+                        .frame(width: knob.width, height: knob.height)
+                        .scaleEffect(b.isPressed ? 1.15 : 1)
+                        .offset(x: min(max(0, w * v - knob.width / 2), w - knob.width))
+                        .animation(Springs.minimalPress, value: b.isPressed)
+                }
+                .frame(maxHeight: .infinity)
+            }
+        }
+    }
+
+    /// Minimal theme: a white capsule knob at rest; while dragging it becomes a clear lens magnifying the track below.
+    @ViewBuilder private func minimal(_ w: CGFloat) -> some View {
+        let v = CGFloat(value)
+        let knob: CGSize = isThin ? .init(width: 12, height: 12) : .init(width: 30, height: 20)
+        let ray: CGFloat = 4
+        let isLens = b.isPressed
+        let x = min(max(0, w * v - knob.width / 2), w - knob.width)
+        let color = theme.sliderFill ?? fillColor ?? .white
+        let trackView = ZStack(alignment: .leading) {
+            Capsule().fill(.white.opacity(0.18)).frame(height: ray)
+            Capsule().fill(color).frame(width: max(ray, w * v), height: ray)
+        }
+        ZStack(alignment: .leading) {
+            trackView
+            ZStack {
+                Capsule().fill(isLens ? Color.white.opacity(0.06) : Color(hex: 0xF2F2F7))
+                if isLens {
+                    // lens: the track under the knob looks 30% larger
+                    trackView
+                        .frame(width: w, height: knob.height)
+                        .scaleEffect(1.3, anchor: UnitPoint(x: (x + knob.width / 2) / w, y: 0.5))
+                        .offset(x: -x)
+                        .frame(width: knob.width, height: knob.height, alignment: .leading)
+                        .clipShape(Capsule())
+                    Capsule().strokeBorder(.white.opacity(0.18), lineWidth: 2).blur(radius: 1.5).clipShape(Capsule())
+                    Capsule().strokeBorder(LinearGradient(stops: [.init(color: .white.opacity(0.85), location: 0),
+                                                                  .init(color: .white.opacity(0.25), location: 0.4),
+                                                                  .init(color: .white.opacity(0.4), location: 1)],
+                                                          startPoint: .top, endPoint: .bottom), lineWidth: 0.8)
+                }
+            }
+            .frame(width: knob.width, height: knob.height)
+            .shadow(color: .black.opacity(isLens ? 0.4 : 0.55), radius: isLens ? 1.5 : 1, y: 0.5)
+            .scaleEffect(x: isLens ? 1.32 : 1, y: isLens ? 1.22 : 1)
+            .offset(x: x)
+            .animation(isLens ? Springs.minimalPress : Springs.minimalRelease, value: isLens)
+        }
+        .frame(maxHeight: .infinity)
     }
 
     private func dragGesture(_ w: CGFloat) -> some Gesture {
@@ -504,39 +505,34 @@ struct GlassSlider: View {
             .onEnded { _ in b.isPressed = false }
     }
 
-    private var classic: some View {
-        GeometryReader { g in
-            let w = g.size.width, v = CGFloat(value)
-            let knob: CGSize = isThin ? .init(width: 12, height: 12) : .init(width: 34, height: 22)
-            let ray: CGFloat = isThin ? 4 : 6
-            let isLens = b.isPressed
-            ZStack(alignment: .leading) {
-                Capsule().fill(.white.opacity(0.13)).frame(height: ray)
-                    .overlay(Capsule().stroke(.black.opacity(0.5), lineWidth: 0.5))
-                Capsule().fill(LinearGradient(colors: (theme.sliderFill ?? fillColor).map { [$0.opacity(0.8), $0] } ?? [.white.opacity(0.55), .white],
-                                              startPoint: .leading, endPoint: .trailing))
-                    .frame(width: max(ray, w * v), height: ray)
-                ZStack {
-                    Capsule().fill(LinearGradient(colors: [.white.opacity(isLens ? 0.12 : 0.55), .white.opacity(isLens ? 0.03 : 0.2)],
-                                                  startPoint: .top, endPoint: .bottom))
-                    Capsule()
-                        .fill(LinearGradient(colors: [.white.opacity(isLens ? 0.5 : 0.2), .clear], startPoint: .top, endPoint: .center))
-                        .padding(.horizontal, 3).padding(.top, 0.8).padding(.bottom, knob.height * 0.45)
-                    Capsule().strokeBorder(LinearGradient(colors: [.white.opacity(0.95), .white.opacity(isLens ? 0.25 : 0.5), .white.opacity(0.7)],
-                                                          startPoint: .top, endPoint: .bottom), lineWidth: isLens ? 1.1 : 0.7)
-                }
-                .frame(width: knob.width, height: knob.height)
-                .shadow(color: .black.opacity(isLens ? 0.35 : 0.6), radius: 3, y: 1)
-                .shadow(color: .white.opacity(isLens ? 0.35 : 0), radius: 6)
-                .scaleEffect(x: isLens ? 1.3 : 1, y: isLens ? 1.18 : 1)
-                .offset(x: min(max(0, w * v - knob.width / 2), w - knob.width))
-                .animation(isLens ? Springs.press : Springs.release, value: isLens)
+    @ViewBuilder private func classic(_ w: CGFloat) -> some View {
+        let v = CGFloat(value)
+        let knob: CGSize = isThin ? .init(width: 12, height: 12) : .init(width: 34, height: 22)
+        let ray: CGFloat = isThin ? 4 : 6
+        let isLens = b.isPressed
+        ZStack(alignment: .leading) {
+            Capsule().fill(.white.opacity(0.13)).frame(height: ray)
+                .overlay(Capsule().stroke(.black.opacity(0.5), lineWidth: 0.5))
+            Capsule().fill(LinearGradient(colors: (theme.sliderFill ?? fillColor).map { [$0.opacity(0.8), $0] } ?? [.white.opacity(0.55), .white],
+                                          startPoint: .leading, endPoint: .trailing))
+                .frame(width: max(ray, w * v), height: ray)
+            ZStack {
+                Capsule().fill(LinearGradient(colors: [.white.opacity(isLens ? 0.12 : 0.55), .white.opacity(isLens ? 0.03 : 0.2)],
+                                              startPoint: .top, endPoint: .bottom))
+                Capsule()
+                    .fill(LinearGradient(colors: [.white.opacity(isLens ? 0.5 : 0.2), .clear], startPoint: .top, endPoint: .center))
+                    .padding(.horizontal, 3).padding(.top, 0.8).padding(.bottom, knob.height * 0.45)
+                Capsule().strokeBorder(LinearGradient(colors: [.white.opacity(0.95), .white.opacity(isLens ? 0.25 : 0.5), .white.opacity(0.7)],
+                                                      startPoint: .top, endPoint: .bottom), lineWidth: isLens ? 1.1 : 0.7)
             }
-            .frame(maxHeight: .infinity)
-            .contentShape(Rectangle())
-            .gesture(dragGesture(w))
+            .frame(width: knob.width, height: knob.height)
+            .shadow(color: .black.opacity(isLens ? 0.35 : 0.6), radius: 3, y: 1)
+            .shadow(color: .white.opacity(isLens ? 0.35 : 0), radius: 6)
+            .scaleEffect(x: isLens ? 1.3 : 1, y: isLens ? 1.18 : 1)
+            .offset(x: min(max(0, w * v - knob.width / 2), w - knob.width))
+            .animation(isLens ? Springs.press : Springs.release, value: isLens)
         }
-        .frame(height: Metrics.buttonHeight)
+        .frame(maxHeight: .infinity)
     }
 }
 
