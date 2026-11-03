@@ -12,7 +12,7 @@ Put your theme in
 ~/Library/Application Support/GlassBar/Themes/
 ```
 
-The quickest way there is the menu bar icon: **Theme > Open Themes Folder**. After you save a change, choose **Theme > Reload Themes** and the bar redraws with the new file. Your theme shows up in the Theme menu by its `name`.
+The quickest way there is the menu bar icon: **Theme > Open Themes Folder**, or the same button in GlassBar Hub. After you save a change, choose **Theme > Reload Themes** and the bar redraws with the new file. Your theme shows up in the Theme menu by its `name`.
 
 A theme can be:
 
@@ -21,7 +21,7 @@ A theme can be:
 
 Double-clicking a `.glasstheme` file or package anywhere on your Mac copies it into the themes folder and switches to it. That's the easiest way to give a theme to someone else.
 
-Use a folder as soon as your theme needs a font, an image or a sound. File paths in `theme.json` are relative to that folder.
+Use a folder as soon as your theme needs a font, an image or a sound. File paths in `theme.json` are relative to that folder. A `preview.png` in the folder (a screenshot of the bar, `screencapture -b preview.png`) is shown on the theme's card in GlassBar Hub.
 
 ## Look, not behavior
 
@@ -258,4 +258,4 @@ If a field has the wrong type (`"scale": "big"` instead of a number), that field
 
 ## Sharing your theme
 
-Themes are shared through pull requests to this repo, there's no server or store yet. See [themes/README.md](../themes/README.md) for how to submit one.
+Themes are shared through pull requests to this repo. Every theme in the [themes](../themes) folder shows up in the Store page of GlassBar Hub, where people can install it with one click. See [themes/README.md](../themes/README.md) for how to submit one.

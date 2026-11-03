@@ -87,9 +87,11 @@ Switching between desktop spaces uses the ⌃1…⌃9 shortcuts, so the "Switch 
 
 Besides the glass themes, 2.0 can draw the whole bar its own way: flat or gradient buttons, ASCII brackets, pixel borders, a font that comes with the theme, its own icons and a tap sound. Terminal and 8-Bit Arcade are built in.
 
+**GlassBar Hub** (menu > GlassBar Hub…) shows your themes with a picture of the bar, and its Store page lists themes made by other people. One click installs and applies them. The store is just the [themes](themes) folder of this repo, so it needs no account or server.
+
 You can write your own theme as a JSON file. Choose Theme > Open Themes Folder from the menu, drop in a `theme.json`, and use Theme > Reload Themes after each save. Everything you can set is in [docs/THEMES.md](docs/THEMES.md). The format is still alpha and may change. A visual editor (Theme Studio) is planned for 2.1.
 
-Made a theme you like? Share it with a pull request, see [themes/README.md](themes/README.md).
+Made a theme you like? Send it with a pull request and it shows up in the store, see [themes/README.md](themes/README.md).
 
 Full feature list: [FEATURES.md](FEATURES.md) (Turkish: [FEATURES.tr.md](FEATURES.tr.md)).
 
@@ -101,7 +103,7 @@ The interface follows the system language (English and Turkish; other languages 
 ## Liquid glass touch (`Glass.swift` → `LiquidPress`)
 When you touch a button, it grows by 10%, light appears under your finger, a ring of light spreads out from there, the edge glows, and the ambient light behind the glass lights up at that spot. As your finger slides, the button stretches in that direction; when you let go, it springs back into place. In grouped buttons a glass drop swells up inside the group, and a slider's knob turns into a clear lens while you drag it. The action runs when you lift your finger while it is still on the button.
 
-Screenshot testing: `open ~/Applications/GlassBar.app --args -testPanel expanded|brightness|volume|siri|siriDemo|fn|emoji|nowPlaying|stripEditor|tabs` (add `-testPressed YES` for the pressed look), then `screencapture -b bar.png`. `siriDemo` animates Siri without the microphone.
+Screenshot testing: `open ~/Applications/GlassBar.app --args -testPanel expanded|brightness|volume|siri|siriDemo|fn|emoji|nowPlaying|stripEditor|tabs|hub|store` (add `-testPressed YES` for the pressed look), then `screencapture -b bar.png`. `siriDemo` animates Siri without the microphone.
 
 ## Roadmap
 
