@@ -107,8 +107,7 @@ extension AppState {
 /// Installed layouts. The first one (by name) that names the front app is used.
 final class LayoutStore {
     static let shared = LayoutStore()
-    let folder = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        .appendingPathComponent("GlassBar/Layouts", isDirectory: true)
+    let folder = Edition.supportFolder.appendingPathComponent("Layouts", isDirectory: true)
     private(set) var all: [BarLayout] = []
     private(set) var locations: [String: URL] = [:]
     private var byApp: [String: BarLayout] = [:]

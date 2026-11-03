@@ -1,32 +1,38 @@
 #!/bin/zsh
 # Builds GlassBar.app and installs it to ~/Applications.
 # Usage: ./build.sh [--ac]   ·   ./build.sh release  → Intel + Apple Silicon, ad-hoc signed, build/GlassBar.zip (doesn't install)
+#        ./build.sh beta [--ac]  → "GlassBar Beta" with its own bundle id, settings and themes, next to the normal app
 set -e
 cd "${0:A:h}"
 VERSION=2.0.1
-APP=build/GlassBar.app
+NAME=GlassBar EXE=GlassBar BUNDLE_ID=com.yukselozge.GlassBar ICON=GlassBar FLAGS=()
+if [[ "$1" == "beta" ]]; then
+  shift
+  VERSION=2.3b1 NAME="GlassBar Beta" EXE=GlassBarBeta BUNDLE_ID=com.yukselozge.GlassBar.beta ICON=GlassBarBeta FLAGS=(-D BETA)
+fi
+APP="build/$NAME.app"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
 compile() {
   swiftc -O -swift-version 5 -target $1-apple-macos14.0 \
     -framework AppKit -framework SwiftUI -framework CoreAudio -framework AudioToolbox -framework ServiceManagement -framework Accelerate \
-    Sources/*.swift -o "$2"
+    $FLAGS Sources/*.swift -o "$2"
 }
 if [[ "$1" == "release" ]]; then
   mkdir -p build/arch
   compile arm64 build/arch/arm64
   compile x86_64 build/arch/x86_64
-  lipo -create build/arch/arm64 build/arch/x86_64 -output "$APP/Contents/MacOS/GlassBar"
+  lipo -create build/arch/arm64 build/arch/x86_64 -output "$APP/Contents/MacOS/$EXE"
   rm -rf build/arch
 else
-  compile arm64 "$APP/Contents/MacOS/GlassBar"
+  compile arm64 "$APP/Contents/MacOS/$EXE"
 fi
 
 # translations (by system language; English for languages not listed)
 cp -R Resources/*.lproj "$APP/Contents/Resources/"
 # app icon (source: design/app_icon.swift)
-cp Resources/GlassBar.icns "$APP/Contents/Resources/"
+cp Resources/$ICON.icns "$APP/Contents/Resources/"
 # built-in theme packages (Terminal, 8-Bit Arcade…)
 cp -R Resources/Themes "$APP/Contents/Resources/"
 cp -R Resources/Previews "$APP/Contents/Resources/"
@@ -68,6 +74,14 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 </plist>
 PLIST
 sed -i '' "s/<string>VERSION<\/string>/<string>$VERSION<\/string>/" "$APP/Contents/Info.plist"
+if [[ "$EXE" != GlassBar ]]; then
+  # the beta opens .glasstheme files too, but the normal app stays their owner
+  sed -i '' -e "s/>com.yukselozge.GlassBar</>$BUNDLE_ID</" -e "s/<string>GlassBar<\/string>/<string>$NAME<\/string>/g" \
+    -e "s/<key>CFBundleExecutable<\/key><string>[^<]*</<key>CFBundleExecutable<\/key><string>$EXE</" \
+    -e "s/<key>CFBundleIconFile<\/key><string>[^<]*</<key>CFBundleIconFile<\/key><string>$ICON</" \
+    -e "s/<string>Owner<\/string>/<string>Alternate<\/string>/" -e "s/UTExportedTypeDeclarations/UTImportedTypeDeclarations/" \
+    "$APP/Contents/Info.plist"
+fi
 
 if [[ "$1" == "release" ]]; then
   # ad-hoc signature so it runs on any Mac (the personal certificate isn't distributed)
@@ -82,16 +96,16 @@ if [[ "$1" == "release" ]]; then
 fi
 
 mkdir -p ~/Applications
-pkill -x GlassBar 2>/dev/null && sleep 0.5 || true
-rm -rf ~/Applications/GlassBar.app
+pkill -x "$EXE" 2>/dev/null && sleep 0.5 || true
+rm -rf ~/Applications/"$NAME.app"
 cp -R "$APP" ~/Applications/
 rm -rf "$APP"
 # extended attributes from the iCloud folder break the signature; clean the installed copy and sign it
-xattr -cr ~/Applications/GlassBar.app
+xattr -cr ~/Applications/"$NAME.app"
 # Sign with the local signing certificate if present: the identity stays the same across builds, so the Accessibility permission sticks.
 # Otherwise ad-hoc; the permission then has to be granted again after each build.
 IDENTITY=$(security find-identity -p codesigning 2>/dev/null | awk '/"TouchBar2 Yerel Imza"/ {print $2; exit}')
-codesign --force --sign "${IDENTITY:--}" ~/Applications/GlassBar.app
-echo "Installed: ~/Applications/GlassBar.app"
-[[ "$1" == "--ac" ]] && open ~/Applications/GlassBar.app
+codesign --force --sign "${IDENTITY:--}" ~/Applications/"$NAME.app"
+echo "Installed: ~/Applications/$NAME.app"
+[[ "$1" == "--ac" ]] && open ~/Applications/"$NAME.app"
 exit 0
