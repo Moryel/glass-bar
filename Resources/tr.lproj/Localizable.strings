@@ -432,3 +432,35 @@
 "City" = "Şehir";
 "Shown as its own bar: Touch Bar Shows → Dock" = "Kendi çubuğunda: Touch Bar gösterir → Dock";
 "Appears while something plays" = "Bir şey çalarken görünür";
+
+/* Layout Editor */
+"A space pushes the items after it to the right." = "Boşluk, ondan sonraki öğeleri sağa iter.";
+"Add App…" = "Uygulama Ekle…";
+"Add Button to Group" = "Gruba Düğme Ekle";
+"Button %d" = "Düğme %d";
+"Can’t read this shortcut. Use names like cmd, shift, alt, ctrl and a key: cmd+shift+b, f5." = "Bu kısayol okunamadı. cmd, shift, alt, ctrl ve bir tuş kullan: cmd+shift+b, f5.";
+"Description" = "Açıklama";
+"Does" = "Ne yapar";
+"Drag items here" = "Öğeleri buraya sürükle";
+"Drag to reorder. Saved layouts show on the Touch Bar when one of their apps is in front." = "Sırayı sürükleyerek değiştir. Kaydedilen düzen, uygulamalarından biri öndeyken Touch Bar’da görünür.";
+"Fixed width" = "Sabit genişlik";
+"Group" = "Grup";
+"Icon Button" = "Simge Düğmesi";
+"Icon" = "Simge";
+"Keyboard shortcut" = "Klavye kısayolu";
+"Label" = "Etiket";
+"Layout" = "Düzen";
+"Link or bundle identifier" = "Bağlantı ya da paket kimliği";
+"Menu command" = "Menü komutu";
+"Menu item title" = "Menü öğesinin adı";
+"New Layout" = "Yeni Düzen";
+"No layouts yet." = "Henüz düzen yok.";
+"Open a link or app" = "Bağlantı ya da uygulama aç";
+"Remove from Bar" = "Çubuktan Kaldır";
+"Remove from Group" = "Gruptan Kaldır";
+"Running Apps" = "Açık Uygulamalar";
+"Select an item on the bar to change it." = "Değiştirmek için çubuktan bir öğe seç.";
+"Shortcut" = "Kısayol";
+"Shows for" = "Gösterildiği uygulamalar";
+"Space" = "Boşluk";
+"Widget" = "Widget";

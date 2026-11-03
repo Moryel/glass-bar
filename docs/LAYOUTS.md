@@ -2,7 +2,7 @@
 
 A layout gives one app (or a few) your own buttons on the Touch Bar: keyboard shortcuts, menu commands, links, opening another app. It replaces the middle part of the bar while that app is in front. The Control Strip on the right stays as it is.
 
-There's no editor yet. Like themes, layouts are JSON files you write yourself. A drag-and-drop editor is planned, see the [roadmap](../ROADMAP.md).
+Layouts are JSON files. You can write them yourself, or, in GlassBar Beta, build them in the Layout Editor in GlassBar Hub, which writes the same file.
 
 > **The layout format is alpha.** Names and options may still change. Old files should keep loading, but check this page after an update if something stops working.
 

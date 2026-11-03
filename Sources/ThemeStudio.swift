@@ -639,12 +639,15 @@ private struct StudioIcons: View {
                 .disabled(field.symbol.isEmpty || field.value.isEmpty)
             }
             Menu(L("Common symbols")) {
-                ForEach(StudioIcons.common, id: \.self) { s in Button { field.symbol = s } label: { Label(s, systemImage: s) } }
+                ForEach(CommonSymbols.list, id: \.self) { s in Button { field.symbol = s } label: { Label(s, systemImage: s) } }
             }
         }
     }
 
-    static let common = ["chevron.left", "chevron.right", "magnifyingglass", "plus", "xmark", "sun.max.fill", "speaker.wave.2.fill",
+}
+
+enum CommonSymbols {
+    static let list = ["chevron.left", "chevron.right", "magnifyingglass", "plus", "xmark", "sun.max.fill", "speaker.wave.2.fill",
                          "speaker.slash.fill", "playpause.fill", "play.fill", "pause.fill", "forward.fill", "backward.fill",
                          "safari", "square.and.arrow.up", "star", "trash", "arrow.clockwise", "circle", "mic.fill"]
 }

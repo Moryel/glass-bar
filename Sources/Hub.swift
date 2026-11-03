@@ -6,10 +6,10 @@ import SwiftUI
 enum Hub {
     enum Page: Hashable {
         case featured, new, popular, updated, name, category(String), installed, updates
-        case general, controlStrip, dock, studio, widgets
+        case general, controlStrip, dock, studio, widgets, layoutEditor
 
         /// pages that aren't store listings
-        var isSettings: Bool { [.general, .controlStrip, .dock, .studio, .widgets].contains(self) }
+        var isSettings: Bool { [.general, .controlStrip, .dock, .studio, .widgets, .layoutEditor].contains(self) }
     }
     enum Kind: String { case themes, layouts }
 
@@ -125,6 +125,14 @@ final class HubModel: ObservableObject {
     }
     static var isLocalStore: Bool { themesBase.isFileURL }
 
+    private(set) var layoutEditorModel: LayoutEditorModel?
+    var layoutEditor: LayoutEditorModel {
+        if let e = layoutEditorModel { return e }
+        let e = LayoutEditorModel()
+        layoutEditorModel = e
+        return e
+    }
+
     /// built the first time Theme Studio opens
     private(set) var studioModel: StudioModel?
     var studio: StudioModel {
@@ -205,7 +213,7 @@ final class HubModel: ObservableObject {
         case .name: return list.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
         case .category(let c): return list.filter { $0.category == c }.sorted { $0.name < $1.name }
         case .updates: return updates
-        case .installed, .general, .controlStrip, .dock, .studio, .widgets: return []
+        case .installed, .general, .controlStrip, .dock, .studio, .widgets, .layoutEditor: return []
         }
     }
 
@@ -376,9 +384,7 @@ struct HubView: View {
                 }
                 Section(L("Create")) {
                     Label("Theme Studio", systemImage: "paintbrush.pointed").tag(Hub.Page.studio)
-                    Button { m.comingSoon = .init(title: L("Layout Editor"), version: "2.3") } label: {
-                        Label(L("Layout Editor"), systemImage: "rectangle.split.3x1")
-                    }
+                    Label(L("Layout Editor"), systemImage: "rectangle.split.3x1").tag(Hub.Page.layoutEditor)
                     Button { m.openFolder() } label: {
                         Label(m.kind == .themes ? L("Themes Folder") : L("Layouts Folder"), systemImage: "folder")
                     }
@@ -398,6 +404,7 @@ struct HubView: View {
                 case .dock: DockSettingsView(d: m.d)
                 case .studio: ThemeStudioView(m: m.studio)
                 case .widgets: WidgetsPage(m: m)
+                case .layoutEditor: LayoutEditorView(m: m.layoutEditor, d: m.d)
                 default: StorePage(m: m)
                 }
             }
