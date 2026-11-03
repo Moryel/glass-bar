@@ -43,6 +43,10 @@ A native macOS replacement for the Touch Bar on the 13" M2 MacBook Pro. The layo
 **Emoji**
 ![Emoji](images/emoji.png)
 
+**Terminal and 8-Bit Arcade themes**
+![Terminal theme](images/terminal.png)
+![8-Bit Arcade theme](images/arcade.png)
+
 **Hardware detection** (`SystemControl.swift` → `Hardware`): the model is read from `hw.model`. On Touch Bar MacBook Pros from late 2019 onward (MacBookPro16,x, 17,1, Mac14,7), esc is a physical key, the bar is 1004 pt wide, and no esc is shown on the bar. On earlier models the bar is 1085 pt and esc lives on the bar. The "esc on the bar" menu option overrides this. The physical esc key also closes the Siri pill and the sliders.
 
 ## Download
@@ -75,9 +79,17 @@ Requires the Xcode command line tools.
 - The Siri button opens the real Siri. The waves in the glass drop follow the microphone level (background noise is filtered out). The pill closes after 12 seconds, on tap, with esc, or when you switch apps.
 
 ## Menu (✨)
-What the Touch Bar shows, and what it shows while fn is held (app controls, expanded Control Strip, F keys, desktop spaces); show the Control Strip; Control Strip buttons; typing suggestions; esc on the bar; theme (Classic / Simple Liquid Glass); background (app color, styles, wallpaper, custom image, or off); and, for the front app, "show its own Touch Bar" / "always F keys".
+What the Touch Bar shows, and what it shows while fn is held (app controls, expanded Control Strip, F keys, desktop spaces); show the Control Strip; Control Strip buttons; typing suggestions; esc on the bar; theme (Classic, Minimal Liquid Glass, Graphite, Neon, Terminal, 8-Bit Arcade or your own); background (app color, styles, wallpaper, custom image, or off); and, for the front app, "show its own Touch Bar" / "always F keys".
 
 Switching between desktop spaces uses the ⌃1…⌃9 shortcuts, so the "Switch to Desktop N" shortcuts must be enabled in System Settings → Keyboard → Keyboard Shortcuts → Mission Control. Suggestions and emoji need the Accessibility permission; Spotify asks for Automation permission on first use.
+
+## Themes
+
+Besides the glass themes, 2.0 can draw the whole bar its own way: flat or gradient buttons, ASCII brackets, pixel borders, a font that comes with the theme, its own icons and a tap sound. Terminal and 8-Bit Arcade are built in.
+
+You can write your own theme as a JSON file. Choose Theme > Open Themes Folder from the menu, drop in a `theme.json`, and use Theme > Reload Themes after each save. Everything you can set is in [docs/THEMES.md](docs/THEMES.md). The format is still alpha and may change. A visual editor (Theme Studio) is planned for 2.1.
+
+Made a theme you like? Share it with a pull request, see [themes/README.md](themes/README.md).
 
 Full feature list: [FEATURES.md](FEATURES.md) (Turkish: [FEATURES.tr.md](FEATURES.tr.md)).
 
@@ -89,7 +101,7 @@ The interface follows the system language (English and Turkish; other languages 
 ## Liquid glass touch (`Glass.swift` → `LiquidPress`)
 When you touch a button, it grows by 10%, light appears under your finger, a ring of light spreads out from there, the edge glows, and the ambient light behind the glass lights up at that spot. As your finger slides, the button stretches in that direction; when you let go, it springs back into place. In grouped buttons a glass drop swells up inside the group, and a slider's knob turns into a clear lens while you drag it. The action runs when you lift your finger while it is still on the button.
 
-Screenshot testing: `open ~/Applications/GlassBar.app --args -testPanel expanded|brightness|volume|siri|siriDemo|fn|emoji|nowPlaying|stripEditor|tabs|themeEditor` (add `-testPressed YES` for the pressed look), then `screencapture -b bar.png`. `siriDemo` animates Siri without the microphone.
+Screenshot testing: `open ~/Applications/GlassBar.app --args -testPanel expanded|brightness|volume|siri|siriDemo|fn|emoji|nowPlaying|stripEditor|tabs` (add `-testPressed YES` for the pressed look), then `screencapture -b bar.png`. `siriDemo` animates Siri without the microphone.
 
 ## Roadmap
 
