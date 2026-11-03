@@ -30,7 +30,10 @@ themes/
 - Keep it small. A few hundred KB is plenty.
 - Check `~/Library/Logs/GlassBar.log` after loading it. It should have no lines about your theme.
 - `preview.png` is required, it's the picture people see in the store. `screencapture -b preview.png` saves the Touch Bar. Take it with Finder in front so all previews look alike, and check that nothing private (a file name, a song, a web page) is on the bar.
-- Add your theme to `index.json` in this folder: `id`, `name`, `author`, `version`, a one-line `description` and the list of `files`. When you update a theme, raise `version` so people see Update in the store.
+- Add your theme to `index.json` in this folder: `id`, `name`, `author`, `version`, a one-line `description`, a `category` (Retro, Minimal, Glass or a new one), `added` and `updated` dates (`2026-11-03`) and the list of `files`.
+- When you update a theme, raise `version` in both `theme.json` and `index.json` so people see Update in the store.
+
+After a merge, a GitHub workflow zips each new theme version into the [themes release](https://github.com/Moryel/glass-bar/releases/tag/themes). The store installs from those zips, and their download counts are the install numbers you see in GlassBar Hub.
 
 One theme per pull request please. I'll look at contrast and whether it reads well on the real bar, and may ask for small changes before merging.
 
