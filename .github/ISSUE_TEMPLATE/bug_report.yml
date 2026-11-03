@@ -37,7 +37,7 @@ body:
     attributes:
       label: GlassBar version
       description: Shown at the bottom of the GlassBar menu (✨ in the menu bar)
-      placeholder: "2.0.1"
+      placeholder: "2.0.2"
     validations:
       required: true
   - type: textarea
