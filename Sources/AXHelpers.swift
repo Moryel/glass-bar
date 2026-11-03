@@ -14,6 +14,12 @@ enum AX {
         return AXUIElementCopyAttributeValue(o, k as CFString, &v) == .success ? v : nil
     }
 
+    /// Another app answers these queries, so don't trust the type it sends back.
+    static func element(_ o: AnyObject?) -> AXUIElement? {
+        guard let o, CFGetTypeID(o) == AXUIElementGetTypeID() else { return nil }
+        return (o as! AXUIElement)
+    }
+
     static func children(_ o: AXUIElement) -> [AXUIElement] { attribute(o, kAXChildrenAttribute) as? [AXUIElement] ?? [] }
 
     /// Depth-first search.
@@ -47,9 +53,9 @@ enum AX {
     ]
 
     static func menuItem(_ pid: pid_t, identifier: String?, titles: [String]) -> AXUIElement? {
-        guard let menuBar = attribute(appElement(pid), kAXMenuBarAttribute) else { return nil }
+        guard let menuBar = element(attribute(appElement(pid), kAXMenuBarAttribute)) else { return nil }
         let wantedTitles = Set(titles.flatMap { [$0] + (turkishTitles[minimalKey($0)] ?? []) }.map(minimal))
-        return search(menuBar as! AXUIElement, 7) { o in
+        return search(menuBar, 7) { o in
             guard attribute(o, kAXRoleAttribute) as? String == "AXMenuItem" else { return false }
             let id = attribute(o, kAXIdentifierAttribute) as? String ?? ""
             if let identifier { return id == identifier }
@@ -92,8 +98,8 @@ enum AX {
     /// Presses a button in the front window by its identifier (Calculator: "Add", "Negate"…).
     @discardableResult
     static func pressWindowButton(_ pid: pid_t, _ identifier: String) -> Bool {
-        guard let w = attribute(appElement(pid), kAXFocusedWindowAttribute),
-              let b = search(w as! AXUIElement, 7, { attribute($0, kAXIdentifierAttribute) as? String == identifier }) else { return false }
+        guard let w = element(attribute(appElement(pid), kAXFocusedWindowAttribute)),
+              let b = search(w, 7, { attribute($0, kAXIdentifierAttribute) as? String == identifier }) else { return false }
         return AXUIElementPerformAction(b, kAXPressAction as CFString) == .success
     }
 }

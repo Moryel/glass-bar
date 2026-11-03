@@ -60,8 +60,8 @@ enum SafariPlayer {
     static func read() -> SafariVideo? {
         guard let s = runJavaScript(readScript)?.stringValue, let data = s.data(using: .utf8),
               let j = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let t = j["t"] as? Double, let d = j["d"] as? Double, d > 0 else { return nil }
-        return SafariVideo(position: Float(t / d), duration: d, isPaused: j["p"] as? Bool ?? true,
+              let t = j["t"] as? Double, let d = j["d"] as? Double, d > 0, d < 1e7, t.isFinite else { return nil }
+        return SafariVideo(position: Float(min(max(t / d, 0), 1)), duration: d, isPaused: j["p"] as? Bool ?? true,
                            address: j["u"] as? String ?? "", storyboardSpec: j["sb"] as? String ?? "")
     }
 
@@ -86,8 +86,10 @@ enum SafariPlayer {
         // the 80×45 level is enough and fast (the first level is 48×27, the last is the largest)
         let level = min(2, specs.count - 1)
         let f = specs[level].components(separatedBy: "#")
+        // the page can put any numbers here; keep them small enough that the arithmetic can't overflow
         guard f.count >= 8, let w = Int(f[0]), let h = Int(f[1]), let total = Int(f[2]), let columns = Int(f[3]), let rows = Int(f[4]),
-              total > 0, columns > 0, rows > 0 else { return [] }
+              (1...1000).contains(w), (1...1000).contains(h), (1...100_000).contains(total),
+              (1...100).contains(columns), (1...100).contains(rows) else { return [] }
         let perPage = columns * rows
         var pages: [Int: CGImage] = [:]
         var result: [NSImage] = []

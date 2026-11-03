@@ -500,7 +500,7 @@ struct PlayerControls: View {
 
 enum TimeFormat {
     static func typeText(_ s: Double) -> String {
-        let s = Int(max(0, s))
+        let s = s.isFinite ? Int(min(max(0, s), 359_999)) : 0
         return s >= 3600 ? String(format: "%d:%02d:%02d", s / 3600, s / 60 % 60, s % 60) : String(format: "%d:%02d", s / 60, s % 60)
     }
 

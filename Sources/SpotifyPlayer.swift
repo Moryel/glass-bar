@@ -122,7 +122,7 @@ final class Artwork: ObservableObject {
     func load(_ newURL: String?) {
         guard newURL != address else { return }
         address = newURL
-        guard let newURL, let url = URL(string: newURL) else { image = nil; return }
+        guard let newURL, let url = URL(string: newURL), url.scheme == "https" else { image = nil; return }
         URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
             guard let data, let image = NSImage(data: data) else { return }
             let colors = Artwork.palette(data)

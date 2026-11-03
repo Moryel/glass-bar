@@ -53,7 +53,7 @@ enum SystemControl {
     static func pressMenuShortcut(_ pid: pid_t, _ character: String, shift: Bool) -> Bool {
         let appElement = AXUIElementCreateApplication(pid)
         AXUIElementSetMessagingTimeout(appElement, 0.5)
-        guard let menuBar = attribute(appElement, kAXMenuBarAttribute) else { return false }
+        guard let menuBar = AX.element(attribute(appElement, kAXMenuBarAttribute)) else { return false }
         let target = character.uppercased()
         // AXMenuItemCmdModifiers: 0 = ⌘ only, 1 = ⇧⌘
         let flags = shift ? 1 : 0
@@ -69,7 +69,7 @@ enum SystemControl {
             }
             return false
         }
-        return search(menuBar as! AXUIElement, 0)
+        return search(menuBar, 0)
     }
 
     private static func attribute(_ o: AXUIElement, _ name: String) -> AnyObject? {
