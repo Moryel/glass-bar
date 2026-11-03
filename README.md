@@ -91,7 +91,7 @@ Besides the glass themes, 2.0 can draw the whole bar its own way: flat or gradie
 
 **Layouts** give any app your own Touch Bar buttons: shortcuts, menu commands, links. Like themes they're JSON for now, see [docs/LAYOUTS.md](docs/LAYOUTS.md). Xcode, VS Code, Terminal and Figma layouts are in the store, and you can share yours the same way ([layouts/README.md](layouts/README.md)).
 
-You can write your own theme as a JSON file. Choose Theme > Open Themes Folder from the menu, drop in a `theme.json`, and use Theme > Reload Themes after each save. Everything you can set is in [docs/THEMES.md](docs/THEMES.md). The format is still alpha and may change. A visual editor (Theme Studio) is planned for 2.1.
+You can write your own theme as a JSON file. Choose Theme > Open Themes Folder from the menu, drop in a `theme.json`, and use Theme > Reload Themes and Layouts after each save. Everything you can set is in [docs/THEMES.md](docs/THEMES.md). The format is still alpha and may change. A visual editor (Theme Studio) is planned for 2.1.
 
 Made a theme you like? Send it with a pull request and it shows up in the store, see [themes/README.md](themes/README.md).
 

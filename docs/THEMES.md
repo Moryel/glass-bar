@@ -4,6 +4,18 @@ GlassBar 2.0 can load themes you write yourself as JSON. There's no editor in th
 
 > **The theme format is alpha.** Field names and defaults may still change before it settles. I'll try to keep old files loading, but if something breaks after an update, check this page again.
 
+## Your first theme in five minutes
+
+1. Open GlassBar Hub (menu > GlassBar Hub…) and install a theme from the store that's close to what you want, for example Paper.
+2. In Hub, go to Installed, open the theme's menu (…) and choose Show in Finder.
+3. Copy that folder next to it and rename the copy, for example `my-theme.glasstheme`.
+4. Open `theme.json` in the copy with any text editor. Change `id` to `my-theme`, `name` to something of your own, and `author` to your name.
+5. Change a few colors (`"fill": "#F4EFE4"` and so on), save, and choose Theme > Reload Themes and Layouts.
+6. Pick your theme from the Theme menu. Keep editing and reloading until you like it.
+7. If something doesn't change, look in `~/Library/Logs/GlassBar.log`.
+
+The rest of this page explains every field you can use.
+
 ## Where themes live
 
 Put your theme in
@@ -12,7 +24,7 @@ Put your theme in
 ~/Library/Application Support/GlassBar/Themes/
 ```
 
-The quickest way there is the menu bar icon: **Theme > Open Themes Folder**, or the same button in GlassBar Hub. After you save a change, choose **Theme > Reload Themes** and the bar redraws with the new file. Your theme shows up in the Theme menu by its `name`.
+The quickest way there is the menu bar icon: **Theme > Open Themes Folder**, or the same button in GlassBar Hub. After you save a change, choose **Theme > Reload Themes and Layouts** and the bar redraws with the new file. Your theme shows up in the Theme menu by its `name`.
 
 A theme can be:
 
@@ -37,12 +49,12 @@ As soon as a theme has `skin`, the glass fields (`style`, `glassColor`, `glass`,
 
 ## A complete example
 
-Copy this into `~/Library/Application Support/GlassBar/Themes/paper/theme.json`, then Reload Themes and pick "Paper" from the menu.
+Copy this into `~/Library/Application Support/GlassBar/Themes/my-paper/theme.json`, then Reload Themes and Layouts and pick "My Paper" from the menu.
 
 ```json
 {
-  "id": "paper",
-  "name": "Paper",
+  "id": "my-paper",
+  "name": "My Paper",
   "author": "your-github-name",
   "version": 1,
   "textColor": "#2B2B2B",
@@ -250,7 +262,7 @@ theme paper: skin.button.border "zigzag" is unknown, ignored
 theme my-theme.json: could not read it: not valid JSON (Unexpected end of file)
 ```
 
-The log starts fresh every time GlassBar launches. Open it in Console or with `tail -f` while you edit, then use Reload Themes.
+The log starts fresh every time GlassBar launches. Open it in Console or with `tail -f` while you edit, then use Reload Themes and Layouts.
 
 If a theme doesn't show up in the menu at all, it usually means the JSON itself is broken (a missing comma or a trailing one) or the `id` clashes with a built-in theme.
 

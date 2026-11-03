@@ -6,6 +6,14 @@ There's no editor yet. Like themes, layouts are JSON files you write yourself. A
 
 > **The layout format is alpha.** Names and options may still change. Old files should keep loading, but check this page after an update if something stops working.
 
+## Your first layout in five minutes
+
+1. Find the app's bundle identifier: `osascript -e 'id of app "Xcode"'` in Terminal.
+2. Menu > Theme > Open Layouts Folder. Make a folder `my-layout` there with a file `layout.json` in it.
+3. Paste the example below, put your app's identifier in `apps`, and change the buttons to the shortcuts you use most. The app's menus show its shortcuts.
+4. Save and choose Theme > Reload Themes and Layouts, then bring the app to the front.
+5. If a button doesn't show up or does nothing, look in `~/Library/Logs/GlassBar.log`.
+
 ## Where layouts live
 
 ```

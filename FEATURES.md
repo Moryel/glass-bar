@@ -36,7 +36,7 @@ Status: ✅ available · 🟡 partial · ❌ missing · ⛔ not possible (only t
 | Show typing suggestions | ✅ |
 | fn + ⌃/⌥/⇧/⌘ + F key | ✅ held modifiers are added to the F key |
 | Not in the original: Theme (Classic, Minimal Liquid Glass, Graphite, Neon, Terminal, 8-Bit Arcade) | ✅ |
-| Not in the original: your own themes as JSON, with skins, roles, icon map, fonts, press effects and sounds ([docs/THEMES.md](docs/THEMES.md)); `.glasstheme` packages install with a double-click; Open Themes Folder and Reload Themes in the menu | ✅ (`Theme.swift`, `Skin.swift`) |
+| Not in the original: your own themes as JSON, with skins, roles, icon map, fonts, press effects and sounds ([docs/THEMES.md](docs/THEMES.md)); `.glasstheme` packages install with a double-click; Open Themes Folder and Reload Themes and Layouts in the menu | ✅ (`Theme.swift`, `Skin.swift`) |
 | Not in the original: layouts, your own buttons for any app written as JSON (shortcuts, menu commands, links, opening apps) ([docs/LAYOUTS.md](docs/LAYOUTS.md)) | ✅ (`Layout.swift`) |
 | Not in the original: GlassBar Hub, a theme and layout store (featured, new, most installed, recently updated, categories, search, installed, updates; one-click install from the repo's `themes` folder) | ✅ (`Hub.swift`) |
 | Not in the original: Background: Off, App color, Aurora, Sunset, Ocean, Siri colors, Wallpaper (the Mac's desktop picture), Choose image… | ✅ (`Backdrop.swift`) |
