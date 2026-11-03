@@ -122,7 +122,9 @@ final class DockModel: ObservableObject {
                 return DockApp(id: bundleID ?? url.path, url: url, name: Self.displayName(url))
             }
         }
-        let p = apps("persistent-apps"), r = apps("recent-apps")
+        // Finder is always first in the Dock but isn't stored in its preferences
+        let finderURL = URL(fileURLWithPath: "/System/Library/CoreServices/Finder.app")
+        let p = [DockApp(id: "com.apple.finder", url: finderURL, name: Self.displayName(finderURL))] + apps("persistent-apps"), r = apps("recent-apps")
         dockShowsRecents = CFPreferencesCopyAppValue("show-recents" as CFString, domain) as? Bool ?? true
         if p != pinned { pinned = p }
         if r != recents { recents = r }
