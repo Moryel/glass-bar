@@ -7,7 +7,34 @@ import UniformTypeIdentifiers
 
 final class LayoutEditorModel: ObservableObject {
     @Published var layouts = LayoutStore.shared.all
-    @Published var draft: BarLayout
+    @Published var draft: BarLayout {
+        didSet {
+            guard draft != oldValue else { return }
+            if !isUndoing && (Date().timeIntervalSince(lastChange) > 0.7 || undoStack.isEmpty) {
+                undoStack.append(oldValue)
+                if undoStack.count > 100 { undoStack.removeFirst() }
+                redoStack = []
+            }
+            lastChange = Date()
+            if draft.apps.first != oldValue.apps.first {
+                previewState.previewBundleID = draft.apps.first ?? ""
+                previewState.objectWillChange.send()
+            }
+        }
+    }
+    @Published var undoStack: [BarLayout] = []
+    @Published var redoStack: [BarLayout] = []
+    @Published var zoom = 0.0
+    var isUndoing = false
+    private var lastChange = Date.distantPast
+
+    /// the canvas draws on this, never on the real AppState
+    lazy var previewState: AppState = {
+        let a = AppState()
+        a.isPreview = true
+        a.previewBundleID = draft.apps.first ?? ""
+        return a
+    }()
     @Published var saved: BarLayout?
     @Published var selection: Int?
     @Published var message = ""
@@ -15,6 +42,11 @@ final class LayoutEditorModel: ObservableObject {
     init() {
         draft = LayoutStore.shared.all.first ?? LayoutEditorModel.blank()
         saved = LayoutStore.shared.all.first
+        // screenshot testing: -layoutApp com.apple.finder -layoutBuiltIn YES -layoutSelect 1
+        if let app = UserDefaults.standard.string(forKey: "layoutApp") {
+            open(app: app, fromBuiltIn: UserDefaults.standard.bool(forKey: "layoutBuiltIn"))
+            if UserDefaults.standard.object(forKey: "layoutSelect") != nil { selection = UserDefaults.standard.integer(forKey: "layoutSelect") }
+        }
     }
 
     static func blank() -> BarLayout {
@@ -27,7 +59,16 @@ final class LayoutEditorModel: ObservableObject {
 
     var isDirty: Bool { draft != saved }
 
-    func select(_ l: BarLayout) { draft = l; saved = l; selection = nil; message = "" }
+    func select(_ l: BarLayout) {
+        isUndoing = true
+        draft = l
+        isUndoing = false
+        saved = l
+        selection = nil
+        undoStack = []
+        redoStack = []
+        message = ""
+    }
 
     func newLayout() {
         draft = Self.blank()
@@ -144,7 +185,14 @@ struct LayoutEditorView: View {
             .frame(width: 210)
             Divider()
             VStack(spacing: 0) {
-                LayoutCanvas(m: m, d: d)
+                VStack(alignment: .leading, spacing: 8) {
+                    LayoutStudioHeader(m: m)
+                    LayoutStudioCanvas(m: m, d: d)
+                    LayoutRoleChips(m: m)
+                    Text(L("Click to select, drag on the bar to move, drag from the library to add, Delete to remove. Nothing on the bar runs here."))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                .padding(14)
                 Divider()
                 LayoutInspector(m: m)
                 Divider()
@@ -161,10 +209,11 @@ struct LayoutEditorView: View {
                 .padding(12)
             }
         }
+        .onDeleteCommand { m.removeSelected() }
     }
 }
 
-private struct LayoutList: View {
+struct LayoutList: View {
     @ObservedObject var m: LayoutEditorModel
 
     var body: some View {
@@ -198,7 +247,7 @@ private struct LayoutList: View {
 }
 
 /// What can go on the bar. Drag onto the bar, or click to add at the end.
-private struct LayoutLibrary: View {
+struct LayoutLibrary: View {
     @ObservedObject var m: LayoutEditorModel
 
     static var entries: [(String, String, LayoutItem)] { builtIn + ScriptWidgetStore.shared.all.map { w in
@@ -224,7 +273,7 @@ private struct LayoutLibrary: View {
                             .padding(.horizontal, 8).padding(.vertical, 4)
                             .contentShape(Rectangle())
                             .onTapGesture { m.insert(e.2) }
-                            .onDrag { NSItemProvider(object: "new:\(i)" as NSString) }
+                            .draggable("new:\(i)")
                     }
                 }
                 .padding(.horizontal, 6)
@@ -234,77 +283,37 @@ private struct LayoutLibrary: View {
     }
 }
 
-/// The bar being edited: each item is drawn by the real layout renderer, so it looks the way it will on the Touch Bar.
-private struct LayoutCanvas: View {
+/// App picker, "start from the built-in bar", zoom, undo.
+private struct LayoutStudioHeader: View {
     @ObservedObject var m: LayoutEditorModel
-    @ObservedObject var d: AppState
 
     var body: some View {
-        let t = d.theme
-        VStack(alignment: .leading, spacing: 8) {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: Metrics.spacing) {
-                    ForEach(Array(m.draft.items.enumerated()), id: \.offset) { i, item in
-                        cell(item)
-                            .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(Color.accentColor, lineWidth: m.selection == i ? 2 : 0).padding(-3))
-                            .contentShape(Rectangle())
-                            .onTapGesture { m.selection = i }
-                            .onDrag { m.selection = i; return NSItemProvider(object: "item:\(i)" as NSString) }
-                            .onDrop(of: [.text], delegate: ItemDrop(m: m, index: i))
-                    }
-                    Color.clear.frame(width: 80, height: Metrics.buttonHeight)
-                        .overlay(Text(m.draft.items.isEmpty ? L("Drag items here") : "").font(.caption).foregroundStyle(.white.opacity(0.5)).fixedSize())
-                        .onDrop(of: [.text], delegate: ItemDrop(m: m, index: m.draft.items.count))
-                }
-                .frame(height: Metrics.barHeight)
-                .padding(.horizontal, 10).padding(.vertical, 8)
-                .background { if let b = t.skin?.bar { SkinBarBackground(style: b, theme: t) } else { Color.black } }
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .environment(\.theme, t)
-                .font(t.font(14))
-                .textCase(t.letterCase)
+        HStack {
+            Picker(L("App"), selection: Binding(get: { m.draft.apps.first ?? "" }, set: { m.open(app: $0, fromBuiltIn: false) })) {
+                ForEach(apps, id: \.self) { Text(LayoutList.appName($0)).tag($0) }
             }
-            Text(L("Drag to reorder. Saved layouts show on the Touch Bar when one of their apps is in front."))
-                .font(.caption).foregroundStyle(.secondary)
+            .fixedSize()
+            Button(L("Start from Built-in Bar")) { if let a = m.draft.apps.first { m.open(app: a, fromBuiltIn: true) } }
+                .disabled(m.draft.apps.isEmpty)
+            Picker("", selection: $m.zoom) {
+                Text(L("Fit")).tag(0.0)
+                Text("1×").tag(1.0)
+                Text("2×").tag(2.0)
+            }
+            .pickerStyle(.segmented).labelsHidden().fixedSize()
+            Spacer()
+            Button { m.undo() } label: { Image(systemName: "arrow.uturn.backward") }
+                .keyboardShortcut("z").disabled(m.undoStack.isEmpty).help(L("Undo"))
+            Button { m.redo() } label: { Image(systemName: "arrow.uturn.forward") }
+                .keyboardShortcut("z", modifiers: [.command, .shift]).disabled(m.redoStack.isEmpty).help(L("Redo"))
         }
-        .padding(14)
     }
 
-    @ViewBuilder private func cell(_ item: LayoutItem) -> some View {
-        if item.type == "space" {
-            RoundedRectangle(cornerRadius: 6).strokeBorder(Color.white.opacity(0.35), style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
-                .frame(width: 60, height: Metrics.buttonHeight)
-                .overlay(Image(systemName: "arrow.left.and.right").foregroundStyle(.white.opacity(0.5)))
-        } else {
-            HStack(spacing: Metrics.spacing) { LayoutBar(d: d, layout: single(item)) }
-                .allowsHitTesting(false)
-        }
-    }
-
-    private func single(_ item: LayoutItem) -> BarLayout {
-        var l = m.draft
-        l.items = [item]
+    /// The apps with built-in bars, the apps of saved layouts, and the one being edited.
+    private var apps: [String] {
+        var l = StudioScreen.apps.compactMap(\.bundleID).filter { $0 != "com.apple.Terminal" }
+        for id in m.layouts.flatMap(\.apps) + m.draft.apps where !l.contains(id) { l.append(id) }
         return l
-    }
-}
-
-private struct ItemDrop: DropDelegate {
-    let m: LayoutEditorModel
-    let index: Int
-
-    func performDrop(info: DropInfo) -> Bool {
-        guard let p = info.itemProviders(for: [.text]).first else { return false }
-        _ = p.loadObject(ofClass: NSString.self) { s, _ in
-            guard let s = s as? String else { return }
-            DispatchQueue.main.async {
-                if s.hasPrefix("item:"), let from = Int(s.dropFirst(5)) {
-                    m.move(from: from, to: index)
-                } else if s.hasPrefix("new:"), let i = Int(s.dropFirst(4)), LayoutLibrary.entries.indices.contains(i) {
-                    m.insert(LayoutLibrary.entries[i].2, at: index)
-                }
-            }
-        }
-        return true
     }
 }
 

@@ -554,3 +554,15 @@
 "Mono" = "Eş aralıklı";
 "Rounded font" = "Yuvarlak yazı";
 "System font" = "Sistem yazısı";
+
+/* Layout Studio */
+"Drag items here from the library" = "Kütüphaneden buraya öğe sürükle";
+"Roles:" = "Roller:";
+"Start from Built-in Bar" = "Hazır Çubuktan Başla";
+"App" = "Uygulama";
+"Click to select, drag on the bar to move, drag from the library to add, Delete to remove. Nothing on the bar runs here." = "Seçmek için tıkla, taşımak için çubukta sürükle, eklemek için kütüphaneden sürükle, kaldırmak için Delete. Buradaki çubukta hiçbir şey çalışmaz.";
+"A copy of the built-in bar. Buttons that follow the app’s state became plain shortcuts." = "Hazır çubuğun bir kopyası. Uygulamanın durumunu izleyen düğmeler düz kısayola dönüştü.";
+"Search or enter website" = "Ara ya da web sitesi gir";
+"Day" = "Gün";
+"Week" = "Hafta";
+"Month" = "Ay";

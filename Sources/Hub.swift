@@ -384,7 +384,7 @@ struct HubView: View {
                 }
                 Section(L("Create")) {
                     Label("Theme Studio", systemImage: "paintbrush.pointed").tag(Hub.Page.studio)
-                    Label(L("Layout Editor"), systemImage: "rectangle.split.3x1").tag(Hub.Page.layoutEditor)
+                    Label("Layout Studio", systemImage: "rectangle.split.3x1").tag(Hub.Page.layoutEditor)
                     Button { m.openFolder() } label: {
                         Label(m.kind == .themes ? L("Themes Folder") : L("Layouts Folder"), systemImage: "folder")
                     }
