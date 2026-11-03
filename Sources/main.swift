@@ -153,6 +153,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
         case "dockSettings": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { DockSettingsWindow.open(self.state) }
         default: break
         }
+        // the bar drawn to a PNG without the screen (works while the Mac is locked): -testSnapshot /path/bar.png
+        if let path = UserDefaults.standard.string(forKey: "testSnapshot") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                let r = ImageRenderer(content: TouchBarView(d: self.state))
+                r.scale = 2
+                r.proposedSize = ProposedViewSize(width: self.state.width, height: Metrics.barHeight)
+                if let cg = r.cgImage { try? NSBitmapImageRep(cgImage: cg).representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: path)) }
+            }
+        }
     }
 
     func applicationWillTerminate(_ n: Notification) {

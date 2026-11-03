@@ -171,6 +171,8 @@ final class DockModel: ObservableObject {
 
     private func readBadges() {
         guard SystemControl.hasAccessibility, let pid = dockPID else { return }
+        // permission granted after launch
+        if axObserver == nil { observeDock() }
         SystemControl.workQueue.async {
             var b: [String: String] = [:]
             for list in AX.children(AX.appElement(pid)) {

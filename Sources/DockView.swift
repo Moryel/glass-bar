@@ -13,24 +13,24 @@ struct DockRow: View {
         let items = dock.items(s.content, order: s.order)
         let recents = s.recentsShown ? dock.recents.filter { r in !items.contains { $0.id == r.id } } : []
         let style = iconStyle
-        ZStack {
+        ScrollingStrip(isLocked: { [drag] in drag.id != nil }) {
+            Color.clear.frame(width: 2)
+            ForEach(items) { a in item(a, style, items: items) }
+            if !recents.isEmpty {
+                if style == .text {
+                    Text("|").font(.bar(12)).foregroundStyle(theme.barText.opacity(0.4))
+                } else {
+                    Rectangle().fill(theme.barText.opacity(0.25)).frame(width: 1, height: 16)
+                }
+                ForEach(recents) { a in item(a, style, items: nil) }
+            }
+            Color.clear.frame(width: 2)
+        }
+        .onPreferenceChange(DockFramesKey.self) { drag.frames = $0 }
+        .overlay {
             if items.isEmpty && recents.isEmpty {
                 Text(L("No apps")).font(.bar(12)).foregroundStyle(theme.barText.opacity(0.5))
             }
-            ScrollingStrip(isLocked: { [drag] in drag.id != nil }) {
-                Color.clear.frame(width: 2)
-                ForEach(items) { a in item(a, style, items: items) }
-                if !recents.isEmpty {
-                    if style == .text {
-                        Text("|").font(.bar(12)).foregroundStyle(theme.barText.opacity(0.4))
-                    } else {
-                        Rectangle().fill(theme.barText.opacity(0.25)).frame(width: 1, height: 16)
-                    }
-                    ForEach(recents) { a in item(a, style, items: nil) }
-                }
-                Color.clear.frame(width: 2)
-            }
-            .onPreferenceChange(DockFramesKey.self) { drag.frames = $0 }
         }
         .frame(height: Metrics.buttonHeight)
         .background { if !theme.splitsGroups { GroupBackground() } }
