@@ -43,7 +43,7 @@ enum AX {
         "Flip Horizontal": ["Yatay Olarak Çevir"], "Flip Vertical": ["Düşey Olarak Çevir"],
         "Align Left": ["Sola Hizala"], "Center": ["Ortala"], "Align Right": ["Sağa Hizala"], "Justify": ["İki Yana Yasla"],
         "Services": ["Servisler"], "Send": ["Gönder"], "Attach Files": ["Dosya Ekle", "Dosyaları Ekle"],
-        "Play Next": ["Sıradaki Olarak Çal", "Sonra Çal"], "Day": ["Gün"], "Week": ["Hafta"], "Month": ["Ay"], "Year": ["Yıl"],
+        "Play Next": ["Sıradaki Olarak Çal", "Sonra Çal"], "New Window": ["Yeni Pencere"], "New Finder Window": ["Yeni Finder Penceresi"], "Day": ["Gün"], "Week": ["Hafta"], "Month": ["Ay"], "Year": ["Yıl"],
     ]
 
     static func menuItem(_ pid: pid_t, identifier: String?, titles: [String]) -> AXUIElement? {

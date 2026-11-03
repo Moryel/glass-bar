@@ -126,7 +126,7 @@ extension Theme {
         l.text = text
         l.borderColor = text
         l.apply(skin?.button)
-        if let k = role?.key { l.apply(roles[k]) }
+        if let k = role?.key { l.apply(roles[k] ?? (role == .danger ? roles["operator"] : nil)) }
         if case .custom(let c) = role { l.fill = c }
         if pressed { l.apply(skin?.pressed) }
         return l

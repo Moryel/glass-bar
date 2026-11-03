@@ -81,6 +81,7 @@ struct MainArea: View {
             case .spaces: WithControlStrip(d: d) { SpacesRow(d: d) }.transition(.focusIn)
             case .quickActions: WithControlStrip(d: d) { QuickActionsRow(d: d) }.transition(.focusIn)
             case .app: WithControlStrip(d: d) { AppArea(d: d) }.transition(.focusIn)
+            case .dock: WithControlStrip(d: d) { DockRow(d: d) }.transition(.focusIn)
             }
             }
         }
