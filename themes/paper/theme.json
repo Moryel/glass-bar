@@ -1,0 +1,58 @@
+{
+  "id": "paper",
+  "name": "Paper",
+  "author": "Moryel",
+  "version": 1,
+  "textColor": "#2B2B2B",
+  "sliderColor": "#2B2B2B",
+  "roles": {
+    "active": {
+      "fill": "#D9472B",
+      "text": "#FFFFFF",
+      "borderColor": "#F4EFE4"
+    },
+    "primary": {
+      "fill": "#D9472B",
+      "text": "#FFFFFF",
+      "borderColor": "#D9472B"
+    },
+    "accent": {
+      "fill": "#D9472B",
+      "text": "#FFFFFF",
+      "borderColor": "#D9472B"
+    },
+    "operator": {
+      "fill": "#E8DFCB"
+    }
+  },
+  "skin": {
+    "bar": {
+      "fill": "#3B362E",
+      "pattern": "grid",
+      "patternColor": "#FFFFFF12"
+    },
+    "button": {
+      "fill": "#F4EFE4",
+      "text": "#2B2B2B",
+      "border": "sketch",
+      "borderWidth": 1.5,
+      "borderColor": "#2B2B2B",
+      "radius": 8
+    },
+    "pressed": {
+      "fill": "#E0D6C0"
+    },
+    "group": {
+      "fill": "#F4EFE4",
+      "border": "sketch"
+    },
+    "text": {
+      "font": "serif",
+      "weight": "semibold"
+    },
+    "press": "wobble",
+    "sounds": {
+      "tap": "tick"
+    }
+  }
+}

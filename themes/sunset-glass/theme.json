@@ -1,0 +1,21 @@
+{
+  "id": "sunset-glass",
+  "name": "Sunset Glass",
+  "author": "Moryel",
+  "version": 1,
+  "style": "minimal",
+  "glassColor": "#FF9E6B",
+  "glass": 1.3,
+  "edge": 1.4,
+  "glow": 1.2,
+  "textColor": "#FFF4EC",
+  "accent": "#FF5E7E",
+  "sliderColor": "#FFB36B",
+  "fontDesign": "rounded",
+  "backdrop": "sunset",
+  "roles": {
+    "active": {
+      "fill": "#FF8A5B80"
+    }
+  }
+}

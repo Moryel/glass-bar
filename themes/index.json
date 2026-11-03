@@ -1,0 +1,48 @@
+{
+  "themes": [
+    {
+      "id": "paper",
+      "name": "Paper",
+      "author": "Moryel",
+      "version": 1,
+      "description": "Hand-drawn buttons on a dark desk.",
+      "files": [
+        "theme.json",
+        "preview.png"
+      ]
+    },
+    {
+      "id": "amber",
+      "name": "Amber CRT",
+      "author": "Moryel",
+      "version": 1,
+      "description": "An amber monitor with angle brackets and scanlines.",
+      "files": [
+        "theme.json",
+        "preview.png"
+      ]
+    },
+    {
+      "id": "blueprint",
+      "name": "Blueprint",
+      "author": "Moryel",
+      "version": 1,
+      "description": "Dashed outlines on blueprint paper.",
+      "files": [
+        "theme.json",
+        "preview.png"
+      ]
+    },
+    {
+      "id": "sunset-glass",
+      "name": "Sunset Glass",
+      "author": "Moryel",
+      "version": 1,
+      "description": "Warm glass over the Sunset background.",
+      "files": [
+        "theme.json",
+        "preview.png"
+      ]
+    }
+  ]
+}

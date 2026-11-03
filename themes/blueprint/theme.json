@@ -1,0 +1,55 @@
+{
+  "id": "blueprint",
+  "name": "Blueprint",
+  "author": "Moryel",
+  "version": 1,
+  "textColor": "#EAF4FF",
+  "sliderColor": "#FFFFFF",
+  "roles": {
+    "active": {
+      "fill": "#EAF4FF",
+      "text": "#1D4E89"
+    },
+    "primary": {
+      "fill": "#EAF4FF",
+      "text": "#1D4E89"
+    },
+    "accent": {
+      "fill": "#EAF4FF",
+      "text": "#1D4E89"
+    },
+    "operator": {
+      "borderColor": "#FFD166",
+      "text": "#FFD166"
+    }
+  },
+  "skin": {
+    "bar": {
+      "fill": "#1D4E89",
+      "fill2": "#163C6B",
+      "pattern": "grid",
+      "patternColor": "#FFFFFF22"
+    },
+    "button": {
+      "fill": "#1D4E89",
+      "text": "#EAF4FF",
+      "border": "dashed",
+      "borderWidth": 1,
+      "borderColor": "#EAF4FFC0",
+      "radius": 4
+    },
+    "pressed": {
+      "fill": "#2C65A8"
+    },
+    "group": {
+      "fill": "#1D4E89",
+      "border": "dashed"
+    },
+    "text": {
+      "font": "rounded",
+      "weight": "medium",
+      "tracking": 0.5
+    },
+    "press": "pop"
+  }
+}

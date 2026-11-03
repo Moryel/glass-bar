@@ -1,0 +1,72 @@
+{
+  "id": "amber",
+  "name": "Amber CRT",
+  "author": "Moryel",
+  "version": 1,
+  "sliderColor": "#FFB000",
+  "roles": {
+    "active": {
+      "invert": true
+    },
+    "primary": {
+      "text": "#FFE2A8",
+      "borderColor": "#FFE2A8"
+    },
+    "accent": {
+      "text": "#FFE2A8",
+      "borderColor": "#FFE2A8"
+    },
+    "operator": {
+      "text": "#FF6A3D",
+      "borderColor": "#FF6A3D"
+    }
+  },
+  "skin": {
+    "bar": {
+      "fill": "#0C0700",
+      "overlay": "scanlines"
+    },
+    "button": {
+      "fill": "none",
+      "text": "#FFB000",
+      "border": "ascii",
+      "chars": "< >",
+      "borderColor": "#FFB000",
+      "radius": 0,
+      "glow": 3,
+      "glowColor": "#FFB00070"
+    },
+    "pressed": {
+      "invert": true
+    },
+    "group": {
+      "fill": "none",
+      "border": "none"
+    },
+    "text": {
+      "font": "mono",
+      "weight": "semibold",
+      "case": "upper"
+    },
+    "press": "none",
+    "sounds": {
+      "tap": "tick"
+    },
+    "icons": {
+      "chevron.left": "<",
+      "chevron.right": ">",
+      "siri": "SIRI",
+      "sun.max.fill": "*",
+      "speaker.wave.2.fill": "VOL",
+      "speaker.slash.fill": "MUTE",
+      "play.fill": ">",
+      "pause.fill": "||",
+      "magnifyingglass": "?",
+      "plus": "+",
+      "minus": "-",
+      "multiply": "x",
+      "divide": "/",
+      "equal": "="
+    }
+  }
+}
