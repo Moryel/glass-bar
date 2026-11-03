@@ -29,6 +29,7 @@ cp -R Resources/*.lproj "$APP/Contents/Resources/"
 cp Resources/GlassBar.icns "$APP/Contents/Resources/"
 # built-in theme packages (Terminal, 8-Bit Arcade…)
 cp -R Resources/Themes "$APP/Contents/Resources/"
+cp -R Resources/Previews "$APP/Contents/Resources/"
 
 cat > "$APP/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>

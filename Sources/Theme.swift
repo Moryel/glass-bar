@@ -201,21 +201,25 @@ final class ThemeStore {
     static let bundledIDs = Set(bundledFolder.map(loadAll)?.map(\.id) ?? [])
     private(set) var bundled: [Theme] = []
     private(set) var userThemes: [Theme] = []
+    /// where each user theme was loaded from (its package folder or file)
+    private(set) var locations: [String: URL] = [:]
     var all: [Theme] { Theme.builtIns + bundled + userThemes }
 
     private init() { reload() }
 
     func reload() {
         bundled = ThemeStore.bundledFolder.map(ThemeStore.loadAll) ?? []
-        userThemes = ThemeStore.loadAll(folder).filter { !$0.isBuiltIn }
-            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        let found = ThemeStore.entries(folder).compactMap { u in (try? ThemeStore.load(u)).map { ($0, u) } }.filter { !$0.0.isBuiltIn }
+        userThemes = found.map(\.0).sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        locations = Dictionary(found.map { ($0.0.id, $0.1) }, uniquingKeysWith: { a, _ in a })
+    }
+
+    private static func entries(_ folder: URL) -> [URL] {
+        (try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? []
     }
 
     /// Every theme in a folder: .glasstheme packages (folders), .glasstheme files, and plain folders with a theme.json.
-    private static func loadAll(_ folder: URL) -> [Theme] {
-        let entries = (try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? []
-        return entries.compactMap { try? load($0) }
-    }
+    private static func loadAll(_ folder: URL) -> [Theme] { entries(folder).compactMap { try? load($0) } }
 
     static func load(_ url: URL) throws -> Theme {
         var isFolder: ObjCBool = false
@@ -278,9 +282,17 @@ final class ThemeStore {
         }
     }
 
+    /// Moves a user theme to the Trash.
     func delete(_ id: String) {
-        try? FileManager.default.removeItem(at: target(id))
+        try? FileManager.default.trashItem(at: locations[id] ?? target(id), resultingItemURL: nil)
         reload()
+    }
+
+    /// The screenshot of the bar that comes with a theme: preview.png in its package, or Resources/Previews for the glass themes.
+    func preview(_ t: Theme) -> URL? {
+        let candidates = [t.baseURL?.appendingPathComponent("preview.png"),
+                          Bundle.main.resourceURL?.appendingPathComponent("Previews/\(t.id).png")]
+        return candidates.compactMap { $0 }.first { FileManager.default.fileExists(atPath: $0.path) }
     }
 
     /// A new id from the name ("My Theme" → "my-theme-3fa2").

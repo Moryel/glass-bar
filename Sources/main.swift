@@ -141,6 +141,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
         case "emoji": state.panel = .emoji
         case "nowPlaying": state.panel = .nowPlaying
         case "stripEditor": state.isEditingControlStrip = true
+        case "hub": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { Hub.open(self.state) }
+        case "store": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { Hub.open(self.state, .store) }
         case "tabs": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { self.state.showTabs() }
         default: break
         }
@@ -226,6 +228,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
         }
         m.addItem(withTitle: L("Show GlassBar"), action: #selector(show), keyEquivalent: "").target = self
         m.addItem(withTitle: L("App's Own Controls"), action: #selector(minimize), keyEquivalent: "").target = self
+        m.addItem(withTitle: L("GlassBar Hub…"), action: #selector(openHub), keyEquivalent: "").target = self
         m.addItem(.separator())
         if !SystemControl.hasAccessibility {
             m.addItem(withTitle: L("Grant Accessibility Permission…"), action: #selector(requestPermission), keyEquivalent: "").target = self
@@ -244,6 +247,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
         let themeItems = ThemeStore.shared.all.map { t in menuItem(t.displayName, #selector(selectTheme(_:)), state.theme.id == t.id, t.id) }
         m.addItem(submenuItem(L("Theme"), themeItems + [.separator(), menuItem(L("Play Theme Sounds"), #selector(toggleThemeSounds), ThemeSound.isEnabled),
                                                         .separator(),
+                                                        menuItem(L("Get More Themes…"), #selector(openStore), false),
                                                         menuItem(L("Open Themes Folder"), #selector(openThemesFolder), false),
                                                         menuItem(L("Reload Themes"), #selector(reloadThemes), false)]))
         m.addItem(submenuItem(L("Color Temperature"), ColorTemperature.allCases.map { r in
@@ -349,6 +353,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
     @objc func selectTheme(_ o: NSMenuItem) {
         if let t = ThemeStore.shared.theme(id: o.representedObject as? String ?? "") { state.apply(t) }
     }
+    @objc func openHub() { Hub.open(state) }
+    @objc func openStore() { Hub.open(state, .store) }
+
     @objc func openThemesFolder() {
         try? FileManager.default.createDirectory(at: ThemeStore.shared.folder, withIntermediateDirectories: true)
         NSWorkspace.shared.open(ThemeStore.shared.folder)
