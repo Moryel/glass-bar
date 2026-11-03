@@ -192,7 +192,7 @@ extension Theme {
     func icon(_ symbol: String) -> IconValue? {
         guard let v = skin?.icons?[symbol] else { return nil }
         if v.hasPrefix("image:"), let base = baseURL,
-           let i = NSImage(contentsOf: base.appendingPathComponent(String(v.dropFirst(6)))) { return .image(i) }
+           let u = packageFile(base, String(v.dropFirst(6))), let i = NSImage(contentsOf: u) { return .image(i) }
         return .text(v)
     }
 
@@ -204,8 +204,7 @@ enum ThemeFonts {
     private static var names: [String: String] = [:]
 
     static func name(_ font: String, base: URL?) -> String {
-        guard font.hasSuffix(".ttf") || font.hasSuffix(".otf"), let base else { return font }
-        let url = base.appendingPathComponent(font)
+        guard font.hasSuffix(".ttf") || font.hasSuffix(".otf"), let base, let url = packageFile(base, font) else { return font }
         if let n = names[url.path] { return n }
         CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
         let descriptors = CTFontManagerCreateFontDescriptorsFromURL(url as CFURL) as? [CTFontDescriptor] ?? []
@@ -225,7 +224,7 @@ enum ThemeSound {
         let key = (theme.baseURL?.path ?? "") + "/" + name
         if cache[key] == nil {
             if let data = synthesized(name) { cache[key] = NSSound(data: data) }
-            else if let base = theme.baseURL { cache[key] = NSSound(contentsOf: base.appendingPathComponent(name), byReference: true) }
+            else if let base = theme.baseURL, let u = packageFile(base, name) { cache[key] = NSSound(contentsOf: u, byReference: true) }
         }
         guard let s = cache[key] else { return }
         s.stop()

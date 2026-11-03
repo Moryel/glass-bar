@@ -197,6 +197,13 @@ func isSafeID(_ id: String) -> Bool {
         && !id.contains { $0 == "/" || $0 == "\\" || $0 == ":" || $0 == "\0" || $0.isNewline }
 }
 
+/// A file named in a theme or layout (image, font, sound). Symlinks and "../" can't reach outside the package.
+func packageFile(_ base: URL, _ name: String) -> URL? {
+    let root = base.resolvingSymlinksInPath().standardizedFileURL.path + "/"
+    let u = base.appendingPathComponent(name).resolvingSymlinksInPath().standardizedFileURL
+    return u.path.hasPrefix(root) ? u : nil
+}
+
 /// Built-in and installed themes.
 final class ThemeStore {
     static let shared = ThemeStore()
@@ -399,7 +406,7 @@ extension LayerPatch {
 extension Skin {
     mutating func check(_ base: URL?, _ log: (String) -> Void) {
         let fm = FileManager.default
-        func exists(_ file: String) -> Bool { base.map { fm.fileExists(atPath: $0.appendingPathComponent(file).path) } ?? false }
+        func exists(_ file: String) -> Bool { base.flatMap { packageFile($0, file) }.map { fm.fileExists(atPath: $0.path) } ?? false }
         button?.check("skin.button", log); pressed?.check("skin.pressed", log); group?.check("skin.group", log)
         bar?.check(log)
         text?.check(base, exists, log)

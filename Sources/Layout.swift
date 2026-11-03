@@ -94,6 +94,8 @@ extension AppState {
             menu(nil, m)
         } else if let o = a.open {
             if o.contains("://"), let u = URL(string: o) {
+                // only web links: a file:// link could start a script that came with the layout
+                guard ["http", "https"].contains(u.scheme?.lowercased() ?? "") else { return }
                 NSWorkspace.shared.open(u)
             } else if let u = NSWorkspace.shared.urlForApplication(withBundleIdentifier: o) {
                 NSWorkspace.shared.openApplication(at: u, configuration: .init())
@@ -190,7 +192,7 @@ extension BarLayout {
                 if let w = item.width, !(20...400).contains(w) { log("\(here): width \(w) is out of range 20...400, ignored"); item.width = nil }
                 if let icon = item.icon, icon.hasPrefix("image:") {
                     let file = String(icon.dropFirst(6))
-                    if base.map({ !FileManager.default.fileExists(atPath: $0.appendingPathComponent(file).path) }) ?? true {
+                    if base.flatMap({ packageFile($0, file) }).map({ !FileManager.default.fileExists(atPath: $0.path) }) ?? true {
                         log("\(here): \(file) not found, icon ignored"); item.icon = nil
                     }
                 }
@@ -260,7 +262,7 @@ private struct LayoutIcon: View {
     let base: URL?
 
     var body: some View {
-        if name.hasPrefix("image:"), let base, let i = NSImage(contentsOf: base.appendingPathComponent(String(name.dropFirst(6)))) {
+        if name.hasPrefix("image:"), let base, let u = packageFile(base, String(name.dropFirst(6))), let i = NSImage(contentsOf: u) {
             Image(nsImage: i).resizable().aspectRatio(contentMode: .fit).frame(height: 16)
         } else {
             Icon(name)

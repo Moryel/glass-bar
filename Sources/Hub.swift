@@ -307,7 +307,8 @@ final class HubModel: ObservableObject {
                 try? unzip.run()
                 unzip.waitUntilExit()
                 let folder = temp.appendingPathComponent(item.id)
-                finish(unzip.terminationStatus == 0 && fm.fileExists(atPath: folder.path) ? folder : nil)
+                let isLink = (try? folder.resourceValues(forKeys: [.isSymbolicLinkKey]))?.isSymbolicLink ?? true
+                finish(unzip.terminationStatus == 0 && !isLink && fm.fileExists(atPath: folder.path) ? folder : nil)
             }.resume()
             return
         }
