@@ -123,10 +123,12 @@ Some buttons have a job that the theme can style separately. Built-in bars never
 | `operator` | Calculator's ÷ × − + =. |
 | `suggestions` | The typing suggestions group. |
 | `danger` | Badges on Dock icons. Falls back to `operator` when it isn't set. |
+| `warning` | Widget warnings such as low battery. Falls back to `operator`. |
+| `success` | Widget good news such as a finished timer. Falls back to `active`. |
 
 Each role takes the same fields as a [layer](#layers).
 
-In a glass theme only `fill` is used. If a role isn't set, GlassBar uses its own color: a light highlight for `active`, blue for `primary`, `accent` for `accent` (nothing if it's empty), orange for `operator`, dark blue for `suggestions`, red for `danger`.
+In a glass theme only `fill` is used. If a role isn't set, GlassBar uses its own color: a light highlight for `active`, blue for `primary`, `accent` for `accent` (nothing if it's empty), orange for `operator`, dark blue for `suggestions`, red for `danger`, orange for `warning`, green for `success`.
 
 The Dock widget (beta) uses only roles too: the shelf is the group, the front app is `active`, running dots are `accent` and badges are `danger`. A theme can tune it with an optional `widget` key:
 

@@ -101,6 +101,8 @@ struct Theme: Codable, Equatable, Identifiable {
         case .operatorKey: return Color(hex: 0xFF9F0A, 0.5)
         case .suggestions: return Color(hex: 0x2A3A50)
         case .danger: return Color(hex: 0xFF453A)
+        case .warning: return Color(hex: 0xFF9F0A)
+        case .success: return Color(hex: 0x30D158)
         case .custom(let c): return c
         }
     }
@@ -150,8 +152,12 @@ enum Role: Equatable {
     case operatorKey
     /// the typing suggestions group
     case suggestions
-    /// badges and warnings; themes without it fall back to `operator`
+    /// badges and destructive actions; themes without it fall back to `operator`
     case danger
+    /// low battery and other widget warnings; falls back to `operator`
+    case warning
+    /// finished timers and the like; falls back to `active`
+    case success
     /// a fixed color that no role covers (Night Shift)
     case custom(Color)
 
@@ -163,6 +169,8 @@ enum Role: Equatable {
         case .operatorKey: "operator"
         case .suggestions: "suggestions"
         case .danger: "danger"
+        case .warning: "warning"
+        case .success: "success"
         case .custom: nil
         }
     }
@@ -378,7 +386,16 @@ extension Error {
 }
 
 extension Role {
-    static let keys: Set = ["active", "primary", "accent", "operator", "suggestions"]
+    /// the role a theme without this one is drawn with
+    static func fallback(_ k: String) -> String {
+        switch k {
+        case "danger", "warning": "operator"
+        case "success": "active"
+        default: ""
+        }
+    }
+
+    static let keys: Set = ["active", "primary", "accent", "operator", "suggestions", "danger", "warning", "success"]
 }
 
 extension LayerPatch {

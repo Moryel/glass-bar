@@ -6,9 +6,10 @@ import SwiftUI
 enum Hub {
     enum Page: Hashable {
         case featured, new, popular, updated, name, category(String), installed, updates
-        case general, controlStrip, dock
+        case general, controlStrip, dock, studio
 
-        var isSettings: Bool { self == .general || self == .controlStrip || self == .dock }
+        /// pages that aren't store listings
+        var isSettings: Bool { self == .general || self == .controlStrip || self == .dock || self == .studio }
     }
     enum Kind: String { case themes, layouts }
 
@@ -32,7 +33,7 @@ enum Hub {
         w.contentMinSize = NSSize(width: 860, height: 520)
         w.isReleasedWhenClosed = false
         w.center()
-        delegate = HubWindowDelegate { window = nil; delegate = nil; model = nil }
+        delegate = HubWindowDelegate { model?.studioModel?.close(); window = nil; delegate = nil; model = nil }
         w.delegate = delegate
         window = w
         model = m
@@ -124,6 +125,15 @@ final class HubModel: ObservableObject {
     }
     static var isLocalStore: Bool { themesBase.isFileURL }
 
+    /// built the first time Theme Studio opens
+    private(set) var studioModel: StudioModel?
+    var studio: StudioModel {
+        if let s = studioModel { return s }
+        let s = StudioModel(d)
+        studioModel = s
+        return s
+    }
+
     init(_ d: AppState, _ page: Hub.Page, _ kind: Hub.Kind) {
         self.d = d
         self.page = page
@@ -195,7 +205,7 @@ final class HubModel: ObservableObject {
         case .name: return list.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
         case .category(let c): return list.filter { $0.category == c }.sorted { $0.name < $1.name }
         case .updates: return updates
-        case .installed, .general, .controlStrip, .dock: return []
+        case .installed, .general, .controlStrip, .dock, .studio: return []
         }
     }
 
@@ -364,9 +374,7 @@ struct HubView: View {
                     Label(L("Dock"), systemImage: "dock.rectangle").tag(Hub.Page.dock)
                 }
                 Section(L("Create")) {
-                    Button { m.comingSoon = .init(title: "Theme Studio", version: "2.1") } label: {
-                        Label("Theme Studio", systemImage: "paintbrush.pointed")
-                    }
+                    Label("Theme Studio", systemImage: "paintbrush.pointed").tag(Hub.Page.studio)
                     Button { m.comingSoon = .init(title: L("Layout Editor"), version: "2.3") } label: {
                         Label(L("Layout Editor"), systemImage: "rectangle.split.3x1")
                     }
@@ -387,6 +395,7 @@ struct HubView: View {
                 case .general: GeneralSettingsView(d: m.d)
                 case .controlStrip: ControlStripSettingsView(d: m.d)
                 case .dock: DockSettingsView(d: m.d)
+                case .studio: ThemeStudioView(m: m.studio)
                 default: StorePage(m: m)
                 }
             }
