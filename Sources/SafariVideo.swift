@@ -71,6 +71,13 @@ enum SafariPlayer {
     static func scrub(_ seconds: Double) { _ = runJavaScript("(function(){var v=\(videoJS);if(v)v.currentTime=\(seconds)})()") }
     static func playPause() { _ = runJavaScript("(function(){var v=\(videoJS);if(v){if(v.paused)v.play();else v.pause()}})()") }
 
+    /// The spec comes from the page, so any page could point it anywhere (localhost, the local network).
+    /// Only YouTube's image servers over https are fetched.
+    static func isStoryboardURL(_ u: URL) -> Bool {
+        guard u.scheme == "https", u.port == nil, u.user == nil, let host = u.host?.lowercased() else { return false }
+        return host == "ytimg.com" || host.hasSuffix(".ytimg.com")
+    }
+
     /// Evenly spaced thumbnails from a YouTube storyboard. Called on the work queue.
     /// Spec: "base_url|w#h#count#columns#rows#interval#name#sig|…"; in the base URL $L is the level, $N the page name (containing $M, the page number).
     static func thumbnails(_ spec: String, frameCount: Int) -> [NSImage] {
@@ -91,7 +98,7 @@ enum SafariPlayer {
                 let name = f[6].replacingOccurrences(of: "$M", with: "\(s)")
                 let address = specs[0].replacingOccurrences(of: "$L", with: "\(level - 1)").replacingOccurrences(of: "$N", with: name)
                     + (f[7].isEmpty ? "" : "&sigh=\(f[7])")
-                if let u = URL(string: address), let data = try? Data(contentsOf: u),
+                if let u = URL(string: address), isStoryboardURL(u), let data = try? Data(contentsOf: u),
                    let source = CGImageSourceCreateWithData(data as CFData, nil),
                    let cg = CGImageSourceCreateImageAtIndex(source, 0, nil) { pages[s] = cg }
             }
