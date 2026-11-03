@@ -3,6 +3,13 @@ import SwiftUI
 
 /// The Dock on the Touch Bar ("Dock" in Touch Bar Shows). Looks come from theme roles: the shelf is the group,
 /// the front app `active`, running dots `accent`, badges `danger`.
+/// The Dock with whatever the user picked for its right side.
+struct DockBar: View {
+    @ObservedObject var d: AppState
+    @ObservedObject private var s = DockSettings.shared
+    var body: some View { WithControlStrip(d: d, showsStrip: s.trailing.showsStrip) { DockRow(d: d) } }
+}
+
 struct DockRow: View {
     @ObservedObject var d: AppState
     @ObservedObject private var dock = DockModel.shared
@@ -11,13 +18,25 @@ struct DockRow: View {
     @Environment(\.theme) private var theme
 
     var body: some View {
-        let items = dock.items(s.content, order: s.order)
+        let items = dock.items(s.content, order: s.order).filter { s.showsFinder || $0.id != "com.apple.finder" }
         let recents = s.recentsShown ? dock.recents.filter { r in !items.contains { $0.id == r.id } } : []
         let style = iconStyle
-        let others = s.showsOthers ? dock.others : []
+        let others = s.showsOthers ? dock.others.filter { s.showsTrash || $0.id != "trash" } : []
         HStack(spacing: Metrics.spacing) {
-            strip(items, recents, others, style)
-            if s.showsStatus { DockStatus().fixedSize().layoutPriority(1) }
+            if s.width >= 1 {
+                strip(items, recents, others, style)
+            } else {
+                GeometryReader { g in
+                    strip(items, recents, others, style)
+                        .frame(width: g.size.width * max(0.2, s.width))
+                        .frame(maxWidth: .infinity, alignment: s.alignment == .center ? .center : s.alignment == .trailing ? .trailing : .leading)
+                }
+                .frame(height: Metrics.buttonHeight)
+            }
+            if s.trailing == .nowPlaying, let c = d.nowPlaying { NowPlayingButton(d: d, c: c) }
+            if s.trailing.showsStatus && (s.showsBattery || s.showsClock) {
+                DockStatus(showsBattery: s.showsBattery, showsClock: s.showsClock).fixedSize().layoutPriority(1)
+            }
         }
         .onAppear { dock.setVisible(true) }
         .onDisappear { dock.setVisible(false) }
@@ -35,7 +54,7 @@ struct DockRow: View {
                 separator(style)
                 ForEach(others) { a in
                     DockItemView(app: a, style: style, size: iconSize, isFront: false, isRunning: false, isHidden: false, showsDot: false,
-                                 badge: nil, spacing: CGFloat(theme.widget?.dock?.spacing ?? 0)) { openOther(a) }
+                                 badge: nil, spacing: itemSpacing) { openOther(a) }
                 }
             }
             Color.clear.frame(width: 2)
@@ -78,6 +97,8 @@ struct DockRow: View {
         }
     }
 
+    private var itemSpacing: CGFloat { s.spacing.points ?? CGFloat(theme.widget?.dock?.spacing ?? 0) }
+
     private var iconSize: CGFloat { s.iconSize.points ?? theme.widget?.dock?.iconSize.map { min(24, max(12, CGFloat($0))) } ?? 20 }
 
     @ViewBuilder private func item(_ a: DockApp, _ style: DockIconStyle, items: [DockApp]?) -> some View {
@@ -87,7 +108,7 @@ struct DockRow: View {
         let badge = s.showsBadges ? dock.badges[a.id] : nil
         DockItemView(app: a, style: style, size: iconSize, isFront: isFront, isRunning: isRunning,
                      isHidden: dock.hidden.contains(a.id), showsDot: s.showsDots && s.content != .running,
-                     badge: badge, spacing: CGFloat(theme.widget?.dock?.spacing ?? 0)) {
+                     badge: badge, spacing: itemSpacing) {
             release(a, isFront: isFront)
         }
         .background(GeometryReader { g in
@@ -229,18 +250,20 @@ struct DockItemView: View {
 
 /// Battery and clock on the right, read once a minute.
 struct DockStatus: View {
+    var showsBattery = true
+    var showsClock = true
     @Environment(\.theme) private var theme
 
     var body: some View {
         TimelineView(.everyMinute) { t in
             HStack(spacing: 8) {
-                if let b = Battery.read() {
+                if showsBattery, let b = Battery.read() {
                     HStack(spacing: 3) {
                         Icon(b.symbol)
                         Text("\(b.percent)%").monospacedDigit()
                     }
                 }
-                Text(t.date, format: .dateTime.hour().minute()).monospacedDigit()
+                if showsClock { Text(t.date, format: .dateTime.hour().minute()).monospacedDigit() }
             }
             .font(.bar(12))
             .foregroundStyle(theme.barText)

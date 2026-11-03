@@ -289,6 +289,25 @@ enum DockIconSize: String, CaseIterable {
     }
 }
 
+/// What sits to the right of the Dock.
+enum DockTrailing: String, CaseIterable {
+    case controlStrip, statusAndStrip, status, nowPlaying, nothing
+    var showsStrip: Bool { self == .controlStrip || self == .statusAndStrip }
+    var showsStatus: Bool { self == .statusAndStrip || self == .status || self == .nowPlaying }
+}
+enum DockAlignment: String, CaseIterable { case leading, center, trailing }
+enum DockSpacing: String, CaseIterable {
+    case auto, tight, normal, wide
+    var points: CGFloat? {
+        switch self {
+        case .auto: nil
+        case .tight: 0
+        case .normal: 4
+        case .wide: 10
+        }
+    }
+}
+
 enum DockPreset: String, CaseIterable {
     case macOS, status, running, launcher
 
@@ -317,24 +336,32 @@ final class DockSettings: ObservableObject {
     @Published var iconStyle = DockIconStyle(rawValue: Defaults.string("dockIconStyle")) ?? .auto { didSet { Defaults.set("dockIconStyle", iconStyle.rawValue) } }
     @Published var iconSize = DockIconSize(rawValue: Defaults.string("dockIconSize")) ?? .auto { didSet { Defaults.set("dockIconSize", iconSize.rawValue) } }
     @Published var showsOthers = Defaults.bool("dockShowsOthers", false) { didSet { Defaults.set("dockShowsOthers", showsOthers) } }
-    @Published var showsStatus = Defaults.bool("dockShowsStatus", false) { didSet { Defaults.set("dockShowsStatus", showsStatus) } }
+    @Published var showsFinder = Defaults.bool("dockShowsFinder", true) { didSet { Defaults.set("dockShowsFinder", showsFinder) } }
+    @Published var showsTrash = Defaults.bool("dockShowsTrash", true) { didSet { Defaults.set("dockShowsTrash", showsTrash) } }
+    @Published var trailing = DockTrailing(rawValue: Defaults.string("dockTrailing")) ?? .controlStrip { didSet { Defaults.set("dockTrailing", trailing.rawValue) } }
+    @Published var showsBattery = Defaults.bool("dockShowsBattery", true) { didSet { Defaults.set("dockShowsBattery", showsBattery) } }
+    @Published var showsClock = Defaults.bool("dockShowsClock", true) { didSet { Defaults.set("dockShowsClock", showsClock) } }
+    /// share of the space left of the right side, 1 fills it
+    @Published var width = UserDefaults.standard.object(forKey: "dockWidth") as? Double ?? 1 { didSet { Defaults.set("dockWidth", width) } }
+    @Published var alignment = DockAlignment(rawValue: Defaults.string("dockAlignment")) ?? .leading { didSet { Defaults.set("dockAlignment", alignment.rawValue) } }
+    @Published var spacing = DockSpacing(rawValue: Defaults.string("dockSpacing")) ?? .auto { didSet { Defaults.set("dockSpacing", spacing.rawValue) } }
     @Published var order = Defaults.stringArray("dockOrder") ?? [] { didSet { Defaults.set("dockOrder", order) } }
 
     var recentsShown: Bool { showsRecents ?? DockModel.shared.dockShowsRecents }
 
     var preset: DockPreset? {
-        switch (content, showsBadges, showsDots, recentsShown, showsOthers, showsStatus) {
-        case (.dock, true, true, _, false, false): .macOS
-        case (.dock, true, true, false, true, true): .status
-        case (.running, true, _, false, false, false): .running
-        case (.pinned, false, false, false, false, false): .launcher
+        switch (content, showsBadges, showsDots, recentsShown, showsOthers, trailing) {
+        case (.dock, true, true, _, false, .controlStrip): .macOS
+        case (.dock, true, true, false, true, .statusAndStrip): .status
+        case (.running, true, _, false, false, .controlStrip): .running
+        case (.pinned, false, false, false, false, .controlStrip): .launcher
         default: nil
         }
     }
 
     func apply(_ p: DockPreset) {
         showsOthers = p == .status
-        showsStatus = p == .status
+        trailing = p == .status ? .statusAndStrip : .controlStrip
         switch p {
         case .status: content = .dock; showsBadges = true; showsDots = true; showsRecents = false
         case .macOS: content = .dock; showsBadges = true; showsDots = true; showsRecents = nil
