@@ -359,7 +359,7 @@ struct HubView: View {
                     Button { m.comingSoon = .init(title: "Theme Studio", version: "2.1") } label: {
                         Label("Theme Studio", systemImage: "paintbrush.pointed")
                     }
-                    Button { m.comingSoon = .init(title: L("Layout Editor"), version: "2.2") } label: {
+                    Button { m.comingSoon = .init(title: L("Layout Editor"), version: "2.3") } label: {
                         Label(L("Layout Editor"), systemImage: "rectangle.split.3x1")
                     }
                     Button { m.openFolder() } label: {
