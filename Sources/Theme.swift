@@ -128,8 +128,41 @@ extension Theme {
     }
 }
 
+/// "widget" in theme.json: "dock" has its own options, any other key is a widget id with a role, icon or label.
 struct WidgetStyles: Codable, Equatable {
     var dock: DockStyle? = nil
+    var looks: [String: WidgetLook] = [:]
+
+    init(dock: DockStyle? = nil, looks: [String: WidgetLook] = [:]) { self.dock = dock; self.looks = looks }
+
+    private struct Key: CodingKey {
+        var stringValue: String
+        var intValue: Int? { nil }
+        init(stringValue: String) { self.stringValue = stringValue }
+        init?(intValue: Int) { nil }
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: Key.self)
+        for k in c.allKeys {
+            if k.stringValue == "dock" { dock = try? c.decode(DockStyle.self, forKey: k) } else if let l = try? c.decode(WidgetLook.self, forKey: k) { looks[k.stringValue] = l }
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: Key.self)
+        if let dock { try c.encode(dock, forKey: Key(stringValue: "dock")) }
+        for (k, v) in looks { try c.encode(v, forKey: Key(stringValue: k)) }
+    }
+}
+
+struct WidgetLook: Codable, Equatable {
+    /// a role name drawn in place of the widget's own state
+    var role: String? = nil
+    /// an Apple symbol, or text, shown in front of the value
+    var icon: String? = nil
+    /// a short name shown instead of the icon ("bat")
+    var label: String? = nil
 }
 
 struct DockStyle: Codable, Equatable {

@@ -109,6 +109,7 @@ struct WithControlStrip<Content: View>: View {
                         .transition(.dropIn)
                 }
             }
+            if showsStrip { WidgetStrip(d: d) }
             if showsStrip && d.showsControlStrip { CollapsedControlStrip(d: d) }
         }
     }

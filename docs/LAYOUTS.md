@@ -76,7 +76,7 @@ Every item is a button unless `type` says otherwise.
 
 | Field | Values | Notes |
 |---|---|---|
-| `type` | `button`, `group`, `space`, `text` | Default `button`. `space` pushes what follows to the right. `text` is a plain label. |
+| `type` | `button`, `group`, `space`, `text`, `widget` | Default `button`. `space` pushes what follows to the right. `text` is a plain label. `widget` is a built-in widget, see below. |
 | `label` | text | Text on the button. Shown as written, never translated. |
 | `icon` | an SF Symbol name, or `image:file.png` | A button needs a label, an icon, or both. Images come from the layout's folder and are drawn 16 points high. |
 | `role` | `active`, `primary`, `accent`, `operator` | Draws the button the way the theme draws that role (see [THEMES.md](THEMES.md#roles)). |
@@ -85,6 +85,12 @@ Every item is a button unless `type` says otherwise.
 | `items` | list | Only for `group`: the buttons inside it. |
 
 Icons follow the theme. If the theme maps `chevron.left` to `<`, your layout shows `<` too.
+
+## Widgets (beta)
+
+`{ "type": "widget", "widget": "cpu" }` puts a built-in widget in the layout. The widgets are `clock`, `battery`, `cpu`, `memory`, `worldClock`, `clipboard`, `nowPlaying` and `dock`. The world clock takes a time zone in `option`: `{ "type": "widget", "widget": "worldClock", "option": "Asia/Tokyo" }`.
+
+Widgets are drawn by the theme like any button. Their states use roles: low battery and high CPU are `warning`, charging is `success`.
 
 ## Actions
 

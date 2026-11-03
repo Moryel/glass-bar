@@ -6,10 +6,10 @@ import SwiftUI
 enum Hub {
     enum Page: Hashable {
         case featured, new, popular, updated, name, category(String), installed, updates
-        case general, controlStrip, dock, studio
+        case general, controlStrip, dock, studio, widgets
 
         /// pages that aren't store listings
-        var isSettings: Bool { self == .general || self == .controlStrip || self == .dock || self == .studio }
+        var isSettings: Bool { [.general, .controlStrip, .dock, .studio, .widgets].contains(self) }
     }
     enum Kind: String { case themes, layouts }
 
@@ -205,7 +205,7 @@ final class HubModel: ObservableObject {
         case .name: return list.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
         case .category(let c): return list.filter { $0.category == c }.sorted { $0.name < $1.name }
         case .updates: return updates
-        case .installed, .general, .controlStrip, .dock, .studio: return []
+        case .installed, .general, .controlStrip, .dock, .studio, .widgets: return []
         }
     }
 
@@ -371,6 +371,7 @@ struct HubView: View {
                 Section(L("Settings")) {
                     Label(L("General"), systemImage: "gearshape").tag(Hub.Page.general)
                     Label(L("Control Strip"), systemImage: "slider.horizontal.3").tag(Hub.Page.controlStrip)
+                    Label(L("Widgets"), systemImage: "square.grid.3x1.below.line.grid.1x2").tag(Hub.Page.widgets)
                     Label(L("Dock"), systemImage: "dock.rectangle").tag(Hub.Page.dock)
                 }
                 Section(L("Create")) {
@@ -396,16 +397,17 @@ struct HubView: View {
                 case .controlStrip: ControlStripSettingsView(d: m.d)
                 case .dock: DockSettingsView(d: m.d)
                 case .studio: ThemeStudioView(m: m.studio)
+                case .widgets: WidgetsPage(m: m)
                 default: StorePage(m: m)
                 }
             }
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    Picker("", selection: Binding(get: { m.page == .dock ? 1 : m.kind == .themes ? 0 : 2 }, set: { v in
+                    Picker("", selection: Binding(get: { m.page == .widgets || m.page == .dock ? 1 : m.kind == .themes ? 0 : 2 }, set: { v in
                         switch v {
                         case 0: m.kind = .themes
                         case 2: m.kind = .layouts
-                        default: m.page = .dock; return
+                        default: m.page = .widgets; return
                         }
                         if case .category = m.page { m.page = .featured }
                         if m.page.isSettings { m.page = .featured }

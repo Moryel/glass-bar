@@ -276,7 +276,7 @@ struct DockStatus: View {
 
 enum Battery {
     /// nil on Macs without a battery
-    static func read() -> (percent: Int, symbol: String)? {
+    static func read() -> (percent: Int, symbol: String, isCharging: Bool)? {
         let info = IOPSCopyPowerSourcesInfo().takeRetainedValue()
         let list = IOPSCopyPowerSourcesList(info).takeRetainedValue() as [CFTypeRef]
         for ps in list {
@@ -285,9 +285,9 @@ enum Battery {
                   let now = p[kIOPSCurrentCapacityKey] as? Int, let max = p[kIOPSMaxCapacityKey] as? Int, max > 0
             else { continue }
             let percent = now * 100 / max
-            if p[kIOPSIsChargingKey] as? Bool == true { return (percent, "battery.100.bolt") }
+            if p[kIOPSIsChargingKey] as? Bool == true { return (percent, "battery.100.bolt", true) }
             let level = [0, 25, 50, 75, 100].min { abs($0 - percent) < abs($1 - percent) }!
-            return (percent, "battery.\(level)")
+            return (percent, "battery.\(level)", false)
         }
         return nil
     }

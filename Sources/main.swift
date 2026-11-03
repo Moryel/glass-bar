@@ -154,6 +154,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
         case "settings": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { Hub.open(self.state, .general) }
         case "stripSettings": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { Hub.open(self.state, .controlStrip) }
         case "studio": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { Hub.open(self.state, .studio) }
+        case "widgets": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { Hub.open(self.state, .widgets) }
         default: break
         }
         // the bar drawn to a PNG without the screen (works while the Mac is locked): -testSnapshot /path/bar.png

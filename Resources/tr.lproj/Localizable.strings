@@ -413,3 +413,22 @@
 "Warning" = "Uyarı";
 "Wobble" = "Titreme";
 "lowercase" = "küçük harf";
+
+/* Widgets */
+"Memory" = "Bellek";
+"World Clock" = "Dünya Saati";
+"Now Playing" = "Çalan";
+"CPU" = "CPU";
+"The time. Tap for Notification Center." = "Saat. Dokununca Bildirim Merkezi açılır.";
+"Charge and charging state. Low battery uses the warning role." = "Şarj ve şarj durumu. Düşük pil uyarı rolüyle çizilir.";
+"CPU load, every 2 seconds. Tap for Activity Monitor." = "İşlemci yükü, 2 saniyede bir. Dokununca Etkinlik Monitörü.";
+"Memory in use. Tap for Activity Monitor." = "Kullanılan bellek. Dokununca Etkinlik Monitörü.";
+"The time in another city." = "Başka bir şehirdeki saat.";
+"The last text you copied. Tap to paste it." = "Son kopyaladığın yazı. Dokununca yapıştırır.";
+"The song that is playing, while something plays." = "Bir şey çalarken çalan şarkı.";
+"Your Dock. Shown as a bar of its own or inside a layout." = "Dock’un. Kendi çubuğunda ya da bir düzenin içinde.";
+"Widgets show a value and leave the look to your theme. Pick the ones you want left of the Control Strip, or add them to a layout." = "Widget’lar bir değer gösterir, görünüşü temaya bırakır. Control Strip’in soluna istediklerini seç ya da bir düzene ekle.";
+"On the Bar" = "Çubukta";
+"City" = "Şehir";
+"Shown as its own bar: Touch Bar Shows → Dock" = "Kendi çubuğunda: Touch Bar gösterir → Dock";
+"Appears while something plays" = "Bir şey çalarken görünür";
