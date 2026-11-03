@@ -91,7 +91,7 @@ enum KeyNames {
 
 extension AppState {
     func run(_ a: LayoutAction?) {
-        guard let a else { return }
+        guard !isPreview, let a else { return }
         if let s = a.shortcut, let (code, flags, character) = KeyNames.parse(s) {
             shortcut(code, flags, character)
         } else if let m = a.menu {

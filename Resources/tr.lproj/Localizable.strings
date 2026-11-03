@@ -525,3 +525,32 @@
 "The Touch Bar couldn't be captured. Is the screen locked?" = "Touch Bar yakalanamadı. Ekran kilitli mi?";
 "The index.json entry is on the clipboard." = "index.json girdisi panoda.";
 "Upload the folder on GitHub" = "Klasörü GitHub’a yükle";
+
+/* Studio canvas */
+"Any other app" = "Diğer uygulamalar";
+"Borders are for skins. Turn on “Draw a skin instead of glass” under Info." = "Kenarlar kaplamalar için. Bilgi’de “Cam yerine kaplama çiz”i aç.";
+"Brightness, volume and other sliders." = "Parlaklık, ses ve diğer kaydırıcılar.";
+"Buttons that share one background, like back and forward." = "Geri ve ileri gibi tek arka planı paylaşan düğmeler.";
+"Clear" = "Temizle";
+"Click a part of the bar above to edit it." = "Düzenlemek için yukarıdaki çubuktan bir parçaya tıkla.";
+"Click a part of the bar to edit it, or drag a chip onto it. Everything drawn by the same part changes together." = "Düzenlemek için çubuktan bir parçaya tıkla ya da üstüne bir çip sürükle. Aynı parçayla çizilen her şey birlikte değişir.";
+"Control Strip, expanded" = "Control Strip, açık";
+"Drag onto the bar, or click to apply to the selection" = "Çubuğa sürükle ya da seçime uygulamak için tıkla";
+"Emoji" = "Emoji";
+"Every plain button on every bar." = "Tüm çubuklardaki her düz düğme.";
+"F1, F2 keys" = "F1, F2 tuşları";
+"Fit" = "Sığdır";
+"Redo" = "Yinele";
+"Screen" = "Ekran";
+"Selected: %@" = "Seçili: %@";
+"Selection" = "Seçim";
+"Slider" = "Kaydırıcı";
+"The background behind everything." = "Her şeyin arkasındaki zemin.";
+"Undo" = "Geri Al";
+"No border" = "Kenarsız";
+"Square" = "Köşeli";
+"Pill" = "Hap";
+"No glow" = "Parıltısız";
+"Mono" = "Eş aralıklı";
+"Rounded font" = "Yuvarlak yazı";
+"System font" = "Sistem yazısı";

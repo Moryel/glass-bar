@@ -7,10 +7,11 @@ import UniformTypeIdentifiers
 
 final class StudioModel: ObservableObject {
     enum Part: String, CaseIterable {
-        case info, glass, bar, buttons, roles, text, icons, effects, assets
+        case selection, info, glass, bar, buttons, roles, text, icons, effects, assets
 
         var name: String {
             switch self {
+            case .selection: L("Selection")
             case .info: L("Info")
             case .glass: L("Glass")
             case .bar: L("Bar")
@@ -27,7 +28,40 @@ final class StudioModel: ObservableObject {
     let d: AppState
     private let original: Theme
     @Published var themes = ThemeStore.shared.all
-    @Published var draft: Theme { didSet { if draft != oldValue { d.apply(draft) } } }
+    @Published var draft: Theme {
+        didSet {
+            guard draft != oldValue else { return }
+            d.apply(draft)
+            // slider drags and typing make one undo step
+            if !isUndoing && (Date().timeIntervalSince(lastChange) > 0.7 || undoStack.isEmpty) {
+                undoStack.append(oldValue)
+                if undoStack.count > 100 { undoStack.removeFirst() }
+                redoStack = []
+            }
+            lastChange = Date()
+        }
+    }
+    @Published var screen = StudioScreen.finder {
+        didSet { previewState.previewBundleID = screen.bundleID; previewState.objectWillChange.send() }
+    }
+    @Published var selected: StudioTarget?
+    /// 0 fits the window
+    @Published var zoom = 0.0
+    /// what a color chip changes when dropped
+    @Published var paint = "fill"
+    @Published var customColor = Color(hex: 0x0A84FF)
+    @Published var undoStack: [Theme] = []
+    @Published var redoStack: [Theme] = []
+    var isUndoing = false
+    private var lastChange = Date.distantPast
+
+    /// the native bars are drawn on this, never on the real AppState
+    lazy var previewState: AppState = {
+        let a = AppState()
+        a.isPreview = true
+        a.previewBundleID = screen.bundleID
+        return a
+    }()
     @Published var saved: Theme
     @Published var message = ""
     @Published var part = Part.info
@@ -39,12 +73,17 @@ final class StudioModel: ObservableObject {
         original = d.theme
         draft = d.theme
         saved = d.theme
+        // screenshot testing: -studioScreen calculator -studioPick operator
+        if let s = UserDefaults.standard.string(forKey: "studioScreen").flatMap(StudioScreen.init(rawValue:)) { screen = s }
+        if let k = UserDefaults.standard.string(forKey: "studioPick") {
+            pick(["bar": .bar, "button": .button, "group": .group, "slider": .slider][k] ?? .role(k))
+        }
         // screenshot testing: -studioPart buttons
         if let p = UserDefaults.standard.string(forKey: "studioPart").flatMap(Part.init(rawValue:)), parts.contains(p) { part = p }
     }
 
     var isDirty: Bool { draft != saved }
-    var parts: [Part] { draft.isSkin ? Part.allCases.filter { $0 != .glass } : [.info, .glass, .roles, .text] }
+    var parts: [Part] { draft.isSkin ? Part.allCases.filter { $0 != .glass } : [.selection, .info, .glass, .roles, .text] }
 
     /// Called when the Hub closes: unsaved changes don't stay on the bar.
     func close() {
@@ -53,8 +92,13 @@ final class StudioModel: ObservableObject {
     }
 
     func select(_ t: Theme) {
+        isUndoing = true
         draft = t
+        isUndoing = false
         saved = t
+        undoStack = []
+        redoStack = []
+        selected = nil
         message = ""
         if !parts.contains(part) { part = .info }
     }
@@ -244,6 +288,10 @@ struct ThemeStudioView: View {
             Button(L("Delete"), role: .destructive, action: m.delete).disabled(m.draft.isBuiltIn)
             Text(m.message).font(.caption).foregroundStyle(.secondary)
             Spacer()
+            Button { m.undo() } label: { Image(systemName: "arrow.uturn.backward") }
+                .keyboardShortcut("z").disabled(m.undoStack.isEmpty).help(L("Undo"))
+            Button { m.redo() } label: { Image(systemName: "arrow.uturn.forward") }
+                .keyboardShortcut("z", modifiers: [.command, .shift]).disabled(m.redoStack.isEmpty).help(L("Redo"))
             Button(L("Revert"), action: m.revert).disabled(!m.isDirty)
             Button(L("Duplicate"), action: m.duplicate)
             Button(L("Export…"), action: m.export)
@@ -325,30 +373,27 @@ private struct StudioPreview: View {
 
     var body: some View {
         let t = m.draft
-        VStack(spacing: 10) {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: Metrics.spacing) {
-                    GlassButton(width: Metrics.escWidth, action: {}) { Text("esc") }
-                    GlassButton("safari", action: {})
-                    ButtonGroup(buttons: [.init(symbol: "chevron.left") {}, .init(symbol: "chevron.right") {}], buttonWidth: Metrics.narrowWidth)
-                    GlassButton(width: 150, action: {}) {
-                        HStack(spacing: 6) { Icon("magnifyingglass"); Text(L("Search")); Spacer(minLength: 0) }
-                    }
-                    GlassButton("plus", highlight: .accent) {}
-                    GlassButton(width: nil, highlight: .primary, action: {}) { Text(L("Done")) }
-                    GlassSlider(value: $m.previewValue, fillColor: Color(hex: 0x0A84FF)).frame(width: 110)
-                    ButtonGroup(buttons: [.init(symbol: "sun.max.fill") {}, .init(symbol: "speaker.wave.2.fill") {},
-                                          .init(symbol: "speaker.slash.fill") {}], buttonWidth: Metrics.iconWidth)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Picker(L("Screen"), selection: $m.screen) {
+                    Section(L("Apps")) { ForEach(StudioScreen.apps) { Text($0.name).tag($0) } }
+                    Section(L("System")) { ForEach(StudioScreen.system) { Text($0.name).tag($0) } }
                 }
-                .frame(height: Metrics.barHeight)
-                .padding(.horizontal, 10).padding(.vertical, 6)
-                .background { bar(t) }
-                .overlay { if let b = t.skin?.bar { SkinBarOverlay(style: b).allowsHitTesting(false) } }
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .environment(\.theme, t)
-                .font(t.font(14))
-                .textCase(t.letterCase)
+                .fixedSize()
+                Picker("", selection: $m.zoom) {
+                    Text(L("Fit")).tag(0.0)
+                    Text("1×").tag(1.0)
+                    Text("2×").tag(2.0)
+                }
+                .pickerStyle(.segmented).labelsHidden().fixedSize()
+                Spacer()
+                if let sel = m.selected {
+                    Text(String(format: L("Selected: %@"), sel.title)).font(.caption).foregroundStyle(.secondary)
+                    Button(L("Clear")) { m.selected = nil }.buttonStyle(.link).font(.caption)
+                }
             }
+            StudioCanvas(m: m)
+            StudioPalette(m: m)
             HStack(spacing: 14) {
                 state(L("Normal"), nil, pressed: false)
                 state(L("Pressed"), nil, pressed: true)
@@ -356,8 +401,7 @@ private struct StudioPreview: View {
                 state(L("Primary"), .primary, pressed: false)
                 state(L("Disabled"), nil, pressed: false).opacity(0.4)
             }
-            Text(L("Changes show on your Touch Bar right away. Touch the preview to try the press effect."))
-                .font(.caption).foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity)
         }
         .padding(14)
         .frame(maxWidth: .infinity)
@@ -397,6 +441,7 @@ private struct StudioPartForm: View {
     var body: some View {
         Form {
             switch m.part {
+            case .selection: StudioSelectionForm(m: m)
             case .info: info
             case .glass: glass
             case .bar: bar

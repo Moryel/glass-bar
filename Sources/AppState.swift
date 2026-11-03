@@ -110,7 +110,16 @@ final class AppState: ObservableObject {
     private var lastScrub = Date.distantPast
     private var liveSliderStart: Float = 0
 
-    var frontBundleID: String { frontApp?.bundleIdentifier ?? "" }
+    var frontBundleID: String { previewBundleID ?? frontApp?.bundleIdentifier ?? "" }
+
+    /// Theme Studio draws the native bars on an AppState of its own: no keys, menus or system changes leave it.
+    var isPreview = false
+    /// the app Theme Studio pretends is in front
+    var previewBundleID: String?
+    var frontIcon: NSImage? {
+        guard let id = previewBundleID else { return frontApp?.icon }
+        return NSWorkspace.shared.urlForApplication(withBundleIdentifier: id).map { NSWorkspace.shared.icon(forFile: $0.path) }
+    }
 
     /// While fn is held, the fn setting; in apps on the "always F keys" list, F keys; otherwise the bar mode setting.
     var activeBarMode: BarMode {
@@ -123,6 +132,7 @@ final class AppState: ObservableObject {
 
     // MARK: esc, fn
     func esc() {
+        guard !isPreview else { return }
         handleEsc()
         SystemControl.pressKey(53)
     }
@@ -429,7 +439,7 @@ final class AppState: ObservableObject {
     // MARK: menu commands
     /// Presses a menu item of the front app: by its identifier or by one of its titles.
     func menu(_ identifier: String? = nil, _ titles: String...) {
-        guard let pid = frontApp?.processIdentifier else { return }
+        guard !isPreview, let pid = frontApp?.processIdentifier else { return }
         SystemControl.workQueue.async {
             let didPress = AX.pressMenuItem(pid, identifier: identifier, titles: titles)
             SystemControl.log("menu \(identifier ?? titles.first ?? ""): \(didPress ? "ok" : "not found")")
@@ -699,6 +709,7 @@ final class AppState: ObservableObject {
     // MARK: shortcuts
     /// Runs a ⌘ shortcut through the front app's menu first (independent of keyboard layout); falls back to a key press.
     func shortcut(_ keyCode: CGKeyCode, _ flags: CGEventFlags = [], _ character: String? = nil) {
+        guard !isPreview else { return }
         guard flags.contains(.maskCommand), let character, let pid = frontApp?.processIdentifier else {
             SystemControl.pressKey(keyCode, flags, character: character)
             return

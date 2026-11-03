@@ -750,7 +750,7 @@ struct AppArea: View {
             // switching to the front app's own Touch Bar controls: on long press, so an accidental tap doesn't close the bar
             if compactLevel < 2 {
             GlassButton(width: Metrics.iconWidth, action: {}) {
-                if let icon = d.frontApp?.icon {
+                if let icon = d.frontIcon {
                     Image(nsImage: icon).resizable().frame(width: 20, height: 20)
                 } else {
                     Icon("app")
