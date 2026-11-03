@@ -76,6 +76,8 @@ if [[ "$1" == "release" ]]; then
   rm -f build/GlassBar.zip
   ditto -c -k --norsrc --noextattr --noqtn --keepParent "$APP" build/GlassBar.zip
   echo "Ready: build/GlassBar.zip ($(lipo -archs "$APP/Contents/MacOS/GlassBar"), version $VERSION)"
+  # the folder syncs with iCloud: a leftover app there turns into "GlassBar 2.app" copies that Spotlight lists
+  rm -rf "$APP"
   exit 0
 fi
 
@@ -83,6 +85,7 @@ mkdir -p ~/Applications
 pkill -x GlassBar 2>/dev/null && sleep 0.5 || true
 rm -rf ~/Applications/GlassBar.app
 cp -R "$APP" ~/Applications/
+rm -rf "$APP"
 # extended attributes from the iCloud folder break the signature; clean the installed copy and sign it
 xattr -cr ~/Applications/GlassBar.app
 # Sign with the local signing certificate if present: the identity stays the same across builds, so the Accessibility permission sticks.
