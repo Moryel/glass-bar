@@ -7,7 +7,7 @@ Everything here is free. Plans can change; ideas and feedback are welcome in the
 | Version | Focus | Status |
 |---|---|---|
 | 1.0 | Touch Bar replacement with a Liquid Glass look | Released |
-| 2.0 | Theme engine 2, GlassBar Hub and theme store | Released |
+| 2.0 | Theme engine 2, layouts, GlassBar Hub and store | Released |
 | 2.1 | Theme Studio | In progress |
 | 2.2 | Store | Planned |
 | 2.3 | Bar Layout + widgets | Planned |
@@ -30,7 +30,8 @@ A theme is no longer just a glass color: it can draw every part of the bar its o
 - **Theme packages.** A `.glasstheme` folder holds `theme.json` plus its fonts, images and sounds. Double-click to install.
 - **New built-in themes.** *Terminal* (green phosphor, ASCII brackets, scanlines, key clicks) and *8-Bit Arcade* (pixel font, pixel keys, a starfield).
 - **Write your own.** In 2.0 themes are written as JSON, following [docs/THEMES.md](docs/THEMES.md). Open Themes Folder and Reload Themes in the menu make editing quick, and bad values are skipped and written to the log instead of breaking the bar. Themes are shared by pull request ([themes/README.md](themes/README.md)).
-- **GlassBar Hub and a first store.** Featured theme, New, Most installed, Recently updated, categories, Installed and Updates, with one-click install from the repo's `themes` folder. Install counts come from the download counts of the `themes` release. Widgets, layouts, bundles and publishing from the app still come later.
+- **GlassBar Hub and a first store.** Featured theme, New, Most installed, Recently updated, categories, Installed and Updates, with one-click install from the repo's `themes` folder. Install counts come from the download counts of the `themes` release. Widgets, bundles and publishing from the app still come later.
+- **Layouts as JSON.** Your own buttons for any app (shortcuts, menu commands, links, opening apps), written by hand following [docs/LAYOUTS.md](docs/LAYOUTS.md) and shared in the store. The drag-and-drop editor, widgets and turning the built-in bars into layouts are still part of 2.3.
 
 ## 2.1 — GlassBar Hub + Theme Studio
 

@@ -87,7 +87,9 @@ Switching between desktop spaces uses the ⌃1…⌃9 shortcuts, so the "Switch 
 
 Besides the glass themes, 2.0 can draw the whole bar its own way: flat or gradient buttons, ASCII brackets, pixel borders, a font that comes with the theme, its own icons and a tap sound. Terminal and 8-Bit Arcade are built in.
 
-**GlassBar Hub** (menu > GlassBar Hub…) is a small theme store: a featured theme, new themes, categories, the most installed ones, and your own library with updates. One click installs and applies a theme. The store is just the [themes](themes) folder of this repo, so it needs no account or server. Widgets, layouts and Theme Studio are already in the sidebar but still in development.
+**GlassBar Hub** (menu > GlassBar Hub…) is a small theme store: a featured theme, new themes, categories, the most installed ones, and your own library with updates. One click installs and applies a theme. The store is just the [themes](themes) folder of this repo, so it needs no account or server. Widgets, Theme Studio and the layout editor are already there but still in development.
+
+**Layouts** give any app your own Touch Bar buttons: shortcuts, menu commands, links. Like themes they're JSON for now, see [docs/LAYOUTS.md](docs/LAYOUTS.md). Xcode, VS Code, Terminal and Figma layouts are in the store, and you can share yours the same way ([layouts/README.md](layouts/README.md)).
 
 You can write your own theme as a JSON file. Choose Theme > Open Themes Folder from the menu, drop in a `theme.json`, and use Theme > Reload Themes after each save. Everything you can set is in [docs/THEMES.md](docs/THEMES.md). The format is still alpha and may change. A visual editor (Theme Studio) is planned for 2.1.
 

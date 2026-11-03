@@ -486,7 +486,7 @@ private struct Hero: View {
             }
             .frame(maxWidth: 300, alignment: .leading)
             Spacer(minLength: 0)
-            BarCrop(image: m.preview(item), fraction: m.kind == .themes ? 0.32 : 0.62, fromLeft: m.kind == .layouts)
+            BarCrop(image: m.preview(item), fraction: m.kind == .themes ? 0.32 : 0.36, fromLeft: m.kind == .layouts)
                 .frame(maxWidth: 560)
                 .shadow(color: .black.opacity(0.6), radius: 14, y: 8)
         }
@@ -527,7 +527,7 @@ private struct ItemGrid: View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 190), spacing: 16)], alignment: .leading, spacing: 20) {
             ForEach(items) { item in
                 VStack(alignment: .leading, spacing: 10) {
-                    Stage { BarCrop(image: m.preview(item), fraction: m.kind == .themes ? 0.22 : 0.4, fromLeft: m.kind == .layouts) }
+                    Stage { BarCrop(image: m.preview(item), fraction: m.kind == .themes ? 0.22 : 0.27, fromLeft: m.kind == .layouts) }
                     HStack(alignment: .center, spacing: 8) {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(item.name).font(.headline).lineLimit(1)
@@ -675,7 +675,7 @@ private struct InstalledPage: View {
 
     private func layoutCard(_ l: BarLayout) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Stage { BarCrop(image: m.previews["local:layouts:" + l.id], fraction: 0.4, fromLeft: true) }
+            Stage { BarCrop(image: m.previews["local:layouts:" + l.id], fraction: 0.27, fromLeft: true) }
             HStack(spacing: 8) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(l.name).font(.headline).lineLimit(1)
