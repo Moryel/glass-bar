@@ -3,7 +3,7 @@
 # Usage: ./build.sh [--ac]   ·   ./build.sh release  → Intel + Apple Silicon, ad-hoc signed, build/GlassBar.zip (doesn't install)
 set -e
 cd "${0:A:h}"
-VERSION=1.0.2
+VERSION=2.0
 APP=build/GlassBar.app
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
