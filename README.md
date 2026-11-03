@@ -45,19 +45,13 @@ Made a theme you like? Send it with a pull request and it shows up in the store 
 
 Menu > **GlassBar Hub…** opens the store and your library. It has a featured pick, new and most installed themes, categories and search. One click installs a theme and puts it on the bar. The store is just the [themes](themes) and [layouts](layouts) folders of this repo, so there's no account or server.
 
-![GlassBar Hub store](images/hub-store.png)
-
 Your installed themes and layouts are under Library, with updates when an author changes theirs.
-
-![Installed themes](images/hub-installed.png)
 
 Widgets, Theme Studio (a visual theme editor) and a layout editor already show up in the Hub but are still in development. The Hub window was built with AI assistance so I could spend more time on the theme engine and performance.
 
 ## Layouts
 
 A layout gives one app your own Touch Bar buttons: keyboard shortcuts, menu commands, links, or opening another app. Xcode, VS Code, Terminal and Figma layouts are in the store to start with.
-
-![Layouts in the Hub](images/hub-layouts.png)
 
 Layouts are JSON too. How to write one is in [docs/LAYOUTS.md](docs/LAYOUTS.md), and they're shared the same way as themes ([layouts/README.md](layouts/README.md)).
 
