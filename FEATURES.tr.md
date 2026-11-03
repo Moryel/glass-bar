@@ -37,7 +37,10 @@ Durum: ✅ var · 🟡 kısmen · ❌ yok · ⛔ yapılamaz (veriyi yalnız o uy
 | Belirli uygulamalarda hep F tuşları | ✅ |
 | Yazma önerilerini göster | ✅ |
 | fn + ⌃/⌥/⇧/⌘ + F tuşu | ✅ basılı değiştiriciler F tuşuna eklenir |
-| Orijinalde olmayan: Tema (Klasik / Sade Liquid Glass) | ✅ |
+| Orijinalde olmayan: Tema (Klasik, Sade Liquid Glass, Grafit, Neon, Terminal, 8-Bit Arcade) | ✅ |
+| Orijinalde olmayan: JSON ile kendi temanı yazma; skin, roller, simge haritası, yazı tipi, basma efekti ve ses ([docs/THEMES.md](docs/THEMES.md)); `.glasstheme` paketleri çift tıkla kurulur; menüde Open Themes Folder ve Reload Themes and Layouts | ✅ (`Theme.swift`, `Skin.swift`) |
+| Orijinalde olmayan: layout'lar, her uygulamaya JSON ile kendi düğmelerin (kısayol, menü komutu, bağlantı, uygulama açma) ([docs/LAYOUTS.md](docs/LAYOUTS.md)) | ✅ (`Layout.swift`) |
+| Orijinalde olmayan: GlassBar Hub, tema ve layout mağazası (öne çıkan, yeni, en çok kurulan, son güncellenen, kategoriler, arama, yüklüler, güncellemeler; deponun `themes` klasöründen tek tıkla kurulum) | ✅ (`Hub.swift`) |
 | Orijinalde olmayan: Arka plan — Kapalı, Uygulamanın rengi, Aurora, Gün batımı, Okyanus, Siri renkleri, Duvar kağıdı (Mac'in masaüstü görseli), Görsel seç… | ✅ (`Backdrop.swift`) |
 | Orijinalde olmayan: Siri hapı Apple'ın yeni Siri'si gibi şeffaf bir cam damla; içindeki renkli dalgalar mikrofondan gelen sese göre hareket eder, arka plan gürültüsü süzülür (ilk kullanımda mikrofon izni; ses kaydedilmez) | ✅ (`Siri.swift`, `Microphone.swift`) |
 | Dil | ✅ GlassBar'ın yazıları sistemin dilinde (Türkçe, İngilizce; diğer dillerde İngilizce) — `Resources/<dil>.lproj/Localizable.strings`. Menü komutları kimlik, kısayol harfi ya da Türkçe/İngilizce başlıkla bulunur |

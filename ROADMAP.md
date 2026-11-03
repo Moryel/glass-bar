@@ -8,21 +8,21 @@ Everything here is free. Plans can change; ideas and feedback are welcome in the
 |---|---|---|
 | 1.0 | Touch Bar replacement with a Liquid Glass look | Released |
 | 2.0 | Theme engine 2, layouts, GlassBar Hub and store | Released |
-| 2.1 | Theme Studio | In progress |
-| 2.2 | Store | Planned |
-| 2.3 | Bar Layout + widgets | Planned |
+| 2.1 | Theme Studio and a settings page | In progress |
+| 2.2 | A bigger store: widgets, bundles, publishing | Planned |
+| 2.3 | Layout editor, widgets and a Touch Bar Dock | Planned |
 | 2.4 | Script widgets | Planned |
 | Later | Ideas | Open |
 
 ---
 
-## 2.0 — Theme engine 2
+## 2.0: Theme engine 2
 
 A theme is no longer just a glass color: it can draw every part of the bar its own way.
 
 - **Skins.** Buttons without glass: a fill or gradient; borders that are solid, dashed, pixel-art (with a bevel), ASCII brackets (`[esc]`) or hand-drawn; corner radius, glow and shadow; a separate pressed look, or inverted colors.
 - **The bar itself.** A color or gradient, patterns (stars, grid) and overlays such as CRT scanlines.
-- **Roles.** Every built-in bar uses roles instead of fixed colors: *active* (a switched-on button, the current space), *primary* (Done, Send), *accent*, *operator* (Calculator's ÷ × − + =) and *suggestions*. One theme restyles every bar — Safari, Calculator, Mail, Finder, Music, emoji, sliders. A theme that leaves a role out falls back to its normal button, so nothing is ever unstyled.
+- **Roles.** Every built-in bar uses roles instead of fixed colors: *active* (a switched-on button, the current space), *primary* (Done, Send), *accent*, *operator* (Calculator's ÷ × − + =) and *suggestions*. One theme restyles every bar, Safari, Calculator, Mail, Finder, Music, emoji, sliders. A theme that leaves a role out falls back to its normal button, so nothing is ever unstyled.
 - **Icon map.** Apple's symbols can be shown as text (`chevron.left` → `<`) or as the theme's own images.
 - **Text.** A font shipped with the theme, a size scale, upper or lower case, letter spacing.
 - **Press effects.** Liquid glass, pop, shake, wobble or none.
@@ -33,11 +33,11 @@ A theme is no longer just a glass color: it can draw every part of the bar its o
 - **GlassBar Hub and a first store.** Featured theme, New, Most installed, Recently updated, categories, Installed and Updates, with one-click install from the repo's `themes` folder. Install counts come from the download counts of the `themes` release. Widgets, bundles and publishing from the app still come later.
 - **Layouts as JSON.** Your own buttons for any app (shortcuts, menu commands, links, opening apps), written by hand following [docs/LAYOUTS.md](docs/LAYOUTS.md) and shared in the store. The drag-and-drop editor, widgets and turning the built-in bars into layouts are still part of 2.3.
 
-## 2.1 — GlassBar Hub + Theme Studio
+## 2.1: Theme Studio and settings
 
-One window for everything, instead of a long menu.
+The Hub window from 2.0 becomes the place for everything, instead of a long menu.
 
-- **GlassBar Hub window.** A sidebar with *Themes*, *Theme Studio*, *Settings* and, from 2.2, *Store*. The menu bar menu keeps quick switches and the theme picker.
+- **More Hub pages.** *Theme Studio* and *Settings* join the store and library. The menu bar menu keeps quick switches and the theme picker.
 - **Themes page.** Your installed themes as cards with a live mini preview of the bar. Apply, duplicate, export, delete, and import with drag and drop.
 - **Theme Studio.** A visual editor for skins, so making a theme needs no JSON:
   - *Parts:* bar background, button, button group, slider, text, icons, press effect, transitions, sounds.
@@ -47,39 +47,40 @@ One window for everything, instead of a long menu.
   - *Assets:* add fonts, images and sounds; a single-file theme becomes a package automatically.
   - *Live preview* at the real width, and on your Touch Bar at the same time.
   - *Export* a `.glasstheme` package to share.
-- **Settings page.** Everything that is in the menu today — what the bar shows, fn behavior, Control Strip buttons, typing suggestions, esc, color temperature, background, the Spotify player, theme sounds, open at login, updates — in one place.
+- **Settings page.** Everything that is in the menu today (what the bar shows, fn behavior, Control Strip buttons, typing suggestions, esc, color temperature, background, the Spotify player, theme sounds, open at login, updates) in one place.
 
-## 2.2 — Store
+## 2.2: A bigger store
 
-Themes, layouts and widgets from other people, one click away. Free, with no accounts.
+2.0 has a first store for themes and layouts. 2.2 adds widgets and makes sharing easier. Still free, with no accounts.
 
-- **Hosted on GitHub.** The store reads a public repository (`glassbar-hub`). Each item is a folder; an index lists them all.
+- **Hosted on GitHub.** The store reads the `themes` and `layouts` folders of this repository, plus `widgets` from 2.2. Each item is a folder; an index lists them all.
 - **Like the App Store.** Sections at the top (*Themes*, *Widgets*, *Layouts*), and on the left *List by*: Featured, New, Most installed, Recently updated, Name. Shelves of cards ("New themes", "Retro & games"), each with a live preview of the bar and a *Get* button. Categories per section, plus *Installed* and *Updates*.
 - **Install, update, remove.** Items install into your library; when a new version is published, *Update* appears.
 - **Bundles.** A theme can come with its own layouts and widgets, labelled for example **Theme + 3 Layouts**. *Get* offers: everything, the theme only, the layouts only, or choose parts. Someone who likes only the theme gets only the theme.
 - **Publishing.** *Publish to store…* packages your theme, layout or widget and walks you through opening a pull request. Every submission is reviewed before it appears.
 
-## 2.3 — Bar Layout + widgets
+## 2.3: Layout editor, widgets and a Dock
 
-Decide exactly what the bar shows, for all apps or one app.
+Layouts can already be written as JSON in 2.0. 2.3 adds an editor, so you decide exactly what the bar shows, for all apps or one app, without writing anything.
 
 - **Built-in bars become layouts.** GlassBar's own bars (Safari, Calculator, Mail, Finder, Notes…) open as editable layouts. See the default Calculator bar, move or remove keys, add new ones; *Reset to default* brings it back.
-- **App rules.** Make a key set for any app — Xcode, Figma, Zoom, your own tools — with a rule such as "when this app is in front" or "while fn is held". Choose what happens when the app has its own Touch Bar: your layout, the app's bar, or the app's bar on fn.
+- **App rules.** Make a key set for any app (Xcode, Figma, Zoom, your own tools) with a rule such as "when this app is in front" or "while fn is held". Choose what happens when the app has its own Touch Bar: your layout, the app's bar, or the app's bar on fn.
 - **Drag-and-drop editor.** A library on the left, the bar in the middle (app area and Control Strip), the selected item's settings on the right. The bar is drawn with your current theme.
 - **Action buttons.** Keyboard shortcut, open an app, open a link, a menu command, press a button in the app (like Calculator's), AppleScript (only for things you make yourself).
+- **Dock.** Your Dock on the Touch Bar. It follows the macOS Dock by itself (pinned apps, order, running dots, badges, recent apps), opens a Dock-style menu on long press, and reorders by dragging. It takes its look from the theme, so it's glass in Liquid Glass, names in brackets in Terminal and pixel icons in 8-Bit Arcade. Presets and a few switches cover most setups.
 - **Built-in widgets.** Clock, battery, system monitor (CPU, memory), next calendar event, now playing, world clock, clipboard and more.
-- **Widgets follow the theme.** A widget only says *what* to show — text, an icon, a value, a state; the theme decides *how* it looks. The same battery widget is a glass capsule in Liquid Glass, `[bat 87%]` in Terminal and a pixel key in 8-Bit Arcade. States map to roles (low battery → *warning*, a running timer → *active*), with new *warning*, *danger* and *success* roles. A theme may give a widget its own look (`widget.battery`); widgets that draw graphs get the theme's colors, so they can never clash with it.
+- **Widgets follow the theme.** A widget only says *what* to show (text, an icon, a value, a state); the theme decides *how* it looks. The same battery widget is a glass capsule in Liquid Glass, `[bat 87%]` in Terminal and a pixel key in 8-Bit Arcade. States map to roles (low battery → *warning*, a running timer → *active*), with new *warning*, *danger* and *success* roles. A theme may give a widget its own look (`widget.battery`); widgets that draw graphs get the theme's colors, so they can never clash with it.
 - **Sharing.** Layouts can be exported, shipped inside a theme, or published to the store on their own.
 
-## 2.4 — Script widgets
+## 2.4: Script widgets
 
 Widgets anyone can write and share safely.
 
 - **JavaScript widgets** run in a sandbox with a small GlassBar API: show text, icons and values, refresh on a timer, react to taps.
-- **Permissions.** A widget declares what it needs — network, opening links, sending keys — and you see that before installing.
+- **Permissions.** A widget declares what it needs (network, opening links, sending keys) and you see that before installing.
 - **Store-ready.** Script widgets can be published like themes. AppleScript and shell commands stay local-only and never come from the store.
 
-## Later — ideas
+## Later: ideas
 
 - Theme Studio on the web, for people without a Touch Bar.
 - Accounts, likes and comments in the store.
