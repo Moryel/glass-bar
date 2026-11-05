@@ -145,8 +145,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
         case "store": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { Hub.open(self.state, .featured) }
         case "layouts": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { Hub.open(self.state, .featured, .layouts) }
         case "tabs": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { self.state.showTabs() }
+        case nil where !launchedAtLogin: DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { Hub.open(self.state, .featured) }
         default: break
         }
+    }
+
+    // opening the app again from Finder or Launchpad while it runs shows the store
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        Hub.open(state, .featured)
+        return false
+    }
+
+    // the login item shouldn't pop the Hub up every time the Mac starts; SMAppService doesn't always
+    // set the login-item flag, so a launch in the first two minutes after boot counts as one too
+    var launchedAtLogin: Bool {
+        let e = NSAppleEventManager.shared().currentAppleEvent
+        if e?.eventID == kAEOpenApplication, e?.paramDescriptor(forKeyword: keyAEPropData)?.enumCodeValue == keyAELaunchedAsLogInItem { return true }
+        return ProcessInfo.processInfo.systemUptime < 120
     }
 
     func applicationWillTerminate(_ n: Notification) {
