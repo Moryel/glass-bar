@@ -285,6 +285,7 @@ final class AppState: ObservableObject {
 
     // MARK: front app
     func frontAppChanged(_ a: NSRunningApplication?) {
+        lastInput = Date()
         guard let a, a.activationPolicy == .regular, a.bundleIdentifier != Bundle.main.bundleIdentifier else { return }
         // when the same app comes to the front again (e.g. after a permission dialog), keep open panels
         let isSameApp = a.bundleIdentifier == frontApp?.bundleIdentifier
@@ -375,14 +376,23 @@ final class AppState: ObservableObject {
     // MARK: screenshot tool
     /// From the timer in main.swift; the bar changes when the tool opens/closes.
     func refreshScreenshotTool() {
-        let isOn = ScreenshotTool.isOnScreen()
-        if !isOn {
+        guard let pid = ScreenshotTool.runningPID() else {
             if screenshotTool != nil { screenshotTool = nil; showsTargetList = false }
             return
         }
-        let d = ScreenshotTool.read()
-        if d != screenshotTool { screenshotTool = d }
+        // the process stays alive after the tool closes; the window list is too slow for the main thread
+        guard !isReadingScreenshotTool else { return }
+        isReadingScreenshotTool = true
+        SystemControl.workQueue.async {
+            let d = ScreenshotTool.isOnScreen(pid) ? ScreenshotTool.read() : nil
+            DispatchQueue.main.async {
+                self.isReadingScreenshotTool = false
+                if d == nil, self.screenshotTool != nil { self.showsTargetList = false }
+                if d != self.screenshotTool { self.screenshotTool = d }
+            }
+        }
     }
+    private var isReadingScreenshotTool = false
 
     func selectScreenshotMode(_ identifier: String, style: String, video: Bool) {
         screenshotTool?.style = style
@@ -665,7 +675,8 @@ final class AppState: ObservableObject {
         guard showsSuggestions, SystemControl.hasAccessibility, panel == .app, activeBarMode == .app, !isSiriActive,
               !["com.apple.finder", NowPlaying.music, NowPlaying.quickTime, NowPlaying.spotify].contains(frontBundleID)
         else { if suggestions.isActive { suggestions = Suggestions() }; return }
-        guard !isReadingSuggestions else { return }
+        // the text only changes after a key press or a click, so there's nothing to read the rest of the time
+        guard !isReadingSuggestions, Date().timeIntervalSince(lastInput) < 1 else { return }
         isReadingSuggestions = true
         SystemControl.workQueue.async {
             let b = TextContext.read()
@@ -687,10 +698,13 @@ final class AppState: ObservableObject {
     }
 
     private var lastContext: TextContext?
+    /// Last key press or click in another app (from the monitors in main.swift).
+    var lastInput = Date()
 
     func selectSuggestion(_ word: String) {
         suggestions.select(word)
         lastContext = nil
+        lastInput = Date()
     }
 
     /// The original ">" button: hides/shows suggestions.

@@ -24,10 +24,12 @@ struct ScreenshotTool: Equatable {
     /// Save locations in the "Options" menu, in menu order (shown in the system language through L())
     static let targets = ["Desktop", "Documents", "Clipboard", "Mail", "Preview", "Other Location…"]
 
-    /// Whether the tool is on screen (the process can stay alive; it counts as open if it has a window on screen). Main thread, cheap.
-    static func isOnScreen() -> Bool {
-        guard let a = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first else { return false }
-        let pid = a.processIdentifier
+    static func runningPID() -> pid_t? {
+        NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first?.processIdentifier
+    }
+
+    /// Whether the tool has a window on screen (its process can stay alive after it closes). Not on the main thread.
+    static func isOnScreen(_ pid: pid_t) -> Bool {
         guard let l = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]]
         else { return false }
         return l.contains { ($0[kCGWindowOwnerPID as String] as? pid_t) == pid }

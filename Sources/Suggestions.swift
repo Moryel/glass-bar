@@ -16,12 +16,24 @@ struct TextContext: Equatable {
         guard AXUIElementCopyAttributeValue(systemWide, kAXFocusedUIElementAttribute as CFString, &focused) == .success,
               let focused, CFGetTypeID(focused) == AXUIElementGetTypeID() else { return nil }
         let o = focused as! AXUIElement
-        var value: CFTypeRef?, range: CFTypeRef?
-        AXUIElementCopyAttributeValue(o, kAXValueAttribute as CFString, &value)
+        var range: CFTypeRef?
         AXUIElementCopyAttributeValue(o, kAXSelectedTextRangeAttribute as CFString, &range)
-        guard let text = value as? String, let range, CFGetTypeID(range) == AXValueGetTypeID() else { return nil }
+        guard let range, CFGetTypeID(range) == AXValueGetTypeID() else { return nil }
         var r = CFRange()
-        guard AXValueGetValue(range as! AXValue, .cfRange, &r), r.length == 0 else { return nil }
+        guard AXValueGetValue(range as! AXValue, .cfRange, &r), r.length == 0, r.location >= 0 else { return nil }
+        // only the text before the cursor: copying a long document's whole value was slow. Some web views don't
+        // answer this, they fall back to the full value below.
+        let start = max(0, r.location - 300)
+        var want = CFRange(location: start, length: r.location - start)
+        var part: CFTypeRef?
+        if let p = AXValueCreate(.cfRange, &want),
+           AXUIElementCopyParameterizedAttributeValue(o, kAXStringForRangeParameterizedAttribute as CFString, p, &part) == .success,
+           let part = part as? String, (part as NSString).length == want.length {
+            return TextContext(text: part, cursor: want.length)
+        }
+        var value: CFTypeRef?
+        AXUIElementCopyAttributeValue(o, kAXValueAttribute as CFString, &value)
+        guard let text = value as? String else { return nil }
         let ns = text as NSString
         guard r.location >= 0, r.location <= ns.length else { return nil }
         // the last few hundred characters before the cursor are enough for prediction

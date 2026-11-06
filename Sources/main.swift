@@ -111,19 +111,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
 
         // the physical esc closes the Siri pill and the slider too
         observers.append(NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] e in
+            self?.state.lastInput = Date()
             if e.keyCode == 53 { self?.state.handleEsc() }
         } as Any)
+        observers.append(NSEvent.addGlobalMonitorForEvents(matching: .leftMouseUp) { [weak self] _ in
+            self?.state.lastInput = Date()
+        } as Any)
 
-        Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            self?.state.tickNowPlaying()
-            self?.state.refreshContact()
-            self?.state.refreshCalendar()
-            self?.state.refreshSafariVideo()
+        startTimers()
+        // nothing to read while the screen is off or locked
+        for (name, center) in [(NSWorkspace.screensDidSleepNotification, ws), (NSWorkspace.sessionDidResignActiveNotification, ws),
+                               (Notification.Name("com.apple.screenIsLocked"), DistributedNotificationCenter.default())] {
+            observers.append(center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in self?.stopTimers() })
         }
-        Timer.scheduledTimer(withTimeInterval: 0.35, repeats: true) { [weak self] _ in
-            self?.state.refreshSuggestions()
-            self?.state.refreshScreenshotTool()
-            self?.state.refreshPhotosVideo()
+        for (name, center) in [(NSWorkspace.screensDidWakeNotification, ws), (NSWorkspace.sessionDidBecomeActiveNotification, ws),
+                               (Notification.Name("com.apple.screenIsUnlocked"), DistributedNotificationCenter.default())] {
+            observers.append(center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in self?.startTimers() })
         }
         applyOwnBarApps()
 
@@ -162,6 +165,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
         let e = NSAppleEventManager.shared().currentAppleEvent
         if e?.eventID == kAEOpenApplication, e?.paramDescriptor(forKeyword: keyAEPropData)?.enumCodeValue == keyAELaunchedAsLogInItem { return true }
         return ProcessInfo.processInfo.systemUptime < 120
+    }
+
+    var timers: [Timer] = []
+
+    func startTimers() {
+        guard timers.isEmpty else { return }
+        let slow = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            self?.state.tickNowPlaying()
+            self?.state.refreshContact()
+            self?.state.refreshCalendar()
+            self?.state.refreshSafariVideo()
+        }
+        let fast = Timer.scheduledTimer(withTimeInterval: 0.35, repeats: true) { [weak self] _ in
+            self?.state.refreshSuggestions()
+            self?.state.refreshScreenshotTool()
+            self?.state.refreshPhotosVideo()
+        }
+        // lets macOS wake the CPU once for these and other work
+        slow.tolerance = 0.2
+        fast.tolerance = 0.05
+        timers = [slow, fast]
+    }
+
+    func stopTimers() {
+        timers.forEach { $0.invalidate() }
+        timers = []
     }
 
     func applicationWillTerminate(_ n: Notification) {
