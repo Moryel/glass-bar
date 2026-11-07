@@ -243,7 +243,7 @@ struct WidgetView: View {
                 } else if showsIcon {
                     Icon(look?.icon ?? symbol ?? kind.symbol)
                 }
-                BarText(verbatim: value).monospacedDigit()
+                BarText(verbatim: value, tabular: true)
             }
         }
     }

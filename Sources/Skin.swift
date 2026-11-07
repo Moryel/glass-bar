@@ -173,7 +173,12 @@ extension Theme {
     func nsFont(_ size: CGFloat, _ weight: NSFont.Weight) -> NSFont {
         let s = size * textScale
         switch skin?.text?.font ?? "" {
-        case "", "system", "rounded", "serif": return .systemFont(ofSize: s, weight: weight)
+        case "", "system": return .systemFont(ofSize: s, weight: weight)
+        case "rounded", "serif":
+            // measured with the same design SwiftUI draws, or serif text came out wider than its frame
+            let base = NSFont.systemFont(ofSize: s, weight: weight)
+            let design: NSFontDescriptor.SystemDesign = skin?.text?.font == "serif" ? .serif : .rounded
+            return base.fontDescriptor.withDesign(design).flatMap { NSFont(descriptor: $0, size: s) } ?? base
         case "mono": return .monospacedSystemFont(ofSize: s, weight: weight)
         case let f: return NSFont(name: ThemeFonts.name(f, base: baseURL), size: s) ?? .systemFont(ofSize: s, weight: weight)
         }

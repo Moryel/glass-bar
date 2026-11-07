@@ -302,10 +302,16 @@ struct BarText: View {
         self.text = L(text); self.size = size; self.weight = weight
     }
     init(verbatim text: String) { self.text = text }
+    /// equal-width digits, for values that change (percentages, sizes)
+    var tabular = false
+    init(verbatim text: String, tabular: Bool) { self.text = text; self.tabular = tabular }
     var body: some View {
         let s = theme.cased(text)
-        let w = (s as NSString).size(withAttributes: [.font: theme.nsFont(size, weight), .kern: theme.tracking]).width
-        Text(s).font(theme.font(size, Font.Weight(weight))).tracking(theme.tracking).lineLimit(1).frame(width: ceil(w) + 6)
+        let measured = tabular ? String(s.map { $0.isNumber ? "0" : $0 }) : s
+        let w = (measured as NSString).size(withAttributes: [.font: theme.nsFont(size, weight), .kern: theme.tracking]).width
+        let f = theme.font(size, Font.Weight(weight))
+        // measured with zeros so the width doesn't jump as a value changes
+        Text(s).font(f).tracking(theme.tracking).lineLimit(1).frame(width: ceil(w) + 6)
     }
 }
 
