@@ -30,8 +30,12 @@ struct BarLayout: Codable, Identifiable, Equatable {
 }
 
 struct LayoutItem: Codable, Equatable {
-    /// button (the default), group, space, text
+    /// button (the default), group, space, text, widget
     var type: String? = nil
+    /// for a widget: clock, battery, cpu, memory, worldClock, clipboard, nowPlaying, dock
+    var widget: String? = nil
+    /// for the world clock: a time zone ("Asia/Tokyo")
+    var option: String? = nil
     var label: String? = nil
     /// an Apple symbol name, or "image:file.png" from the layout's folder
     var icon: String? = nil
@@ -87,7 +91,7 @@ enum KeyNames {
 
 extension AppState {
     func run(_ a: LayoutAction?) {
-        guard let a else { return }
+        guard !isPreview, let a else { return }
         if let s = a.shortcut, let (code, flags, character) = KeyNames.parse(s) {
             shortcut(code, flags, character)
         } else if let m = a.menu {
@@ -109,8 +113,7 @@ extension AppState {
 /// Installed layouts. The first one (by name) that names the front app is used.
 final class LayoutStore {
     static let shared = LayoutStore()
-    let folder = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        .appendingPathComponent("GlassBar/Layouts", isDirectory: true)
+    let folder = Edition.supportFolder.appendingPathComponent("Layouts", isDirectory: true)
     private(set) var all: [BarLayout] = []
     private(set) var locations: [String: URL] = [:]
     private var byApp: [String: BarLayout] = [:]
@@ -187,7 +190,7 @@ extension BarLayout {
                 var item = item
                 let here = "\(at)[\(i)]"
                 let type = item.type ?? "button"
-                guard ["button", "group", "space", "text"].contains(type) else { log("\(here): unknown type \"\(type)\", skipped"); return nil }
+                guard ["button", "group", "space", "text", "widget"].contains(type) else { log("\(here): unknown type \"\(type)\", skipped"); return nil }
                 if let r = item.role, !Role.keys.contains(r) { log("\(here): unknown role \"\(r)\", ignored"); item.role = nil }
                 if let w = item.width, !(20...400).contains(w) { log("\(here): width \(w) is out of range 20...400, ignored"); item.width = nil }
                 if let icon = item.icon, icon.hasPrefix("image:") {
@@ -197,6 +200,9 @@ extension BarLayout {
                     }
                 }
                 if let s = item.action?.shortcut, KeyNames.parse(s) == nil { log("\(here): can't read the shortcut \"\(s)\""); item.action?.shortcut = nil }
+                if type == "widget" && WidgetKind(rawValue: item.widget ?? "") == nil && !(item.widget ?? "").hasPrefix("script:") {
+                    log("\(here): unknown widget \"\(item.widget ?? "")\", skipped"); return nil
+                }
                 if type == "button" && item.label == nil && item.icon == nil { log("\(here): a button needs a label or an icon, skipped"); return nil }
                 if type == "group" {
                     item.items = fix(item.items ?? [], here + ".items")
@@ -221,6 +227,8 @@ struct LayoutBar: View {
         ForEach(Array(layout.items.enumerated()), id: \.offset) { _, item in
             switch item.type ?? "button" {
             case "space": Spacer(minLength: 0)
+            case "widget":
+                if let w = item.widget { AnyWidgetView(d: d, id: w, option: item.option) }
             case "text":
                 Text(item.label ?? "").font(.bar(12, .medium)).foregroundStyle(.white.opacity(0.7)).lineLimit(1).padding(.horizontal, 4)
             case "group":
@@ -246,15 +254,7 @@ struct LayoutBar: View {
         return widest.map { ceil($0) + 24 } ?? Metrics.narrowWidth
     }
 
-    private func role(_ s: String?) -> Role? {
-        switch s {
-        case "active": .active
-        case "primary": .primary
-        case "accent": .accent
-        case "operator": .operatorKey
-        default: nil
-        }
-    }
+    private func role(_ s: String?) -> Role? { Role.named(s) }
 }
 
 private struct LayoutIcon: View {

@@ -6,6 +6,10 @@ import SwiftUI
 enum Hub {
     enum Page: Hashable {
         case featured, new, popular, updated, name, category(String), installed, updates
+        case general, controlStrip, dock, studio, widgets, layoutEditor
+
+        /// pages that aren't store listings
+        var isSettings: Bool { [.general, .controlStrip, .dock, .studio, .widgets, .layoutEditor].contains(self) }
     }
     enum Kind: String { case themes, layouts }
 
@@ -29,7 +33,7 @@ enum Hub {
         w.contentMinSize = NSSize(width: 860, height: 520)
         w.isReleasedWhenClosed = false
         w.center()
-        delegate = HubWindowDelegate { window = nil; delegate = nil; model = nil }
+        delegate = HubWindowDelegate { model?.studioModel?.close(); window = nil; delegate = nil; model = nil }
         w.delegate = delegate
         window = w
         model = m
@@ -121,6 +125,23 @@ final class HubModel: ObservableObject {
     }
     static var isLocalStore: Bool { themesBase.isFileURL }
 
+    private(set) var layoutEditorModel: LayoutEditorModel?
+    var layoutEditor: LayoutEditorModel {
+        if let e = layoutEditorModel { return e }
+        let e = LayoutEditorModel()
+        layoutEditorModel = e
+        return e
+    }
+
+    /// built the first time Theme Studio opens
+    private(set) var studioModel: StudioModel?
+    var studio: StudioModel {
+        if let s = studioModel { return s }
+        let s = StudioModel(d)
+        studioModel = s
+        return s
+    }
+
     init(_ d: AppState, _ page: Hub.Page, _ kind: Hub.Kind) {
         self.d = d
         self.page = page
@@ -192,7 +213,7 @@ final class HubModel: ObservableObject {
         case .name: return list.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
         case .category(let c): return list.filter { $0.category == c }.sorted { $0.name < $1.name }
         case .updates: return updates
-        case .installed: return []
+        case .installed, .general, .controlStrip, .dock, .studio, .widgets, .layoutEditor: return []
         }
     }
 
@@ -356,13 +377,15 @@ struct HubView: View {
                     Label(L("Updates"), systemImage: "arrow.triangle.2.circlepath").tag(Hub.Page.updates)
                         .badge(m.updates.count)
                 }
+                Section(L("Settings")) {
+                    Label(L("General"), systemImage: "gearshape").tag(Hub.Page.general)
+                    Label(L("Control Strip"), systemImage: "slider.horizontal.3").tag(Hub.Page.controlStrip)
+                    Label(L("Widgets"), systemImage: "square.grid.3x1.below.line.grid.1x2").tag(Hub.Page.widgets)
+                    Label(L("Dock"), systemImage: "dock.rectangle").tag(Hub.Page.dock)
+                }
                 Section(L("Create")) {
-                    Button { m.comingSoon = .init(title: "Theme Studio", version: "2.1") } label: {
-                        Label("Theme Studio", systemImage: "paintbrush.pointed")
-                    }
-                    Button { m.comingSoon = .init(title: L("Layout Editor"), version: "2.3") } label: {
-                        Label(L("Layout Editor"), systemImage: "rectangle.split.3x1")
-                    }
+                    Label("Theme Studio", systemImage: "paintbrush.pointed").tag(Hub.Page.studio)
+                    Label("Layout Studio", systemImage: "rectangle.split.3x1").tag(Hub.Page.layoutEditor)
                     Button { m.openFolder() } label: {
                         Label(m.kind == .themes ? L("Themes Folder") : L("Layouts Folder"), systemImage: "folder")
                     }
@@ -377,18 +400,25 @@ struct HubView: View {
             Group {
                 switch m.page {
                 case .installed: InstalledPage(m: m)
+                case .general: GeneralSettingsView(d: m.d)
+                case .controlStrip: ControlStripSettingsView(d: m.d)
+                case .dock: DockSettingsView(d: m.d)
+                case .studio: ThemeStudioView(m: m.studio)
+                case .widgets: WidgetsPage(m: m)
+                case .layoutEditor: LayoutEditorView(m: m.layoutEditor, d: m.d)
                 default: StorePage(m: m)
                 }
             }
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    Picker("", selection: Binding(get: { m.kind == .themes ? 0 : 2 }, set: { v in
+                    Picker("", selection: Binding(get: { m.page == .widgets || m.page == .dock ? 1 : m.kind == .themes ? 0 : 2 }, set: { v in
                         switch v {
                         case 0: m.kind = .themes
                         case 2: m.kind = .layouts
-                        default: m.comingSoon = .init(title: L("Widgets"), version: "2.3")
+                        default: m.page = .widgets; return
                         }
                         if case .category = m.page { m.page = .featured }
+                        if m.page.isSettings { m.page = .featured }
                     })) {
                         Text(L("Themes")).tag(0)
                         Text(L("Widgets")).tag(1)
@@ -399,7 +429,7 @@ struct HubView: View {
                 }
             }
             .searchable(text: $m.search, prompt: m.kind == .themes ? L("Search Themes") : L("Search Layouts"))
-            .onChange(of: m.search) { s in if !s.isEmpty && (m.page == .featured || m.page == .installed) { m.page = .name } }
+            .onChange(of: m.search) { s in if !s.isEmpty && (m.page == .featured || m.page == .installed || m.page.isSettings) { m.page = .name } }
         }
         .alert(item: $m.comingSoon) { c in
             Alert(title: Text(String(format: L("%@ is in development"), c.title)),

@@ -7,7 +7,7 @@ func L(_ s: String) -> String { NSLocalizedString(s, comment: "") }
 
 // Counterpart of the original Keyboard → Touch Bar Settings and Control Strip customization.
 enum BarMode: String, CaseIterable {
-    case app, expanded, fKeys, spaces, quickActions
+    case app, expanded, fKeys, spaces, quickActions, dock
 
     var name: String { L(baseName) }
 
@@ -18,6 +18,7 @@ enum BarMode: String, CaseIterable {
         case .fKeys: "F1, F2, etc. Keys"
         case .spaces: "Spaces"
         case .quickActions: "Quick Actions"
+        case .dock: "Dock"
         }
     }
 }

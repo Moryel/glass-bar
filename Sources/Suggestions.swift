@@ -146,8 +146,15 @@ extension View {
 }
 
 struct ScrollingStrip<Content: View>: View {
+    /// true while an item is being dragged to a new place
+    var isLocked: () -> Bool = { false }
     @ViewBuilder var content: () -> Content
     @StateObject private var k = ScrollState()
+
+    init(isLocked: @escaping () -> Bool = { false }, @ViewBuilder content: @escaping () -> Content) {
+        self.isLocked = isLocked
+        self.content = content
+    }
 
     var body: some View {
         GeometryReader { g in
@@ -166,6 +173,7 @@ struct ScrollingStrip<Content: View>: View {
                 .frame(maxHeight: .infinity)
                 .simultaneousGesture(DragGesture(minimumDistance: 6)
                     .onChanged { e in
+                        guard k.isDragging || !isLocked() else { return }
                         if !k.isDragging { k.isDragging = true; k.startOffset = k.offset }
                         var x = k.startOffset + e.translation.width
                         // rubber-band resistance at the edges
@@ -173,6 +181,7 @@ struct ScrollingStrip<Content: View>: View {
                         k.offset = x
                     }
                     .onEnded { e in
+                        guard k.isDragging else { return }
                         k.isDragging = false
                         let target = min(0, max(minOffset, k.startOffset + e.predictedEndTranslation.width))
                         withAnimation(.spring(response: 0.7, dampingFraction: 0.86)) { k.offset = target }

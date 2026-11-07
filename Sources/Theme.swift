@@ -39,12 +39,14 @@ struct Theme: Codable, Equatable, Identifiable {
     /// per-role looks ("active", "primary", "accent", "operator", "suggestions"); glass themes use only `fill`
     var roles: [String: LayerPatch] = [:]
     var skin: Skin? = nil
+    /// optional looks for widgets ("dock": icon style, size, spacing)
+    var widget: WidgetStyles? = nil
     /// folder of a package theme (its fonts, images and sounds); not saved
     var baseURL: URL? = nil
 
     enum CodingKeys: String, CodingKey {
         case id, name, author, version, style, glassColor, glass, edge, glow, shadow, bounce, cornerRadius, textColor, accent,
-             sliderColor, fontDesign, fontWeight, backdrop, roles, skin
+             sliderColor, fontDesign, fontWeight, backdrop, roles, skin, widget
     }
 
     static let classic = Theme(id: "classic", name: "Classic")
@@ -98,6 +100,9 @@ struct Theme: Codable, Equatable, Identifiable {
         case .accent: return accentColor
         case .operatorKey: return Color(hex: 0xFF9F0A, 0.5)
         case .suggestions: return Color(hex: 0x2A3A50)
+        case .danger: return Color(hex: 0xFF453A)
+        case .warning: return Color(hex: 0xFF9F0A)
+        case .success: return Color(hex: 0x30D158)
         case .custom(let c): return c
         }
     }
@@ -115,11 +120,57 @@ extension Theme {
         read(.glass, \.glass); read(.edge, \.edge); read(.glow, \.glow); read(.shadow, \.shadow); read(.bounce, \.bounce)
         read(.cornerRadius, \.cornerRadius); read(.textColor, \.textColor); read(.accent, \.accent); read(.sliderColor, \.sliderColor)
         read(.fontDesign, \.fontDesign); read(.fontWeight, \.fontWeight); read(.backdrop, \.backdrop); read(.roles, \.roles)
+        read(.widget, \.widget)
         if c.contains(.skin) {
             do { t.skin = try c.decode(Skin.self, forKey: .skin) } catch { SystemControl.log("theme \(t.id): skin ignored: \(error.short)") }
         }
         self = t
     }
+}
+
+/// "widget" in theme.json: "dock" has its own options, any other key is a widget id with a role, icon or label.
+struct WidgetStyles: Codable, Equatable {
+    var dock: DockStyle? = nil
+    var looks: [String: WidgetLook] = [:]
+
+    init(dock: DockStyle? = nil, looks: [String: WidgetLook] = [:]) { self.dock = dock; self.looks = looks }
+
+    private struct Key: CodingKey {
+        var stringValue: String
+        var intValue: Int? { nil }
+        init(stringValue: String) { self.stringValue = stringValue }
+        init?(intValue: Int) { nil }
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: Key.self)
+        for k in c.allKeys {
+            if k.stringValue == "dock" { dock = try? c.decode(DockStyle.self, forKey: k) } else if let l = try? c.decode(WidgetLook.self, forKey: k) { looks[k.stringValue] = l }
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: Key.self)
+        if let dock { try c.encode(dock, forKey: Key(stringValue: "dock")) }
+        for (k, v) in looks { try c.encode(v, forKey: Key(stringValue: k)) }
+    }
+}
+
+struct WidgetLook: Codable, Equatable {
+    /// a role name drawn in place of the widget's own state
+    var role: String? = nil
+    /// an Apple symbol, or text, shown in front of the value
+    var icon: String? = nil
+    /// a short name shown instead of the icon ("bat")
+    var label: String? = nil
+}
+
+struct DockStyle: Codable, Equatable {
+    /// color, mono, text, pixel
+    var iconStyle: String? = nil
+    var iconSize: Double? = nil
+    /// extra space between icons
+    var spacing: Double? = nil
 }
 
 /// A part of a bar that a theme can style on its own. Built-in bars use roles instead of fixed colors.
@@ -134,6 +185,12 @@ enum Role: Equatable {
     case operatorKey
     /// the typing suggestions group
     case suggestions
+    /// badges and destructive actions; themes without it fall back to `operator`
+    case danger
+    /// low battery and other widget warnings; falls back to `operator`
+    case warning
+    /// finished timers and the like; falls back to `active`
+    case success
     /// a fixed color that no role covers (Night Shift)
     case custom(Color)
 
@@ -144,6 +201,9 @@ enum Role: Equatable {
         case .accent: "accent"
         case .operatorKey: "operator"
         case .suggestions: "suggestions"
+        case .danger: "danger"
+        case .warning: "warning"
+        case .success: "success"
         case .custom: nil
         }
     }
@@ -207,8 +267,7 @@ func packageFile(_ base: URL, _ name: String) -> URL? {
 /// Built-in and installed themes.
 final class ThemeStore {
     static let shared = ThemeStore()
-    let folder = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        .appendingPathComponent("GlassBar/Themes", isDirectory: true)
+    let folder = Edition.supportFolder.appendingPathComponent("Themes", isDirectory: true)
     /// package themes that ship inside the app (Resources/Themes)
     static let bundledFolder = Bundle.main.resourceURL?.appendingPathComponent("Themes", isDirectory: true)
     static let bundledIDs = Set(bundledFolder.map(loadAll)?.map(\.id) ?? [])
@@ -378,7 +437,16 @@ extension Error {
 }
 
 extension Role {
-    static let keys: Set = ["active", "primary", "accent", "operator", "suggestions"]
+    /// the role a theme without this one is drawn with
+    static func fallback(_ k: String) -> String {
+        switch k {
+        case "danger", "warning": "operator"
+        case "success": "active"
+        default: ""
+        }
+    }
+
+    static let keys: Set = ["active", "primary", "accent", "operator", "suggestions", "danger", "warning", "success"]
 }
 
 extension LayerPatch {

@@ -156,6 +156,12 @@ struct LiquidPress: ViewModifier {
     let action: () -> Void
     @StateObject private var b = PressState()
     @Environment(\.theme) private var theme
+    @Environment(\.studioInspecting) private var isInspecting
+
+    private var studioTarget: StudioTarget {
+        if let k = role?.key { return .role(k) }
+        return kind == .bubble ? .group : .button
+    }
 
     func body(content: Content) -> some View {
         let tx = b.dragOffset.width, ty = b.dragOffset.height
@@ -204,6 +210,7 @@ struct LiquidPress: ViewModifier {
                     }
                     .onChange(of: g.frame(in: .named("bar"))) { _, c in b.size = c.size; b.frameInBar = c }
             })
+            .background { if isInspecting { StudioHitReporter(target: studioTarget) } }
             .contentShape(Rectangle())
             .scaleEffect(b.isPressed ? 1 + pop + k * (kind == .capsule ? (minimal ? 0.08 : 0.1) : (minimal ? 0.05 : 0.04)) : 1)
             .scaleEffect(x: 1 + k * (minimal ? 0.06 : 0.12) * stretch, y: 1 - k * (minimal ? 0.035 : 0.07) * stretch)
@@ -409,6 +416,7 @@ struct GlassSlider: View {
     var onValueChange: (Float) -> Void = { _ in }
     @StateObject private var b = PressState()
     @Environment(\.theme) private var theme
+    @Environment(\.studioInspecting) private var isInspecting
 
     // One gesture on a container that outlives the three looks: switching between a glass and a skinned theme
     // mid-drag replaces the look, and a gesture attached to it would end without onEnded (the knob stays a lens).
@@ -423,6 +431,7 @@ struct GlassSlider: View {
             .gesture(dragGesture(w))
         }
         .frame(height: Metrics.buttonHeight)
+        .background { if isInspecting { StudioHitReporter(target: .slider) } }
     }
 
     /// Skinned theme: a track in the theme's colors and a knob drawn like its buttons; with ASCII borders, [====|----].

@@ -41,7 +41,7 @@ enum SystemControl {
 
     /// Appends a line to ~/Library/Logs/GlassBar.log (for diagnostics).
     static func log(_ line: String) {
-        let url = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Logs/GlassBar.log")
+        let url = Edition.logURL
         guard let data = "\(Date()) \(line)\n".data(using: .utf8), let h = try? FileHandle(forWritingTo: url) else { return }
         h.seekToEndOfFile()
         h.write(data)

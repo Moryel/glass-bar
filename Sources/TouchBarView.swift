@@ -81,6 +81,7 @@ struct MainArea: View {
             case .spaces: WithControlStrip(d: d) { SpacesRow(d: d) }.transition(.focusIn)
             case .quickActions: WithControlStrip(d: d) { QuickActionsRow(d: d) }.transition(.focusIn)
             case .app: WithControlStrip(d: d) { AppArea(d: d) }.transition(.focusIn)
+            case .dock: DockBar(d: d).transition(.focusIn)
             }
             }
         }
@@ -90,6 +91,7 @@ struct MainArea: View {
 /// Content + collapsed Control Strip on the right; the Siri pill and the press-and-slide slider float over the content.
 struct WithControlStrip<Content: View>: View {
     @ObservedObject var d: AppState
+    var showsStrip = true
     @ViewBuilder var content: () -> Content
 
     var body: some View {
@@ -107,7 +109,8 @@ struct WithControlStrip<Content: View>: View {
                         .transition(.dropIn)
                 }
             }
-            if d.showsControlStrip { CollapsedControlStrip(d: d) }
+            if showsStrip { WidgetStrip(d: d) }
+            if showsStrip && d.showsControlStrip { CollapsedControlStrip(d: d) }
         }
     }
 }
@@ -747,7 +750,7 @@ struct AppArea: View {
             // switching to the front app's own Touch Bar controls: on long press, so an accidental tap doesn't close the bar
             if compactLevel < 2 {
             GlassButton(width: Metrics.iconWidth, action: {}) {
-                if let icon = d.frontApp?.icon {
+                if let icon = d.frontIcon {
                     Image(nsImage: icon).resizable().frame(width: 20, height: 20)
                 } else {
                     Icon("app")

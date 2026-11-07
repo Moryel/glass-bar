@@ -80,10 +80,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
         DFR.addSystemTrayItem(trayItem)
         DFR.setControlStripPresence(trayIdentifier.rawValue, true)
         DFR.setShowsCloseBox(false)
-        show()
+        // the normal app dismisses its bar while quitting; present ours after that
+        if Edition.isBeta && Edition.quitReleaseApp() {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in if self?.isMinimized == false { self?.show() } }
+        } else {
+            show()
+        }
 
         setUpStatusMenu()
-        UpdateChecker.shared.start()
+        if !Edition.isBeta { UpdateChecker.shared.start() }
 
         let ws = NSWorkspace.shared.notificationCenter
         observers.append(ws.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { [weak self] n in
@@ -148,8 +153,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
         case "store": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { Hub.open(self.state, .featured) }
         case "layouts": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { Hub.open(self.state, .featured, .layouts) }
         case "tabs": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { self.state.showTabs() }
+        case "dockSettings": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { Hub.open(self.state, .dock) }
+        case "settings": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { Hub.open(self.state, .general) }
+        case "stripSettings": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { Hub.open(self.state, .controlStrip) }
+        case "studio": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { Hub.open(self.state, .studio) }
+        case "widgets": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { Hub.open(self.state, .widgets) }
+        case "layoutEditor": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { Hub.open(self.state, .layoutEditor) }
+        case "publish": DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            if let t = ThemeStore.shared.userThemes.first, let s = try? Submission.theme(t) { PublishWindow.open(s) }
+        }
         case nil where !launchedAtLogin: DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { Hub.open(self.state, .featured) }
         default: break
+        }
+        // the bar drawn to a PNG without the screen (works while the Mac is locked): -testSnapshot /path/bar.png
+        if let path = UserDefaults.standard.string(forKey: "testSnapshot") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                let r = ImageRenderer(content: TouchBarView(d: self.state))
+                r.scale = 2
+                r.proposedSize = ProposedViewSize(width: self.state.width, height: Metrics.barHeight)
+                if let cg = r.cgImage { try? NSBitmapImageRep(cgImage: cg).representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: path)) }
+            }
         }
     }
 
@@ -234,7 +257,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
     // MARK: menu bar
     /// Monochrome version of the app icon: the bar, two buttons and a wave (template; white/black in the menu bar).
     static func menuBarIcon() -> NSImage {
-        let icon = NSImage(size: NSSize(width: 26, height: 16), flipped: false) { _ in
+        let icon = NSImage(size: NSSize(width: Edition.isBeta ? 34 : 26, height: 16), flipped: false) { _ in
+            if Edition.isBeta {
+                ("β" as NSString).draw(at: NSPoint(x: 27, y: 1), withAttributes: [.font: NSFont.systemFont(ofSize: 10, weight: .bold)])
+            }
             let outline = NSBezierPath(roundedRect: NSRect(x: 1, y: 3, width: 24, height: 10), xRadius: 5, yRadius: 5)
             outline.lineWidth = 1.4
             outline.stroke()
@@ -271,9 +297,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
             m.addItem(withTitle: String(format: L("Update available: GlassBar %@…"), version), action: #selector(openUpdatePage), keyEquivalent: "").target = self
             m.addItem(.separator())
         }
+        if Edition.isBeta {
+            m.addItem(withTitle: L("Switch Back to GlassBar"), action: #selector(switchToRelease), keyEquivalent: "").target = self
+            m.addItem(.separator())
+        }
         m.addItem(withTitle: L("Show GlassBar"), action: #selector(show), keyEquivalent: "").target = self
         m.addItem(withTitle: L("App's Own Controls"), action: #selector(minimize), keyEquivalent: "").target = self
         m.addItem(withTitle: L("GlassBar Hub…"), action: #selector(openHub), keyEquivalent: "").target = self
+        m.addItem(withTitle: L("Settings…"), action: #selector(openSettings), keyEquivalent: ",").target = self
         m.addItem(.separator())
         if !SystemControl.hasAccessibility {
             m.addItem(withTitle: L("Grant Accessibility Permission…"), action: #selector(requestPermission), keyEquivalent: "").target = self
@@ -286,6 +317,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
         m.addItem(submenuItem(L("Touch Bar Shows"), BarMode.allCases.map { g in
             menuItem(g.name, #selector(selectBarMode(_:)), state.barMode == g, g.rawValue)
         }))
+        let dock = DockSettings.shared
+        m.addItem(submenuItem(L("Dock"), DockPreset.allCases.map { p in menuItem(p.name, #selector(selectDockPreset(_:)), dock.preset == p, p.rawValue) }
+                              + [.separator(), menuItem(L("Dock Settings…"), #selector(openDockSettings), false)]))
         m.addItem(submenuItem(L("Press and Hold fn Key to Show"), BarMode.allCases.map { g in
             menuItem(g.name, #selector(selectFnBarMode(_:)), state.fnBarMode == g, g.rawValue)
         }))
@@ -324,9 +358,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
         loginItem.target = self
         loginItem.state = SMAppService.mainApp.status == .enabled ? .on : .off
         m.addItem(.separator())
-        let versionItem = m.addItem(withTitle: String(format: L("GlassBar %@"), UpdateChecker.currentVersion), action: nil, keyEquivalent: "")
+        let versionItem = m.addItem(withTitle: Edition.isBeta ? "GlassBar Beta \(UpdateChecker.currentVersion)"
+                                    : String(format: L("GlassBar %@"), UpdateChecker.currentVersion), action: nil, keyEquivalent: "")
         versionItem.isEnabled = false
-        m.addItem(withTitle: L("Check for Updates…"), action: #selector(checkForUpdates), keyEquivalent: "").target = self
+        if !Edition.isBeta {
+            m.addItem(withTitle: L("Check for Updates…"), action: #selector(checkForUpdates), keyEquivalent: "").target = self
+        }
         m.addItem(withTitle: L("Quit"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
     }
 
@@ -358,16 +395,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
     }
 
     /// Lets the user pick a background image (the app runs in the background, so it's activated first).
-    func chooseImage() {
-        let p = NSOpenPanel()
-        p.allowedContentTypes = [.image]
-        p.allowsMultipleSelection = false
-        p.message = L("Choose an image to show behind the Touch Bar")
-        NSApp.activate(ignoringOtherApps: true)
-        guard p.runModal() == .OK, let url = p.url else { return }
-        state.backdropImagePath = url.path
-        state.backdrop = .customImage
-    }
+    func chooseImage() { state.chooseBackdropImage() }
     @objc func toggleSuggestions() { state.showsSuggestions.toggle() }
     @objc func checkForUpdates() { UpdateChecker.shared.check(userInitiated: true) }
     @objc func openUpdatePage() { UpdateChecker.shared.openReleasePage() }
@@ -400,6 +428,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
         if let t = ThemeStore.shared.theme(id: o.representedObject as? String ?? "") { state.apply(t) }
     }
     @objc func openHub() { Hub.open(state) }
+    @objc func switchToRelease() { Edition.switchToReleaseApp() }
+    @objc func openDockSettings() { Hub.open(state, .dock) }
+    @objc func openSettings() { Hub.open(state, .general) }
+
+    @objc func selectDockPreset(_ o: NSMenuItem) {
+        guard let p = DockPreset(rawValue: o.representedObject as? String ?? "") else { return }
+        DockSettings.shared.apply(p)
+        state.barMode = .dock
+        state.panel = .app
+    }
     @objc func openStore() { Hub.open(state, .featured) }
 
     @objc func openThemesFolder() {
@@ -438,12 +476,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
         state.isEditingControlStrip = true
     }
 
-    /// The chosen button is appended; past the limit the oldest one is removed.
     @objc func toggleStripButton(_ o: NSMenuItem) {
-        guard let t = StripButton(rawValue: o.representedObject as? String ?? "") else { return }
-        var l = state.stripButtons
-        if let i = l.firstIndex(of: t) { l.remove(at: i) } else { l.append(t); if l.count > StripButton.maxCount { l.removeFirst() } }
-        state.stripButtons = l
+        if let t = StripButton(rawValue: o.representedObject as? String ?? "") { state.toggleStripButton(t) }
     }
 
     @objc func toggleOwnBar() {
@@ -476,7 +510,7 @@ enum Spotiw {
 
 // The app used to be called TouchBar2: on first launch, copy settings over from the old identifier.
 let legacyDomain = "com.yukselozge.TouchBar2"
-if !UserDefaults.standard.bool(forKey: "ayarlarTasindi") && !UserDefaults.standard.bool(forKey: "legacySettingsCopied") {
+if !Edition.isBeta && !UserDefaults.standard.bool(forKey: "ayarlarTasindi") && !UserDefaults.standard.bool(forKey: "legacySettingsCopied") {
     for (key, value) in UserDefaults.standard.persistentDomain(forName: legacyDomain) ?? [:]
     where UserDefaults.standard.object(forKey: key) == nil {
         UserDefaults.standard.set(value, forKey: key)
@@ -484,10 +518,11 @@ if !UserDefaults.standard.bool(forKey: "ayarlarTasindi") && !UserDefaults.standa
     UserDefaults.standard.set(true, forKey: "legacySettingsCopied")
 }
 SettingsMigration.run()
+Edition.importReleaseSettings()
 
 // for diagnostics: ~/Library/Logs/GlassBar.log, started before the themes load so their problems end up in it
 try? "\(Date()) launched · Accessibility: \(SystemControl.hasAccessibility ? "yes" : "NO") · model: \(Hardware.model)\n"
-    .write(to: FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Logs/GlassBar.log"), atomically: true, encoding: .utf8)
+    .write(to: Edition.logURL, atomically: true, encoding: .utf8)
 let app = NSApplication.shared
 let appDelegate = AppDelegate()
 app.delegate = appDelegate
