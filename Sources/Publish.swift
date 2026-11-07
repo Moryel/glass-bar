@@ -45,9 +45,11 @@ struct Submission {
         let l = (try? FileManager.default.contentsOfDirectory(atPath: folder.path)) ?? []
         var d = [String: Data]()
         for f in l where !f.hasPrefix(".") {
-            var isDir: ObjCBool = false
-            let u = folder.appendingPathComponent(f)
-            if FileManager.default.fileExists(atPath: u.path, isDirectory: &isDir), !isDir.boolValue, let data = try? Data(contentsOf: u) { d[f] = data }
+            // a symlink could pull a file from elsewhere on the Mac into a public package
+            guard let u = packageFile(folder, f),
+                  (try? FileManager.default.attributesOfItem(atPath: folder.appendingPathComponent(f).path)[.type] as? FileAttributeType) == .typeRegular,
+                  let data = try? Data(contentsOf: u) else { continue }
+            d[f] = data
         }
         return d
     }

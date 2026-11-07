@@ -42,6 +42,8 @@ final class ScriptWidgetStore {
 
     static func load(_ url: URL) throws -> ScriptWidgetInfo {
         var w = try JSONDecoder().decode(ScriptWidgetInfo.self, from: Data(contentsOf: url.appendingPathComponent("widget.json")))
+        // the id becomes a folder name on install; "../x" would copy (and first delete) outside Widgets
+        guard isSafeID(w.id) else { throw CocoaError(.fileReadCorruptFile) }
         w.baseURL = url
         if let p = w.permissions?.filter({ ScriptWidgetInfo.permissionNames[$0] == nil }), !p.isEmpty {
             SystemControl.log("widget \(w.id): unknown permissions \(p), ignored")
@@ -151,10 +153,14 @@ final class ScriptRunner: ObservableObject {
     private func start() {
         queue.async { [weak self] in
             guard let self, self.context == nil else { return }
-            guard let base = self.info.baseURL, let source = try? String(contentsOf: base.appendingPathComponent(self.info.script ?? "main.js"), encoding: .utf8)
+            guard let base = self.info.baseURL, let file = packageFile(base, self.info.script ?? "main.js"),
+                  let source = try? String(contentsOf: file, encoding: .utf8)
             else { self.publish(text: "?", icon: nil, role: "danger"); return }
-            let c = self.makeContext()
-            c.evaluateScript(source, withSourceURL: base.appendingPathComponent(self.info.script ?? "main.js"))
+            guard let c = self.makeContext() else {
+                SystemControl.log("widget \(self.info.id): no time limit on this macOS, not run")
+                self.publish(text: "?", icon: "exclamationmark.triangle", role: "danger"); return
+            }
+            c.evaluateScript(source, withSourceURL: file)
             self.context = c
             self.call("update")
             let t = DispatchSource.makeTimerSource(queue: self.queue)
@@ -199,9 +205,9 @@ final class ScriptRunner: ObservableObject {
         }
     }
 
-    private func makeContext() -> JSContext {
+    private func makeContext() -> JSContext? {
         let c = JSContext()!
-        ScriptRunner.limitTime(c, seconds: ScriptRunner.limit)
+        guard ScriptRunner.limitTime(c, seconds: ScriptRunner.limit) else { return nil }
         let id = info.id
         c.exceptionHandler = { _, e in SystemControl.log("widget \(id): \(e?.toString() ?? "error")") }
         let api = JSValue(newObjectIn: c)!
@@ -215,12 +221,16 @@ final class ScriptRunner: ObservableObject {
         let log: @convention(block) (String) -> Void = { SystemControl.log("widget \(id): \($0)") }
         let fetch: @convention(block) (String, JSValue) -> Void = { [weak self] s, callback in
             guard let self else { return }
-            guard self.info.allows("network"), let u = URL(string: s), ["http", "https"].contains(u.scheme ?? "") else {
-                SystemControl.log("widget \(id): fetch needs the network permission"); return
-            }
-            URLSession.shared.dataTask(with: u) { data, _, _ in
-                let text = data.flatMap { String(data: $0, encoding: .utf8) }
-                self.queue.async { _ = callback.call(withArguments: [text ?? NSNull()]) }
+            guard self.info.allows("network") else { SystemControl.log("widget \(id): fetch needs the network permission"); return }
+            guard let u = URL(string: s), ScriptRunner.isPublicWeb(u) else { SystemControl.log("widget \(id): fetch only goes to https web addresses"); return }
+            guard !self.isFetching else { return }
+            self.isFetching = true
+            var r = URLRequest(url: u, timeoutInterval: 10)
+            r.httpShouldHandleCookies = false
+            ScriptRunner.session.dataTask(with: r) { data, _, _ in
+                // a megabyte is plenty for a widget; bigger answers are dropped
+                let text = data.flatMap { $0.count <= 1_000_000 ? String(data: $0, encoding: .utf8) : nil }
+                self.queue.async { self.isFetching = false; _ = callback.call(withArguments: [text ?? NSNull()]) }
             }.resume()
         }
         let open: @convention(block) (String) -> Void = { [weak self] s in
@@ -252,11 +262,34 @@ final class ScriptRunner: ObservableObject {
         return c
     }
 
-    /// JSContextGroupSetExecutionTimeLimit isn't in the public headers; when it can't be found scripts still run, just without the limit.
-    private static func limitTime(_ c: JSContext, seconds: Double) {
+    /// JSContextGroupSetExecutionTimeLimit isn't in the public headers; without it a stuck loop could spin forever,
+    /// so scripts don't run at all then.
+    private static func limitTime(_ c: JSContext, seconds: Double) -> Bool {
         typealias SetLimit = @convention(c) (JSContextGroupRef, Double, OpaquePointer?, UnsafeMutableRawPointer?) -> Void
-        guard let f = dlsym(UnsafeMutableRawPointer(bitPattern: -2), "JSContextGroupSetExecutionTimeLimit") else { return }
+        guard let f = dlsym(UnsafeMutableRawPointer(bitPattern: -2), "JSContextGroupSetExecutionTimeLimit") else { return false }
         unsafeBitCast(f, to: SetLimit.self)(JSContextGetGroup(c.jsGlobalContextRef), seconds, nil, nil)
+        return true
+    }
+
+    private var isFetching = false
+
+    static let session: URLSession = {
+        let c = URLSessionConfiguration.ephemeral
+        c.httpCookieStorage = nil
+        c.urlCache = nil
+        return URLSession(configuration: c)
+    }()
+
+    /// https on a public host: no localhost, no home network (router pages, printers), no ports or user names.
+    static func isPublicWeb(_ u: URL) -> Bool {
+        guard u.scheme?.lowercased() == "https", u.user == nil, u.port == nil, let h = u.host?.lowercased(), h.contains(".") else { return false }
+        if h == "localhost" || h.hasSuffix(".local") || h.hasSuffix(".localhost") || h.hasSuffix(".internal") || h.contains(":") { return false }
+        let n = h.split(separator: ".").compactMap { Int($0) }
+        if n.count == 4 {
+            // any bare IPv4: private ranges are the risk, and public services have names
+            return false
+        }
+        return true
     }
 }
 
