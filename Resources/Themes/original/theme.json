@@ -1,0 +1,27 @@
+{
+  "id": "original",
+  "name": "Original",
+  "author": "GlassBar",
+  "version": 1,
+  "backdrop": "off",
+  "sliderColor": "#FFFFFF",
+  "roles": {
+    "active": { "fill": "#6B6B6E" },
+    "primary": { "fill": "#0A84FF", "text": "#FFFFFF" },
+    "accent": { "fill": "#0A84FF", "text": "#FFFFFF" },
+    "operator": { "fill": "#FF9F0A", "text": "#FFFFFF" }
+  },
+  "skin": {
+    "bar": { "fill": "#000000" },
+    "button": {
+      "fill": "#363638",
+      "text": "#FFFFFF",
+      "border": "none",
+      "radius": 6
+    },
+    "pressed": { "fill": "#5C5C5F" },
+    "group": { "fill": "#363638", "border": "none", "radius": 6 },
+    "text": { "font": "system", "weight": "regular" },
+    "press": "none"
+  }
+}
