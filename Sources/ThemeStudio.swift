@@ -7,20 +7,14 @@ import UniformTypeIdentifiers
 
 final class StudioModel: ObservableObject {
     enum Part: String, CaseIterable {
-        case selection, info, glass, bar, buttons, roles, text, icons, effects, assets
+        case general, look, text, effects
 
         var name: String {
             switch self {
-            case .selection: L("Selection")
-            case .info: L("Info")
-            case .glass: L("Glass")
-            case .bar: L("Bar")
-            case .buttons: L("Buttons")
-            case .roles: L("Roles")
-            case .text: L("Text")
-            case .icons: L("Icons")
-            case .effects: L("Effects")
-            case .assets: L("Assets")
+            case .general: L("General")
+            case .look: L("Appearance")
+            case .text: L("Text and Icons")
+            case .effects: L("Sound and Effects")
             }
         }
     }
@@ -64,7 +58,7 @@ final class StudioModel: ObservableObject {
     }()
     @Published var saved: Theme
     @Published var message = ""
-    @Published var part = Part.info
+    @Published var part = Part.general
     @Published var role = "active"
     @Published var previewValue: Float = 0.6
 
@@ -78,12 +72,12 @@ final class StudioModel: ObservableObject {
         if let k = UserDefaults.standard.string(forKey: "studioPick") {
             pick(["bar": .bar, "button": .button, "group": .group, "slider": .slider][k] ?? .role(k))
         }
-        // screenshot testing: -studioPart buttons
+        // screenshot testing: -studioPart look
         if let p = UserDefaults.standard.string(forKey: "studioPart").flatMap(Part.init(rawValue:)), parts.contains(p) { part = p }
     }
 
     var isDirty: Bool { draft != saved }
-    var parts: [Part] { draft.isSkin ? Part.allCases.filter { $0 != .glass } : [.selection, .info, .glass, .roles, .text] }
+    var parts: [Part] { draft.isSkin ? Part.allCases : [.general, .look, .text] }
 
     /// Called when the Hub closes: unsaved changes don't stay on the bar.
     func close() {
@@ -100,7 +94,7 @@ final class StudioModel: ObservableObject {
         redoStack = []
         selected = nil
         message = ""
-        if !parts.contains(part) { part = .info }
+        if !parts.contains(part) { part = .general }
     }
 
     func newTheme(skin: Bool) {
@@ -114,7 +108,7 @@ final class StudioModel: ObservableObject {
         saved = t
         draft = t
         message = ""
-        part = .info
+        part = .general
     }
 
     func duplicate() {
@@ -261,8 +255,10 @@ struct ThemeStudioView: View {
             VStack(spacing: 0) {
                 StudioPreview(m: m)
                 Divider()
-                Picker("", selection: $m.part) {
-                    ForEach(m.parts, id: \.self) { Text($0.name).tag($0) }
+                // no tab is lit while a part picked on the canvas is being edited; a tab goes back to all settings
+                Picker("", selection: Binding<StudioModel.Part?>(get: { m.selected == nil ? m.part : nil },
+                                                                 set: { m.selected = nil; if let p = $0 { m.part = p } })) {
+                    ForEach(m.parts, id: \.self) { Text($0.name).tag(Optional($0)) }
                 }
                 .pickerStyle(.segmented)
                 .labelsHidden()
@@ -440,17 +436,22 @@ private struct StudioPartForm: View {
 
     var body: some View {
         Form {
-            switch m.part {
-            case .selection: StudioSelectionForm(m: m)
-            case .info: info
-            case .glass: glass
-            case .bar: bar
-            case .buttons: buttons
-            case .roles: roles
-            case .text: text
-            case .icons: StudioIcons(m: m)
-            case .effects: effects
-            case .assets: assets
+            if m.selected != nil {
+                StudioSelectionForm(m: m)
+                Section { Button(L("All Settings")) { m.selected = nil } }
+            } else {
+                switch m.part {
+                case .general:
+                    info
+                    if m.draft.isSkin { assets } else { glassShape }
+                case .look:
+                    if m.draft.isSkin { bar; buttons } else { glassColors }
+                    roles
+                case .text:
+                    text
+                    if m.draft.isSkin { StudioIcons(m: m) }
+                case .effects: effects
+                }
             }
         }
         .formStyle(.grouped)
@@ -470,7 +471,7 @@ private struct StudioPartForm: View {
                 Text(L("This is a built-in theme; saving makes a copy.")).font(.caption).foregroundStyle(.secondary)
             }
         }
-        Section(L("Background")) {
+        Section {
             Picker(L("Background"), selection: $m.draft.backdrop) {
                 Text(L("Keep current")).tag("")
                 ForEach(Backdrop.allCases.filter { $0 != .customImage }, id: \.self) { b in Text(b.name).tag(b.rawValue) }
@@ -478,19 +479,22 @@ private struct StudioPartForm: View {
         }
     }
 
-    @ViewBuilder private var glass: some View {
+    @ViewBuilder private var glassColors: some View {
+        Section(L("Colors")) {
+            ColorPicker(L("Glass color"), selection: hex(\.glassColor), supportsOpacity: false)
+            ColorPicker(L("Text color"), selection: hex(\.textColor), supportsOpacity: false)
+            OptionalColorRow(title: L("Accent color"), value: optionalHex(\.accent))
+            OptionalColorRow(title: L("Slider color"), value: optionalHex(\.sliderColor))
+        }
+    }
+
+    @ViewBuilder private var glassShape: some View {
         Section {
             Picker(L("Style"), selection: $m.draft.style) {
                 Text(L("Classic")).tag(Theme.Style.classic)
                 Text(L("Minimal Liquid Glass")).tag(Theme.Style.minimal)
             }
             .pickerStyle(.segmented)
-        }
-        Section(L("Colors")) {
-            ColorPicker(L("Glass color"), selection: hex(\.glassColor), supportsOpacity: false)
-            ColorPicker(L("Text color"), selection: hex(\.textColor), supportsOpacity: false)
-            OptionalColorRow(title: L("Accent color"), value: optionalHex(\.accent))
-            OptionalColorRow(title: L("Slider color"), value: optionalHex(\.sliderColor))
         }
         Section(L("Glass")) {
             NumberRow(title: L("Glass fill"), value: $m.draft.glass, range: 0...2.5)
@@ -527,7 +531,7 @@ private struct StudioPartForm: View {
     }
 
     @ViewBuilder private var roles: some View {
-        Section {
+        Section(L("Roles")) {
             Picker(L("Role"), selection: $m.role) {
                 ForEach(Role.allKeys, id: \.self) { Text(Role.title($0)).tag($0) }
             }
@@ -617,7 +621,7 @@ private struct StudioPartForm: View {
     }
 
     @ViewBuilder private var assets: some View {
-        Section {
+        Section(L("Files")) {
             if m.assets.isEmpty {
                 Text(L("No files yet. Add a font, images for the icon map or a tap sound.")).foregroundStyle(.secondary)
             }

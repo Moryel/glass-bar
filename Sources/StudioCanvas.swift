@@ -223,9 +223,12 @@ struct StudioPalette: View {
                 }
                 .frame(width: 22, height: 16)
             }
-            HStack(spacing: 6) {
+            ChipFlow(spacing: 6) {
                 ForEach(Self.styles, id: \.0) { s in
-                    chip(s.0) { Text(L(s.1)).font(.caption).padding(.horizontal, 7).padding(.vertical, 3).background(Capsule().fill(.secondary.opacity(0.15))) }
+                    chip(s.0) {
+                        Text(L(s.1)).font(.caption).lineLimit(1).fixedSize()
+                            .padding(.horizontal, 7).padding(.vertical, 3).background(Capsule().fill(.secondary.opacity(0.15)))
+                    }
                 }
             }
             Text(L("Click a part of the bar to edit it, or drag a chip onto it. Everything drawn by the same part changes together."))
@@ -247,6 +250,47 @@ struct StudioPalette: View {
     }
 }
 
+/// Lays chips out in rows; a chip never breaks over two lines.
+struct ChipFlow: Layout {
+    var spacing: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let rows = rows(proposal.width ?? .infinity, subviews)
+        let width = rows.map { $0.width }.max() ?? 0
+        let height = rows.map(\.height).reduce(0, +) + spacing * CGFloat(max(0, rows.count - 1))
+        return CGSize(width: width, height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var y = bounds.minY
+        for row in rows(bounds.width, subviews) {
+            var x = bounds.minX
+            for i in row.items {
+                let size = subviews[i].sizeThatFits(.unspecified)
+                subviews[i].place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
+                x += size.width + spacing
+            }
+            y += row.height + spacing
+        }
+    }
+
+    private func rows(_ maxWidth: CGFloat, _ subviews: Subviews) -> [(items: [Int], width: CGFloat, height: CGFloat)] {
+        var rows: [(items: [Int], width: CGFloat, height: CGFloat)] = []
+        var items: [Int] = [], x: CGFloat = 0, h: CGFloat = 0
+        for (i, v) in subviews.enumerated() {
+            let size = v.sizeThatFits(.unspecified)
+            if !items.isEmpty && x + spacing + size.width > maxWidth {
+                rows.append((items, x, h)); items = []; x = 0; h = 0
+            }
+            x += (items.isEmpty ? 0 : spacing) + size.width
+            h = max(h, size.height)
+            items.append(i)
+        }
+        if !items.isEmpty { rows.append((items, x, h)) }
+        return rows
+    }
+}
+
 /// The settings of the selected part, shown in the Selection tab.
 struct StudioSelectionForm: View {
     @ObservedObject var m: StudioModel
@@ -258,8 +302,6 @@ struct StudioSelectionForm: View {
                 Text(t.help).font(.caption).foregroundStyle(.secondary)
             }
             if m.draft.isSkin { skin(t) } else { glass(t) }
-        } else {
-            Section { Text(L("Click a part of the bar above to edit it.")).foregroundStyle(.secondary) }
         }
     }
 
@@ -340,7 +382,6 @@ struct StudioSelectionForm: View {
 extension StudioModel {
     func pick(_ t: StudioTarget) {
         selected = t
-        part = .selection
         if case .role(let k) = t { role = k }
     }
 

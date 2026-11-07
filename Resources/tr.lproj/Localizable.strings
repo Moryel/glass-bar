@@ -152,7 +152,7 @@
 "Import…" = "İçe Aktar…";
 "Export…" = "Dışa Aktar…";
 "Save" = "Kaydet";
-"Revert" = "Geri Al";
+"Revert" = "Kaydedilene Dön";
 "Delete" = "Sil";
 "Copy" = "Kopya";
 "Saved" = "Kaydedildi";
@@ -242,7 +242,6 @@
 "Built in" = "Yerleşik";
 "Retro" = "Retro";
 "Minimal" = "Sade";
-"Glass" = "Cam";
 "Reload Themes and Layouts" = "Temaları ve Düzenleri Yeniden Yükle";
 "Open Layouts Folder" = "Düzenler Klasörünü Aç";
 "Layout Editor" = "Düzen Editörü";
@@ -566,3 +565,8 @@
 "Day" = "Gün";
 "Week" = "Hafta";
 "Month" = "Ay";
+"Appearance" = "Görünüm";
+"Text and Icons" = "Yazı ve Simgeler";
+"Sound and Effects" = "Ses ve Efekt";
+"All Settings" = "Tüm Ayarlar";
+"Files" = "Dosyalar";
