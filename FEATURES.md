@@ -86,6 +86,19 @@ Menu commands run from the front app's menu through Accessibility (`AXHelpers.sw
 | Momentum scrolling and snapping in strips (scrubber) | ✅ emoji, Safari tabs, Calendar months, long popover lists |
 | Slider dragging | ✅ |
 
+## Beyond the original (2.1)
+| Feature | Status |
+|---|---|
+| Theme Studio: starters, click a part to edit, Quick Colors, bar background, Code tab | ✅ |
+| Widgets: clock, date, battery, headphones, CPU, memory, disk, network, timer, Focus, world clock, clipboard, now playing | ✅ (Focus needs Full Disk Access) |
+| Script widgets in JavaScript with permissions; weather sample | ✅ |
+| Layout Studio | ✅ |
+| Dock on the Touch Bar: launch bounce, full Trash, front app scrolls into view | ✅ |
+| Battery follows the charger at once, yellow icon in Low Power Mode | ✅ |
+| Theme page in the store with a live preview per app | ✅ |
+| Publish to the store from the app | ✅ (opens the pull request page) |
+| Bundles (theme + layouts + widgets) | ❌ |
+
 ## Accessibility
 | Feature | Status |
 |---|---|

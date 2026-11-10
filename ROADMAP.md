@@ -8,10 +8,10 @@ Everything here is free. Plans can change; ideas and feedback are welcome in the
 |---|---|---|
 | 1.0 | Touch Bar replacement with a Liquid Glass look | Released |
 | 2.0 | Theme engine 2, layouts, GlassBar Hub and store | Released |
-| 2.1 | Theme Studio and a settings page | In progress |
-| 2.2 | A bigger store: widgets, bundles, publishing | Planned |
-| 2.3 | Layout editor, widgets and a Touch Bar Dock | Planned |
-| 2.4 | Script widgets | Planned |
+| 2.1 | Theme Studio, settings, widgets, Layout Studio, Dock, script widgets, publishing | Released |
+| 2.2 | A bigger store: bundles, widgets in the store | Planned |
+| 2.3 | More for layouts: app rules, built-in bars as layouts | Planned |
+| 2.4 | More script widget API | Planned |
 | Later | Ideas | Open |
 
 ---
@@ -34,6 +34,8 @@ A theme is no longer just a glass color: it can draw every part of the bar its o
 - **Layouts as JSON.** Your own buttons for any app (shortcuts, menu commands, links, opening apps), written by hand following [docs/LAYOUTS.md](docs/LAYOUTS.md) and shared in the store. The drag-and-drop editor, widgets and turning the built-in bars into layouts are still part of 2.3.
 
 ## 2.1: Theme Studio and settings
+
+2.1 ended up bigger than planned: the layout editor, the Dock, built-in and script widgets and *Publish to store* from the sections below shipped with it. What is still open in those sections is bundles, app rules and next calendar event.
 
 The Hub window from 2.0 becomes the place for everything, instead of a long menu.
 

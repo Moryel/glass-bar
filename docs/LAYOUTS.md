@@ -2,11 +2,26 @@
 
 A layout gives one app (or a few) your own buttons on the Touch Bar: keyboard shortcuts, menu commands, links, opening another app. It replaces the middle part of the bar while that app is in front. The Control Strip on the right stays as it is.
 
-Layouts are JSON files. You can write them yourself, or, in GlassBar Beta, build them in the Layout Editor in GlassBar Hub, which writes the same file.
+Layouts are JSON files. You can build them by dragging in Layout Studio, or write the file yourself. Both give the same file, so you can start in one and finish in the other.
 
 > **The layout format is alpha.** Names and options may still change. Old files should keep loading, but check this page after an update if something stops working.
 
-## Your first layout in five minutes
+## Layout Studio
+
+GlassBar Hub > Layouts > **New Layout** opens the studio. While it's open, your Touch Bar shows the layout you're editing, so you see every change at its real size. Nothing on the bar runs while you edit.
+
+1. **Pick the app.** Under "Shows for", choose from Running Apps or use **Add App…**. A layout can be for several apps.
+2. **Add items.** Drag from the library onto the bar: Button (text), Icon Button, Group, Space, Text or Widget. **Start from Built-in Bar** copies GlassBar's own bar for that app instead, which is the quickest start for Safari, Mail or Finder. Buttons that followed the app's state become plain shortcuts in the copy.
+3. **Arrange.** Click an item to select it, drag it along the bar to move it, press Delete to remove it. A Space pushes everything after it to the right. Drag a button onto a Group to put it inside, or use Add Button to Group.
+4. **Set what it shows.** With an item selected: Label, Icon (type a symbol name or pick from Common symbols), Role (how the theme colors it) and width, either Fit or a fixed number of points.
+5. **Set what it does.** Keyboard shortcut (`cmd+shift+b`, `f5`), Menu command (the menu item's title), Open a link or app, or Nothing. A shortcut that can't be read is marked right away.
+6. **Save.** The layout goes to your layouts folder and shows whenever that app is in front.
+
+Undo and Redo work on every step, and Revert goes back to the last save. **Export…** writes the layout where you choose, **Publish…** prepares it for the store.
+
+The studio covers everything in this guide except images as icons (`image:file.png`), which you add by putting the file in the layout's folder and typing its name.
+
+## Your first layout by hand
 
 1. Find the app's bundle identifier: `osascript -e 'id of app "Xcode"'` in Terminal.
 2. Menu > Theme > Open Layouts Folder. Make a folder `my-layout` there with a file `layout.json` in it.
@@ -79,16 +94,16 @@ Every item is a button unless `type` says otherwise.
 | `type` | `button`, `group`, `space`, `text`, `widget` | Default `button`. `space` pushes what follows to the right. `text` is a plain label. `widget` is a built-in widget, see below. |
 | `label` | text | Text on the button. Shown as written, never translated. |
 | `icon` | an SF Symbol name, or `image:file.png` | A button needs a label, an icon, or both. Images come from the layout's folder and are drawn 16 points high. |
-| `role` | `active`, `primary`, `accent`, `operator` | Draws the button the way the theme draws that role (see [THEMES.md](THEMES.md#roles)). |
+| `role` | `active`, `primary`, `accent`, `operator`, `danger`, `warning`, `success` | Draws the button the way the theme draws that role (see [THEMES.md](THEMES.md#roles)). |
 | `width` | 20 to 400 | Points. Leave it out and the button fits its content. |
 | `action` | object | What happens on tap. |
 | `items` | list | Only for `group`: the buttons inside it. |
 
 Icons follow the theme. If the theme maps `chevron.left` to `<`, your layout shows `<` too.
 
-## Widgets (beta)
+## Widgets
 
-`{ "type": "widget", "widget": "cpu" }` puts a built-in widget in the layout. The widgets are `clock`, `battery`, `cpu`, `memory`, `worldClock`, `clipboard`, `nowPlaying` and `dock`. The world clock takes a time zone in `option`: `{ "type": "widget", "widget": "worldClock", "option": "Asia/Tokyo" }`.
+`{ "type": "widget", "widget": "cpu" }` puts a widget in the layout. The built-in ones are `clock`, `date`, `battery`, `headphones`, `cpu`, `memory`, `disk`, `network`, `timer`, `focus`, `worldClock`, `clipboard`, `nowPlaying` and `dock`. A script widget you have installed goes in as `"script:<id>"`. All of them are described in [WIDGETS.md](WIDGETS.md). The world clock takes a time zone in `option`: `{ "type": "widget", "widget": "worldClock", "option": "Asia/Tokyo" }`.
 
 Widgets are drawn by the theme like any button. Their states use roles: low battery and high CPU are `warning`, charging is `success`.
 
@@ -100,7 +115,7 @@ Each action has one of these:
 |---|---|---|
 | `shortcut` | `"cmd+shift+p"`, `"f5"`, `"ctrl+`"` | Presses the keys. ⌘ shortcuts are found in the app's menu first, so they work with any keyboard layout. |
 | `menu` | `"Show Sidebar"` | Presses the menu item with that title in the front app. Use the title in the language your Mac uses. |
-| `open` | `"https://example.com"` or `"com.apple.Terminal"` | Opens a link, or opens the app with that bundle identifier. |
+| `open` | `"https://example.com"` or `"com.apple.Terminal"` | Opens a web link (http or https only), or opens the app with that bundle identifier. |
 
 Shortcut names: `cmd`, `shift`, `alt` (or `option`), `ctrl`, then one key: a letter, a digit, punctuation like `[` `]` `-` `=` `/` `\` `` ` ``, or `return`, `tab`, `space`, `delete`, `escape`, `left`, `right`, `up`, `down`, `home`, `end`, `pageup`, `pagedown`, `f1` to `f12`.
 
@@ -114,7 +129,7 @@ Shortcuts and menu commands need the Accessibility permission GlassBar already a
 
 - **Space is tight.** About 680 points are free between the app icon and the Control Strip. Short labels and icons fit best.
 - **App shortcuts change.** Check each one in the app's menus. If nothing happens on tap, look in the log.
-- **No scripts.** Layouts can't run code. AppleScript and script widgets may come later, see the roadmap.
+- **No scripts.** A layout can't run code, open files or use links other than http and https, so a layout from the store can only press keys, press menu items and open web pages or apps. For anything that needs code, put a [script widget](WIDGETS.md) in the layout.
 - **A layout replaces GlassBar's own buttons** for that app, including Safari or Mail. Remove the layout to get them back.
 
 ## When something doesn't work

@@ -1,10 +1,24 @@
 # Writing GlassBar themes
 
-GlassBar 2.0 can load themes you write yourself as JSON. There's no editor in this release, so this guide is for people who are fine opening a text file. A visual editor (Theme Studio) is planned for 2.1.
+A GlassBar theme is a JSON file. You can make one in Theme Studio without typing anything, or write the file yourself. This guide covers both and lists every field.
 
 > **The theme format is alpha.** Field names and defaults may still change before it settles. I'll try to keep old files loading, but if something breaks after an update, check this page again.
 
-## Your first theme in five minutes
+## Theme Studio
+
+GlassBar Hub > **Theme Studio** edits a theme on a preview of the bar, and on your real Touch Bar at the same time.
+
+1. **Pick a starter**: dark, light, outline, pixel or terminal. Or open one of your installed themes. A built-in theme is saved as a copy with a new id, so the original stays as it was.
+2. **Click a part** on the preview: a button, a group, the bar itself, or a button in a role (active, primary, operator…). Its fill, text, border, shape and shadow open next to it. The preview can show any of the app bars, so check Calculator for `operator` and Safari for `accent`.
+3. **Quick Colors** recolors the whole theme from a few colors, which is the fast way to get a first version.
+4. **The bar background** takes a color, a two or three color gradient (linear or radial), a pattern, or an image from your Mac. The image is copied into the theme.
+5. **The Code tab** shows the same theme as JSON. Edits there show on the preview, so you can use a field the other tabs don't have.
+
+Undo works on every change and Revert goes back to the last save. Saving writes the theme into your themes folder, and **Publish…** in the Hub prepares it for the store.
+
+Everything the studio does ends up in `theme.json`. The rest of this page is that file.
+
+## Your first theme by hand
 
 1. Open GlassBar Hub (menu > GlassBar Hub…) and install a theme from the store that's close to what you want, for example Paper.
 2. In Hub, go to Installed, open the theme's menu (…) and choose Show in Finder.
@@ -88,7 +102,7 @@ Copy this into `~/Library/Application Support/GlassBar/Themes/my-paper/theme.jso
 
 | Field | Values | Default | Notes |
 |---|---|---|---|
-| `id` | text | required | Unique. Lowercase with dashes is best (`paper`, `retro-amber`). Don't reuse a built-in id (`classic`, `minimal`, `graphite`, `neon`, `terminal`, `arcade`); a theme with a built-in id is skipped. |
+| `id` | text | required | Unique. Lowercase with dashes is best (`paper`, `retro-amber`). Don't reuse a built-in id (`classic`, `minimal`, `graphite`, `neon`, `terminal`, `arcade`, `original`); a theme with a built-in id is skipped. Because the id becomes a folder name, it can't contain `/`, `\\`, `:` or `..`, or start with a dot. |
 | `name` | text | `""` | Shown in the Theme menu. |
 | `author` | text | `""` | Your name or GitHub handle. |
 | `version` | number | `1` | Your own version of the theme. |
@@ -108,6 +122,7 @@ Copy this into `~/Library/Application Support/GlassBar/Themes/my-paper/theme.jso
 | `backdrop` | `off`, `app`, `aurora`, `sunset`, `ocean`, `siri`, `wallpaper` or `""` | `""` | Switches the Background menu when the theme is chosen. Empty leaves the user's choice alone. A skin with `bar` covers the background anyway. |
 | `roles` | object | `{}` | See [Roles](#roles). |
 | `skin` | object | none | See [Skin](#skin). |
+| `widget` | object | none | How widgets and the Dock look in this theme. See [Widgets](#widgets). |
 
 Colors are `#RRGGBB` or `#RRGGBBAA` (the last pair is opacity, `80` is about half).
 
@@ -130,15 +145,33 @@ Each role takes the same fields as a [layer](#layers).
 
 In a glass theme only `fill` is used. If a role isn't set, GlassBar uses its own color: a light highlight for `active`, blue for `primary`, `accent` for `accent` (nothing if it's empty), orange for `operator`, dark blue for `suggestions`, red for `danger`, orange for `warning`, green for `success`.
 
-The Dock widget (beta) uses only roles too: the shelf is the group, the front app is `active`, running dots are `accent` and badges are `danger`. A theme can tune it with an optional `widget` key:
+In a skinned theme a role is drawn on top of `skin.button`, so you only write what changes. A role you leave out looks like a normal button. `pressed` goes on top of the role, so a pressed primary button gets both.
+
+## Widgets
+
+Widgets never bring their own colors. They give a value and a state, and the theme draws them like any button: low battery and high CPU use `warning`, charging and a finished timer use `success`. So a theme that sets those two roles already covers every widget, script widgets included.
+
+The optional `widget` key changes single widgets:
 
 ```json
-"widget": { "dock": { "iconStyle": "mono", "iconSize": 18, "spacing": 2 } }
+"widget": {
+  "battery": { "label": "bat" },
+  "cpu": { "icon": "bolt", "role": "accent" },
+  "dock": { "iconStyle": "mono", "iconSize": 18, "spacing": 2 }
+}
 ```
 
-`iconStyle` is `color`, `mono`, `text` or `pixel`. Without it, skins with an `ascii` border show app names as text and `pixel` skins show pixelated icons. The user can still pick a style in Dock Settings.
+| Field | What it does |
+|---|---|
+| `label` | A short name shown instead of the icon (`bat`, `cpu`). |
+| `icon` | Another symbol in front of the value. Goes through the icon map like any symbol. |
+| `role` | Always draw this widget in that role, whatever its state. |
 
-In a skinned theme a role is drawn on top of `skin.button`, so you only write what changes. A role you leave out looks like a normal button. `pressed` goes on top of the role, so a pressed primary button gets both.
+The keys are the widget ids: `clock`, `date`, `battery`, `headphones`, `cpu`, `memory`, `disk`, `network`, `timer`, `focus`, `worldClock`, `clipboard`, `nowPlaying`. Skins with an `ascii` border show short names (`bat`, `cpu`) on their own.
+
+The battery's icon turns yellow in Low Power Mode in every theme, the same yellow the menu bar uses.
+
+**The Dock** uses only roles: the shelf is the group, the front app is `active`, running dots are `accent` and badges are `danger`. `widget.dock` tunes it. `iconStyle` is `color`, `mono`, `text` or `pixel`; without it, skins with an `ascii` border show app names as text and `pixel` skins show pixelated icons. The user can still pick a style in Dock Settings.
 
 ## Skin
 
@@ -184,10 +217,19 @@ Groups with `ascii` or `pixel` borders are drawn as separate buttons, because br
 | Field | Values | Notes |
 |---|---|---|
 | `fill` | hex color | Bar color. Default black. |
-| `fill2` | hex color | Left-to-right gradient from `fill`. |
-| `pattern` | `stars`, `grid`, `none` | A static pattern behind the buttons. |
+| `fill2` | hex color | Gradient from `fill`. |
+| `fill3` | hex color | A third gradient color after `fill2`. |
+| `gradient` | `linear`, `radial` | Default `linear`. `radial` starts at the middle of the bar. |
+| `angle` | 0 to 360 | Direction of a linear gradient in degrees: 0 runs left to right, 90 top to bottom. |
+| `image` | a file in the theme folder | A picture over the color, under the pattern. The bar is 30 points tall. |
+| `imageMode` | `fill`, `stretch`, `tile` | Default `fill` (cropped to cover the bar). |
+| `imageOpacity` | 0 to 1 | Default 1. |
+| `pattern` | `stars`, `grid`, `dots`, `stripes`, `none` | A static pattern behind the buttons. |
 | `patternColor` | hex color | Default half-transparent white. |
-| `overlay` | `scanlines`, `none` | Drawn over everything, CRT style. |
+| `patternOpacity` | 0 to 1 | Default 1. |
+| `patternSize` | 3 to 40 | Distance between the pattern's marks in points. Default 8. |
+| `overlay` | `scanlines`, `vignette`, `none` | Drawn over everything: CRT lines, or darker ends. |
+| `overlayOpacity` | 0 to 1 | Default 0.4. |
 
 If a skin has `bar`, it replaces the user's Background setting. Without `bar`, the user's background shows behind your buttons.
 
@@ -214,6 +256,8 @@ If a skin has `bar`, it replaces the user's Background setting. Without `bar`, t
 ```
 
 A value is either plain text, or `image:` followed by a file in the theme folder. Images are drawn 16 points high, without smoothing, so pixel art stays sharp. Make them 32 px high for Retina. Symbols you don't list keep Apple's icon.
+
+One special value: `"siri": "orb"` draws GlassBar's coloured Siri orb instead of the word Siri.
 
 The names that matter most:
 
@@ -251,6 +295,7 @@ A good way to start is copying one of them into your themes folder, changing the
 - **Contrast.** The Touch Bar is small and often seen at an angle. Keep text clearly lighter or darker than its button, and check `active` and `pressed` too, not just the normal state.
 - **Font glyphs.** Many fun fonts only cover A to Z. Check that yours has the letters your users will see, including accented and Turkish letters (ç ğ ı İ ö ş ü). App names, track titles and suggestions can contain anything.
 - **No endless animations.** The Touch Bar is drawn by a system process, TouchBarServer. Anything that keeps moving makes it redraw at 60 fps and costs real CPU and battery. Themes can't add animations on their own right now, and that's on purpose. Patterns and overlays are static.
+- **Text on the Dock's shelf.** The battery and clock at the end of the Dock sit on the shelf when the theme draws one, and straight on the bar when it doesn't. They take the right text color for each case, so check both the Dock and a normal bar.
 - **Text straight on the bar.** The app name, track titles and times aren't on a button. They use the button `fill` color (or the button `text` color when buttons have no fill), so the bar `fill` has to contrast with the button fill.
 - **ASCII brackets in narrow places.** Brackets take width. Short labels and icon text work best (`<` instead of `back`), long icon text makes buttons wide.
 - **`text.scale`** below about 0.6 gets hard to read. Pixel fonts look big, which is why Arcade scales them down.
@@ -279,6 +324,10 @@ If a theme doesn't show up in the menu at all, it usually means the JSON itself 
 
 If a field has the wrong type (`"scale": "big"` instead of a number), that field is skipped. Inside `skin`, a wrong type currently drops the whole skin, and the log says which field it was.
 
+## What a theme can't do
+
+A theme is data, not code. It can't run anything, and the files it names (fonts, images, sounds) have to be inside its own folder: a path with `../` or a symlink that points elsewhere is skipped. That's what makes a theme from the store safe to install with one click.
+
 ## Sharing your theme
 
-Themes are shared through pull requests to this repo. Every theme in the [themes](../themes) folder shows up in the Store page of GlassBar Hub, where people can install it with one click. See [themes/README.md](../themes/README.md) for how to submit one.
+Themes are shared through pull requests to this repo. **Publish…** on your theme in GlassBar Hub checks it, lists every file that would become public and opens the pull request page. Every theme in the [themes](../themes) folder shows up in the Store page of GlassBar Hub, where people can install it with one click. See [themes/README.md](../themes/README.md) for how to submit one.

@@ -2,7 +2,7 @@
 
 # GlassBar
 
-A free, open-source replacement for the Touch Bar on MacBook Pros from 2018 on (macOS 14 or later). It keeps the original layout (esc, app buttons, Control Strip) and redraws it with a Liquid Glass look. You can also change the whole look with themes, give any app your own buttons, and get both from a small store inside the app.
+A free, open-source replacement for the Touch Bar on MacBook Pros from 2018 on (macOS 14 or later). It keeps the original layout (esc, app buttons, Control Strip) and redraws it with a Liquid Glass look. You can also change the whole look with themes, draw your own in Theme Studio, add widgets and a Dock, give any app your own buttons, and share all of it through a small store inside the app.
 
 ![GlassBar in Finder](images/finder.png)
 
@@ -32,18 +32,20 @@ GlassBar checks for updates itself and tells you when a new version is out.
 
 ## Themes
 
-Six themes are built in. Classic, Minimal Liquid Glass, Graphite and Neon keep the glass look. Terminal and 8-Bit Arcade draw the bar their own way, with their own font, borders, icons and an optional tap sound.
+Seven themes are built in. Classic, Minimal Liquid Glass, Graphite and Neon keep the glass look. Terminal and 8-Bit Arcade draw the bar their own way, with their own font, borders, icons and an optional tap sound. Original hands the bar back to macOS: you get Apple's own Touch Bar, with your first widget sitting in the Control Strip. Tap it and the rest slide in over the app area, left, centered or right, while Apple's controls stay where they are.
 
 ![Terminal theme](images/terminal.png)
 ![8-Bit Arcade theme](images/arcade.png)
 
-A theme is a JSON file. To write your own, choose Theme > Open Themes Folder from the menu, add a `theme.json`, and use Theme > Reload Themes and Layouts after each save. Every field is described in [docs/THEMES.md](docs/THEMES.md). Bad values are skipped and written to `~/Library/Logs/GlassBar.log` instead of breaking the bar. The format is still alpha and may change.
+**Theme Studio** (in the Hub) makes a theme without writing anything. Start from a dark, light, outline, pixel or terminal starter, click a part on the preview bar and change its fill, text, border and shape. Quick Colors recolors the whole theme at once, the bar background takes any color, gradient, pattern or image, and the Code tab shows the same theme as JSON if you'd rather type. What you change shows on your Touch Bar right away.
+
+A theme is a JSON file underneath. To write one by hand, choose Theme > Open Themes Folder from the menu, add a `theme.json`, and use Theme > Reload Themes and Layouts after each save. Every field is described in [docs/THEMES.md](docs/THEMES.md). Bad values are skipped and written to `~/Library/Logs/GlassBar.log` instead of breaking the bar. The format is still alpha and may change.
 
 Made a theme you like? Send it with a pull request and it shows up in the store for everyone, see [themes/README.md](themes/README.md). Themes can also be shared as `.glasstheme` packages, which install with a double-click.
 
 ## GlassBar Hub
 
-Menu > **GlassBar Hub…** opens the store and your library. It has a featured pick, new and most installed themes, categories and search. One click installs a theme and puts it on the bar. The store is just the [themes](themes) and [layouts](layouts) folders of this repo, so there's no account or server.
+Menu > **GlassBar Hub…** opens the store and your library. It has a featured pick, new and most installed themes, categories and search. One click installs a theme and puts it on the bar, and a theme's page shows it on Finder, Safari, Mail and other bars before you get it. The store is just the [themes](themes) and [layouts](layouts) folders of this repo, so there's no account or server.
 
 ![GlassBar Hub store](images/hub-store.png)
 
@@ -51,11 +53,21 @@ Your installed themes and layouts are under Library, with updates when an author
 
 ![Installed themes](images/hub-installed.png)
 
-Widgets, Theme Studio (a visual theme editor) and a layout editor already show up in the Hub but are still in development. The Hub window was built with AI assistance so I could spend more time on the theme engine and performance.
+Settings live in the Hub too, so the menu bar menu stays short. **Publish…** on your own theme, layout or widget checks it, lists every file that would become public and opens the pull request page for you. The Hub window was built with AI assistance so I could spend more time on the theme engine and performance.
+
+## Widgets and the Dock
+
+Widgets sit left of the Control Strip or inside a layout: clock, date, battery, headphones battery, CPU, memory, disk, network speed, timer, Focus, world clock, clipboard and now playing. A widget only gives a value and the theme draws it, so the same battery is a glass capsule in Classic and `[bat 87%]` in Terminal.
+
+Script widgets are small JavaScript files ([docs/WIDGETS.md](docs/WIDGETS.md)). They run without a browser, only while they are on the bar, and can use the network, open links or press shortcuts only if they ask for it. You see that list before installing. **Add Weather** in the Widgets page makes one for you to start from.
+
+The **Dock** puts your macOS Dock on the Touch Bar, with running dots, badges, a menu on long press and drag to reorder. An app bounces while it opens, the app in front scrolls into view, the Trash shows whether it's full, and the battery and clock can sit at the end.
+
+The battery follows the charger the moment you plug it in or pull it, and its icon turns yellow in Low Power Mode.
 
 ## Layouts
 
-A layout gives one app your own Touch Bar buttons: keyboard shortcuts, menu commands, web links, or opening another app. Xcode, VS Code, Terminal and Figma layouts are in the store to start with.
+A layout gives one app your own Touch Bar buttons: keyboard shortcuts, menu commands, web links, or opening another app. **Layout Studio** edits them on the real bar by dragging, and can start from one of the built-in bars. Pick the app, drag buttons, groups, spaces and widgets from the library, and choose what each one does. Xcode, VS Code, Terminal and Figma layouts are in the store to start with.
 
 ![Layouts in the Hub](images/hub-layouts.png)
 
@@ -100,15 +112,28 @@ The full list, with what's still missing compared to Apple's Touch Bar, is in [F
 
 ## Performance
 
-GlassBar only redraws the bar when something on it changes, so it sits at about 1% CPU or less and around 40 MB of memory. The moving background styles cost a bit more, because the system's Touch Bar process has to draw them. Turn the background off and that cost goes away.
+GlassBar only redraws the bar when something on it changes, so it sits at about 1% CPU or less and under 80 MB of memory. The moving background styles used to keep the system's Touch Bar process busy; they now come to rest 20 seconds after the last change, and cost nothing after that. Widgets read their values only while they are on the bar.
 
 ## Permissions
 
 **Accessibility** is required (System Settings > Privacy & Security > Accessibility > GlassBar). GlassBar uses it for esc, F1 to F12, shortcuts, media keys, typing suggestions, fn and menu commands. The permission status at launch is written to `~/Library/Logs/GlassBar.log`.
 
-Other permissions are asked for only when a feature needs them: Automation for Music, Spotify, Safari, Photos and Finder tags, the microphone for the Siri waves, and system audio recording for the Spotify sound bar (only the level is measured, nothing is recorded).
+Other permissions are asked for only when a feature needs them: Automation for Music, Spotify, Safari, Photos and Finder tags, the microphone for the Siri waves, and system audio recording for the Spotify sound bar (only the level is measured, nothing is recorded). The Focus widget can only tell whether a Focus is on with Full Disk Access; without it the widget just opens Focus settings.
 
 Switching desktop spaces uses ⌃1 to ⌃9, so turn on "Switch to Desktop N" in System Settings > Keyboard > Keyboard Shortcuts > Mission Control.
+
+## Security
+
+Themes, layouts and widgets come from other people, so GlassBar treats them as untrusted.
+
+- **Themes and layouts are data.** They can't run code. A layout can press keys and menu items, open http and https links and open apps, nothing else.
+- **Files stay in their package.** A theme or layout can only use fonts, images and sounds inside its own folder. Paths with `../`, symlinks that lead elsewhere and ids that aren't plain folder names are refused, both on install and on every read.
+- **Script widgets run in a sandbox.** Plain JavaScript without a browser, no file access, no shell, no AppleScript. Each call gets half a second. Network, links and shortcuts each need a permission you see before installing.
+- **Widget network access is public https only.** No localhost, no IP addresses, no home network names, no ports, and a redirect to any of those is stopped. No cookies.
+- **Publishing shows you everything first.** Hidden files and symlinks never go into a package.
+- **Updates are never installed for you.** GlassBar only tells you a new version is out and opens its GitHub page.
+
+Found a hole? Please open an issue, or write to me first if it's a serious one.
 
 ## How it works
 
@@ -130,11 +155,11 @@ If a code-signing certificate named "TouchBar2 Yerel Imza" is in your keychain, 
 
 For screenshots: `open ~/Applications/GlassBar.app --args -testPanel expanded|brightness|volume|siri|siriDemo|fn|emoji|nowPlaying|stripEditor|tabs|hub|store|layouts` (add `-testPressed YES` for the pressed look), then `screencapture -b bar.png`.
 
-The code is in `Sources/`: `main.swift` (app delegate and menu), `TouchBarView.swift` (the bar and the app bars), `Glass.swift` (buttons, groups, sliders), `Theme.swift` and `Skin.swift` (themes), `Layout.swift` (layouts), `Hub.swift` (Hub and store), `Siri.swift`, `NowPlaying.swift`, `SpotifyPlayer.swift`, `Suggestions.swift`, `SystemControl.swift` and a few smaller files.
+The code is in `Sources/`: `main.swift` (app delegate and menu), `TouchBarView.swift` (the bar and the app bars), `Glass.swift` (buttons, groups, sliders), `Theme.swift` and `Skin.swift` (themes), `Layout.swift` (layouts), `Hub.swift` (Hub and store), `ThemeStudio.swift`, `LayoutEditor.swift`, `Widgets.swift`, `ScriptWidgets.swift`, `Dock.swift`, `Publish.swift`, `Siri.swift`, `NowPlaying.swift`, `SpotifyPlayer.swift`, `Suggestions.swift`, `SystemControl.swift` and a few smaller files.
 
 ## Roadmap
 
-Theme Studio comes next (2.1), then a bigger store, a layout editor and widgets that follow the theme. Spotify sign-in with playlists, search and device picking is planned too. Everything is in [ROADMAP.md](ROADMAP.md).
+2.1 brought Theme Studio, widgets and script widgets, Layout Studio, the Dock, the Original theme and publishing from the app. Bundles (a theme with its own layouts and widgets) and more widgets come next. Spotify sign-in with playlists, search and device picking is planned too. Everything is in [ROADMAP.md](ROADMAP.md).
 
 ---
 

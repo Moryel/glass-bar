@@ -88,6 +88,19 @@ Menü komutları öndeki uygulamanın menüsünden Erişilebilirlik ile çalış
 | Şeritlerde momentumlu kaydırma ve yerine oturma (scrubber) | ✅ emoji, Safari sekmeleri, Takvim ayları, uzun açılır listeler |
 | Kaydırıcı sürükleme | ✅ |
 
+## Orijinalin ötesinde (2.1)
+| Özellik | Durum |
+|---|---|
+| Theme Studio: hazır başlangıçlar, parçaya tıklayıp düzenleme, Hızlı Renkler, çubuk arka planı, Kod sekmesi | ✅ |
+| Widget'lar: saat, tarih, pil, kulaklık, CPU, bellek, disk, ağ, zamanlayıcı, Odak, dünya saati, pano, çalan şarkı | ✅ (Odak için Tam Disk Erişimi gerekir) |
+| İzinli JavaScript widget'ları; hava durumu örneği | ✅ |
+| Layout Studio | ✅ |
+| Touch Bar'da Dock: açılırken zıplama, dolu Çöp Sepeti, öndeki uygulama görünür yere kayar | ✅ |
+| Pil şarj takılıp çıkarılınca anında güncellenir, Düşük Güç Modu'nda simge sarı | ✅ |
+| Mağazada tema sayfası, uygulamalara göre canlı önizleme | ✅ |
+| Uygulamadan mağazaya yayınlama | ✅ (pull request sayfasını açar) |
+| Paketler (tema + düzenler + widget'lar) | ❌ |
+
 ## Erişilebilirlik
 | Özellik | Durum |
 |---|---|
