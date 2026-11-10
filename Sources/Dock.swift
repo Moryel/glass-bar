@@ -21,6 +21,9 @@ final class DockModel: ObservableObject {
     @Published private(set) var running: [DockApp] = []
     @Published private(set) var hidden: Set<String> = []
     @Published private(set) var badges: [String: String] = [:]
+    /// tapped and not up yet; the icon bounces meanwhile
+    @Published private(set) var launching: Set<String> = []
+    @Published private(set) var trashIsFull = false
     /// the Dock's own "Show suggested and recent apps"
     private(set) var dockShowsRecents = true
 
@@ -66,7 +69,8 @@ final class DockModel: ObservableObject {
         visibleCount = max(0, visibleCount + (isVisible ? 1 : -1))
         if visibleCount > 0, badgeTimer == nil {
             readBadges()
-            let t = Timer(timeInterval: 10, repeats: true) { [weak self] _ in self?.readBadges() }
+            checkTrash()
+            let t = Timer(timeInterval: 10, repeats: true) { [weak self] _ in self?.readBadges(); self?.checkTrash() }
             t.tolerance = 3
             RunLoop.main.add(t, forMode: .common)
             badgeTimer = t
@@ -105,6 +109,7 @@ final class DockModel: ObservableObject {
         let w = DispatchWorkItem { [weak self] in
             if preferences { self?.loadPreferences() }
             self?.readBadges()
+            self?.checkTrash()
         }
         reloadItem = w
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4, execute: w)
@@ -142,6 +147,7 @@ final class DockModel: ObservableObject {
             return DockApp(id: Self.id(of: a), url: url, name: a.localizedName ?? Self.displayName(url))
         }
         if l != running { running = l }
+        if !launching.isEmpty { launching.subtract(l.map(\.id)) }
         loadHidden()
     }
 
@@ -191,6 +197,13 @@ final class DockModel: ObservableObject {
         }
     }
 
+    /// Without Full Disk Access the Trash can't be listed and stays drawn empty.
+    private func checkTrash() {
+        let trash = FileManager.default.urls(for: .trashDirectory, in: .userDomainMask)[0]
+        let full = !((try? FileManager.default.contentsOfDirectory(atPath: trash.path))?.isEmpty ?? true)
+        if full != trashIsFull { trashIsFull = full }
+    }
+
     private func cachedID(_ url: URL) -> String {
         if let s = idCache[url.path] { return s }
         let s = Bundle(url: url)?.bundleIdentifier ?? url.path
@@ -211,6 +224,10 @@ final class DockModel: ObservableObject {
     // MARK: actions
 
     func open(_ a: DockApp) {
+        if !isRunning(a), a.id != "com.apple.launchpad.launcher" {
+            launching.insert(a.id)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 10) { [weak self] in self?.launching.remove(a.id) }
+        }
         let c = NSWorkspace.OpenConfiguration()
         c.activates = true
         NSWorkspace.shared.openApplication(at: a.url, configuration: c)
@@ -378,19 +395,23 @@ enum DockIcons {
     private static var pixel: [String: NSImage] = [:]
 
     static func icon(_ url: URL) -> NSImage {
-        if let i = color[url.path] { return i }
         let isTrash = url == FileManager.default.urls(for: .trashDirectory, in: .userDomainMask)[0]
+        let isFull = isTrash && DockModel.shared.trashIsFull
+        let key = isFull ? "trash.full" : url.path
+        if let i = color[key] { return i }
         // a small bitmap instead of the multi-resolution icon: less memory, cheaper to draw on every bar update
-        let i = render(isTrash ? NSImage(named: NSImage.trashEmptyName)! : NSWorkspace.shared.icon(forFile: url.path), 64)
-        color[url.path] = i
+        let source = isTrash ? NSImage(named: isFull ? NSImage.trashFullName : NSImage.trashEmptyName)! : NSWorkspace.shared.icon(forFile: url.path)
+        let i = render(source, 64)
+        color[key] = i
         return i
     }
 
     /// 16×16, drawn later without interpolation so the pixels stay hard
     static func pixelated(_ url: URL) -> NSImage {
-        if let i = pixel[url.path] { return i }
+        let key = url.path + (DockModel.shared.trashIsFull ? "+" : "")
+        if let i = pixel[key] { return i }
         let i = render(icon(url), 16)
-        pixel[url.path] = i
+        pixel[key] = i
         return i
     }
 

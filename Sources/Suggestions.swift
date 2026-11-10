@@ -148,11 +148,14 @@ extension View {
 struct ScrollingStrip<Content: View>: View {
     /// true while an item is being dragged to a new place
     var isLocked: () -> Bool = { false }
+    /// content running past an edge fades out there
+    var fadesEdges = false
     @ViewBuilder var content: () -> Content
     @StateObject private var k = ScrollState()
 
-    init(isLocked: @escaping () -> Bool = { false }, @ViewBuilder content: @escaping () -> Content) {
+    init(isLocked: @escaping () -> Bool = { false }, fadesEdges: Bool = false, @ViewBuilder content: @escaping () -> Content) {
         self.isLocked = isLocked
+        self.fadesEdges = fadesEdges
         self.content = content
     }
 
@@ -186,6 +189,18 @@ struct ScrollingStrip<Content: View>: View {
                         let target = min(0, max(minOffset, k.startOffset + e.predictedEndTranslation.width))
                         withAnimation(.spring(response: 0.7, dampingFraction: 0.86)) { k.offset = target }
                     })
+        }
+        .mask {
+            if fadesEdges {
+                let more = k.width - k.contentWidth
+                HStack(spacing: 0) {
+                    LinearGradient(colors: [.black.opacity(k.offset < -1 ? 0 : 1), .black], startPoint: .leading, endPoint: .trailing).frame(width: 18)
+                    Color.black
+                    LinearGradient(colors: [.black, .black.opacity(k.offset > more + 1 ? 0 : 1)], startPoint: .leading, endPoint: .trailing).frame(width: 18)
+                }
+            } else {
+                Color.black
+            }
         }
         .clipShape(Capsule())
         // clipping hides the scrolled-out items but they still take touches; limit touches to the visible strip

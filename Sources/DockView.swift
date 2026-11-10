@@ -43,7 +43,7 @@ struct DockRow: View {
     }
 
     private func strip(_ items: [DockApp], _ recents: [DockApp], _ others: [DockApp], _ style: DockIconStyle) -> some View {
-        ScrollingStrip(isLocked: { [drag] in drag.id != nil }) {
+        ScrollingStrip(isLocked: { [drag] in drag.id != nil }, fadesEdges: true) {
             Color.clear.frame(width: 2)
             ForEach(items) { a in item(a, style, items: items) }
             if !recents.isEmpty {
@@ -62,7 +62,7 @@ struct DockRow: View {
         .onPreferenceChange(DockFramesKey.self) { drag.frames = $0 }
         .overlay {
             if items.isEmpty && recents.isEmpty {
-                Text(L("No apps")).font(.bar(12)).foregroundStyle(theme.barText.opacity(0.5))
+                Text(L("No apps")).font(.bar(12)).foregroundStyle(theme.shelfText.opacity(0.5))
             }
         }
         .frame(height: Metrics.buttonHeight)
@@ -71,9 +71,9 @@ struct DockRow: View {
 
     @ViewBuilder private func separator(_ style: DockIconStyle) -> some View {
         if style == .text {
-            Text("|").font(.bar(12)).foregroundStyle(theme.barText.opacity(0.4))
+            Text("|").font(.bar(12)).foregroundStyle(theme.shelfText.opacity(0.4))
         } else {
-            Rectangle().fill(theme.barText.opacity(0.25)).frame(width: 1, height: 16)
+            Rectangle().fill(theme.shelfText.opacity(0.25)).frame(width: 1, height: 16)
         }
     }
 
@@ -108,9 +108,11 @@ struct DockRow: View {
         let badge = s.showsBadges ? dock.badges[a.id] : nil
         DockItemView(app: a, style: style, size: iconSize, isFront: isFront, isRunning: isRunning,
                      isHidden: dock.hidden.contains(a.id), showsDot: s.showsDots && s.content != .running,
-                     badge: badge, spacing: itemSpacing) {
+                     badge: badge, spacing: itemSpacing, isLaunching: dock.launching.contains(a.id)) {
             release(a, isFront: isFront)
         }
+        // the app that comes to the front scrolls into view
+        .selectedInStrip(isFront)
         .background(GeometryReader { g in
             Color.clear.preference(key: DockFramesKey.self, value: [a.id: g.frame(in: .named("stripContent"))])
         })
@@ -190,11 +192,13 @@ struct DockItemView: View {
     let showsDot: Bool
     let badge: String?
     let spacing: CGFloat
+    var isLaunching = false
     let action: () -> Void
     @Environment(\.theme) private var theme
 
     var body: some View {
         label
+            .modifier(Bounce(isOn: isLaunching))
             .frame(width: style == .text ? nil : size + 14)
             .padding(.horizontal, style == .text && !theme.splitsGroups ? 7 : 0)
             .frame(height: Metrics.buttonHeight)
@@ -233,7 +237,10 @@ struct DockItemView: View {
     }
 
     @ViewBuilder private func badgeView(_ s: String) -> some View {
-        let text = s.count > 3 ? String(s.prefix(2)) + "+" : s
+        // "3.214" or "3,214" from the Dock
+        let digits = s.filter(\.isNumber)
+        let isCount = !digits.isEmpty && s.allSatisfy { $0.isNumber || ".,  ".contains($0) }
+        let text = isCount ? ((Int(digits) ?? 100) > 99 ? "99+" : digits) : String(s.prefix(3))
         let l = theme.layer(.danger)
         let fill = theme.isSkin ? l.fill : theme.glassColor(.danger)
         let radius = theme.isSkin ? min(l.radius, 5.5) : 5.5
@@ -248,33 +255,40 @@ struct DockItemView: View {
     }
 }
 
-/// Battery and clock on the right, read once a minute.
+/// Battery and clock on the right, read once a minute and when the charger changes.
 struct DockStatus: View {
     var showsBattery = true
     var showsClock = true
+    @ObservedObject private var power = PowerWatch.shared
     @Environment(\.theme) private var theme
 
     var body: some View {
         TimelineView(.everyMinute) { t in
-            HStack(spacing: 8) {
+            HStack(spacing: 4) {
                 if showsBattery, let b = Battery.read() {
-                    HStack(spacing: 3) {
-                        Icon(b.symbol)
-                        Text("\(b.percent)%").monospacedDigit()
+                    HStack(spacing: 1) {
+                        if Battery.isLowPower { Icon(b.symbol).foregroundStyle(Battery.lowPowerColor) } else { Icon(b.symbol) }
+                        BarText(verbatim: "\(b.percent)%", tabular: true)
                     }
                 }
-                if showsClock { Text(t.date, format: .dateTime.hour().minute()).monospacedDigit() }
+                if showsClock { BarText(verbatim: t.date.formatted(.dateTime.hour().minute()), tabular: true) }
             }
             .font(.bar(12))
-            .foregroundStyle(theme.barText)
+            .foregroundStyle(theme.shelfText)
             .padding(.horizontal, 8)
             .frame(height: Metrics.buttonHeight)
             .background { if !theme.splitsGroups { GroupBackground() } }
         }
+        .onAppear { power.setVisible(true) }
+        .onDisappear { power.setVisible(false) }
     }
 }
 
 enum Battery {
+    /// Low Power Mode's yellow, the same in every theme like the system's own battery
+    static let lowPowerColor = Color(hex: 0xFFD60A)
+    static var isLowPower: Bool { ProcessInfo.processInfo.isLowPowerModeEnabled }
+
     /// nil on Macs without a battery
     static func read() -> (percent: Int, symbol: String, isCharging: Bool)? {
         let info = IOPSCopyPowerSourcesInfo().takeRetainedValue()
@@ -285,13 +299,72 @@ enum Battery {
                   let now = p[kIOPSCurrentCapacityKey] as? Int, let max = p[kIOPSMaxCapacityKey] as? Int, max > 0
             else { continue }
             let percent = now * 100 / max
-            if p[kIOPSIsChargingKey] as? Bool == true { return (percent, "battery.100.bolt", true) }
+            // "is charging" turns true seconds after the plug goes in, and stays false at 100%: the power source is known at once
+            if p[kIOPSPowerSourceStateKey] as? String == kIOPSACPowerValue { return (percent, "battery.100.bolt", true) }
             let level = [0, 25, 50, 75, 100].min { abs($0 - percent) < abs($1 - percent) }!
             return (percent, "battery.\(level)", false)
         }
         return nil
     }
 }
+
+/// Tells when the charger is plugged in or pulled, so the battery doesn't wait for its next timed read.
+final class PowerWatch: ObservableObject {
+    static let shared = PowerWatch()
+    /// for the widgets, which keep their own copy of the battery
+    var onChange: (() -> Void)?
+    private var source: CFRunLoopSource?
+    private var visibleCount = 0
+
+    private init() {
+        // Low Power Mode; posted on any thread
+        NotificationCenter.default.addObserver(forName: .NSProcessInfoPowerStateDidChange, object: nil, queue: .main) { [weak self] _ in self?.changed() }
+    }
+
+    private func changed() {
+        guard visibleCount > 0 else { return }
+        objectWillChange.send()
+        onChange?()
+    }
+
+    func setVisible(_ isVisible: Bool) {
+        visibleCount = max(0, visibleCount + (isVisible ? 1 : -1))
+        if visibleCount > 0, source == nil {
+            source = IOPSNotificationCreateRunLoopSource({ _ in
+                PowerWatch.shared.changed()
+                // the charge and the rest settle a moment after the plug
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) { PowerWatch.shared.changed() }
+            }, nil)?.takeRetainedValue()
+            if let source { CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes) }
+        } else if visibleCount == 0, let s = source {
+            CFRunLoopRemoveSource(CFRunLoopGetMain(), s, .commonModes)
+            source = nil
+        }
+    }
+}
+
+/// The Dock's launch bounce, as far as 30 pt of height allow.
+private struct Bounce: ViewModifier {
+    let isOn: Bool
+    @StateObject private var k = BounceState()
+
+    func body(content: Content) -> some View {
+        content
+            .offset(y: k.isUp ? -4 : 0)
+            .onAppear { set(isOn) }
+            .onChange(of: isOn) { _, on in set(on) }
+    }
+
+    private func set(_ on: Bool) {
+        if on {
+            withAnimation(.easeOut(duration: 0.3).repeatForever(autoreverses: true)) { k.isUp = true }
+        } else if k.isUp {
+            withAnimation(.easeOut(duration: 0.2)) { k.isUp = false }
+        }
+    }
+}
+
+private final class BounceState: ObservableObject { @Published var isUp = false }
 
 final class DockDrag: ObservableObject {
     /// the item lifted by a long press

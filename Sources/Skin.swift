@@ -47,11 +47,24 @@ struct Skin: Codable, Equatable {
 struct BarStyle: Codable, Equatable {
     var fill: String? = nil
     var fill2: String? = nil
-    /// background pattern: stars, grid
+    var fill3: String? = nil
+    /// linear (default) or radial
+    var gradient: String? = nil
+    /// degrees: 0 runs left to right, 90 top to bottom
+    var angle: Double? = nil
+    /// a picture from the package behind everything; fill (default), stretch or tile
+    var image: String? = nil
+    var imageMode: String? = nil
+    var imageOpacity: Double? = nil
+    /// background pattern: stars, grid, dots, stripes
     var pattern: String? = nil
     var patternColor: String? = nil
-    /// drawn over everything: scanlines
+    var patternOpacity: Double? = nil
+    /// distance between the pattern's marks, 8 by default
+    var patternSize: Double? = nil
+    /// drawn over everything: scanlines, vignette
     var overlay: String? = nil
+    var overlayOpacity: Double? = nil
 }
 
 struct TextStyle: Codable, Equatable {
@@ -117,6 +130,10 @@ extension Theme {
     /// Text drawn straight on the bar (track names, times): in a skin the button fill (the button text is meant for the fill),
     /// or the button text when buttons have no fill.
     var barText: Color { isSkin ? (layer(nil).fill ?? layer(nil).text) : text }
+    /// Text on a group's shelf (the Dock's status, separators): bar text only when the shelf isn't drawn.
+    var shelfText: Color { splitsGroups ? barText : buttonText }
+    /// Text inside a plain button.
+    var buttonText: Color { isSkin ? layer(nil).text : .white }
     /// Waves and sound bars: the slider color, else the bar text.
     var waveColor: Color { sliderFill ?? barText }
 
@@ -185,12 +202,24 @@ extension Theme {
     }
 
     func cased(_ s: String) -> String {
+        // file names arrive decomposed (I + combining dot), which theme fonts rarely cover
+        let s = s.precomposedStringWithCanonicalMapping
         switch letterCase {
-        case .uppercase: s.uppercased()
-        case .lowercase: s.lowercased()
-        default: s
+        case .uppercase: return s.uppercased(with: .current)
+        case .lowercase: return s.lowercased(with: .current).precomposedStringWithCanonicalMapping
+        default: return s
         }
     }
+
+    /// The bar's picture, read once per file.
+    var barImage: NSImage? {
+        guard let name = skin?.bar?.image, let base = baseURL, let u = packageFile(base, name) else { return nil }
+        if let i = Theme.images[u.path] { return i }
+        let i = NSImage(contentsOf: u)
+        Theme.images[u.path] = i
+        return i
+    }
+    static var images: [String: NSImage] = [:]
 
     enum IconValue { case text(String), image(NSImage) }
 
@@ -410,14 +439,50 @@ struct SkinBarBackground: View {
 
     var body: some View {
         let a = theme.color(style.fill) ?? .black
+        let colors = [a, theme.color(style.fill2) ?? a] + (theme.color(style.fill3).map { [$0] } ?? [])
+        let step = CGFloat(max(3, style.patternSize ?? 8))
         ZStack {
-            LinearGradient(colors: [a, theme.color(style.fill2) ?? a], startPoint: .leading, endPoint: .trailing)
-            let c = theme.color(style.patternColor) ?? .white.opacity(0.5)
+            if style.gradient == "radial" {
+                GeometryReader { g in RadialGradient(colors: colors, center: .center, startRadius: 0, endRadius: g.size.width / 2) }
+            } else {
+                let r = (style.angle ?? 0) * .pi / 180, dx = cos(r) / 2, dy = sin(r) / 2
+                LinearGradient(colors: colors, startPoint: UnitPoint(x: 0.5 - dx, y: 0.5 - dy), endPoint: UnitPoint(x: 0.5 + dx, y: 0.5 + dy))
+            }
+            if let i = theme.barImage {
+                Group {
+                    switch style.imageMode {
+                    case "tile": Image(nsImage: i).resizable(resizingMode: .tile)
+                    case "stretch": Image(nsImage: i).resizable()
+                    default: Color.clear.overlay(Image(nsImage: i).resizable().aspectRatio(contentMode: .fill)).clipped()
+                    }
+                }
+                .opacity(style.imageOpacity ?? 1)
+            }
+            let c = (theme.color(style.patternColor) ?? .white.opacity(0.5)).opacity(style.patternOpacity ?? 1)
             switch style.pattern {
+            case "dots":
+                Canvas { ctx, size in
+                    var p = Path(), row = 0
+                    for y in stride(from: step / 2, through: size.height, by: step) {
+                        for x in stride(from: row % 2 == 0 ? step / 2 : step, through: size.width, by: step) {
+                            p.addEllipse(in: CGRect(x: x - 1, y: y - 1, width: 2, height: 2))
+                        }
+                        row += 1
+                    }
+                    ctx.fill(p, with: .color(c))
+                }
+            case "stripes":
+                Canvas { ctx, size in
+                    var p = Path()
+                    for x in stride(from: -size.height, through: size.width, by: step) {
+                        p.move(to: CGPoint(x: x, y: size.height)); p.addLine(to: CGPoint(x: x + size.height, y: 0))
+                    }
+                    ctx.stroke(p, with: .color(c), lineWidth: max(1, step / 4))
+                }
             case "stars":
                 Canvas { ctx, size in
                     var s: UInt32 = 42
-                    for _ in 0..<Int(size.width / 9) {
+                    for _ in 0..<Int(size.width / (step + 1)) {
                         s = s &* 1664525 &+ 1013904223; let x = CGFloat(s >> 8 & 0xFFFF) / 65535 * size.width
                         s = s &* 1664525 &+ 1013904223; let y = CGFloat(s >> 8 & 0xFFFF) / 65535 * size.height
                         ctx.fill(Path(CGRect(x: x.rounded(), y: y.rounded(), width: 1, height: 1)), with: .color(c))
@@ -426,8 +491,8 @@ struct SkinBarBackground: View {
             case "grid":
                 Canvas { ctx, size in
                     var p = Path()
-                    stride(from: 0, through: size.width, by: 8).forEach { p.addRect(CGRect(x: $0, y: 0, width: 0.5, height: size.height)) }
-                    stride(from: 0, through: size.height, by: 8).forEach { p.addRect(CGRect(x: 0, y: $0, width: size.width, height: 0.5)) }
+                    stride(from: 0, through: size.width, by: step).forEach { p.addRect(CGRect(x: $0, y: 0, width: 0.5, height: size.height)) }
+                    stride(from: 0, through: size.height, by: step).forEach { p.addRect(CGRect(x: 0, y: $0, width: size.width, height: 0.5)) }
                     ctx.fill(p, with: .color(c))
                 }
             default: EmptyView()
@@ -441,13 +506,19 @@ struct SkinBarOverlay: View {
     let style: BarStyle
 
     var body: some View {
+        let o = style.overlayOpacity ?? 0.4
         if style.overlay == "scanlines" {
             Canvas { ctx, size in
                 var p = Path()
                 stride(from: 2, through: size.height, by: 3).forEach { p.addRect(CGRect(x: 0, y: $0, width: size.width, height: 1)) }
-                ctx.fill(p, with: .color(.black.opacity(0.4)))
+                ctx.fill(p, with: .color(.black.opacity(o)))
             }
             .allowsHitTesting(false)
+        } else if style.overlay == "vignette" {
+            LinearGradient(stops: [.init(color: .black.opacity(o), location: 0), .init(color: .clear, location: 0.18),
+                                   .init(color: .clear, location: 0.82), .init(color: .black.opacity(o), location: 1)],
+                           startPoint: .leading, endPoint: .trailing)
+                .allowsHitTesting(false)
         }
     }
 }

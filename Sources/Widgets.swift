@@ -6,16 +6,22 @@ import SwiftUI
 // Nothing is read until a widget is on the bar, and the timer stops when the last one goes away.
 
 enum WidgetKind: String, CaseIterable, Identifiable {
-    case clock, battery, cpu, memory, worldClock, clipboard, nowPlaying, dock
+    case clock, date, battery, headphones, cpu, memory, disk, network, timer, focus, worldClock, clipboard, nowPlaying, dock
 
     var id: String { rawValue }
 
     var name: String {
         switch self {
         case .clock: L("Clock")
+        case .date: L("Date")
         case .battery: L("Battery")
+        case .headphones: L("Headphones")
+        case .focus: L("Focus")
         case .cpu: L("CPU")
         case .memory: L("Memory")
+        case .disk: L("Disk")
+        case .network: L("Network")
+        case .timer: L("Timer")
         case .worldClock: L("World Clock")
         case .clipboard: L("Clipboard")
         case .nowPlaying: L("Now Playing")
@@ -26,7 +32,13 @@ enum WidgetKind: String, CaseIterable, Identifiable {
     var summary: String {
         switch self {
         case .clock: L("The time. Tap for Notification Center.")
+        case .date: L("Today's date. Tap for Calendar.")
+        case .disk: L("Free space on your disk. Tap for Storage settings.")
+        case .network: L("Download speed, every 2 seconds.")
+        case .timer: L("A countdown. Tap to start, tap again to stop. Plays a sound when it ends.")
         case .battery: L("Charge and charging state. Low battery uses the warning role.")
+        case .headphones: L("Battery of your AirPods or Bluetooth headphones, while they are connected.")
+        case .focus: L("Lights up while a Focus is on. Tap for Focus settings. Reading it needs Full Disk Access; until then a tap opens that setting.")
         case .cpu: L("CPU load, every 2 seconds. Tap for Activity Monitor.")
         case .memory: L("Memory in use. Tap for Activity Monitor.")
         case .worldClock: L("The time in another city.")
@@ -39,7 +51,13 @@ enum WidgetKind: String, CaseIterable, Identifiable {
     var symbol: String {
         switch self {
         case .clock: "clock"
+        case .date: "calendar"
+        case .disk: "internaldrive"
+        case .network: "arrow.down.circle"
+        case .timer: "timer"
         case .battery: "battery.75"
+        case .headphones: "headphones"
+        case .focus: "moon.fill"
         case .cpu: "cpu"
         case .memory: "memorychip"
         case .worldClock: "globe"
@@ -53,7 +71,13 @@ enum WidgetKind: String, CaseIterable, Identifiable {
     var shortName: String {
         switch self {
         case .clock: "time"
+        case .date: "date"
+        case .disk: "disk"
+        case .network: "net"
+        case .timer: "timer"
         case .battery: "bat"
+        case .headphones: "pods"
+        case .focus: "focus"
         case .cpu: "cpu"
         case .memory: "mem"
         case .worldClock: "tz"
@@ -64,7 +88,7 @@ enum WidgetKind: String, CaseIterable, Identifiable {
     }
 
     /// widgets that can sit next to the Control Strip
-    static let stripKinds: [WidgetKind] = [.clock, .battery, .cpu, .memory, .worldClock, .clipboard, .nowPlaying]
+    static let stripKinds: [WidgetKind] = [.clock, .date, .battery, .headphones, .cpu, .memory, .disk, .network, .timer, .focus, .worldClock, .clipboard, .nowPlaying]
 }
 
 /// The values behind the widgets, read on one shared timer while any widget is visible.
@@ -76,12 +100,20 @@ final class WidgetData: ObservableObject {
     @Published private(set) var memoryTotal = Double(ProcessInfo.processInfo.physicalMemory)
     @Published private(set) var battery = Battery.read()
     @Published private(set) var clipboard: String?
+    @Published private(set) var diskFree: Int64?
+    /// download speed as shown ("340 KB/s")
+    @Published private(set) var download = "0 KB/s"
+    /// lowest charge of the connected headphones; nil while none are connected
+    @Published private(set) var headphones: Int?
+    /// nil when the Focus state can't be read (no Full Disk Access)
+    @Published private(set) var focusOn: Bool?
 
     private var timer: Timer?
     private var visibleCount = 0
     private var ticks = 0
     private var lastCPU: (busy: UInt64, total: UInt64)?
     private var clipboardCount = -1
+    private var lastNetwork: (bytes: UInt64, at: Date)?
 
     func setVisible(_ isVisible: Bool) {
         visibleCount = max(0, visibleCount + (isVisible ? 1 : -1))
@@ -92,23 +124,46 @@ final class WidgetData: ObservableObject {
             t.tolerance = 1
             RunLoop.main.add(t, forMode: .common)
             timer = t
+            PowerWatch.shared.onChange = { [weak self] in self?.battery = Battery.read() }
+            PowerWatch.shared.setVisible(true)
         } else if visibleCount == 0 {
             timer?.invalidate()
             timer = nil
+            PowerWatch.shared.setVisible(false)
             lastCPU = nil
+            lastNetwork = nil
         }
     }
 
     private func refresh() {
         readCPU()
         readMemory()
+        readNetwork()
         if ticks % 15 == 0 { battery = Battery.read() }
+        if ticks % 5 == 0, wants(.focus) { let f = Focus.isOn(); if f != focusOn { focusOn = f } }
+        if ticks % 30 == 0, wants(.headphones) {
+            Headphones.read { [weak self] v in if v != self?.headphones { self?.headphones = v } }
+        }
+        if ticks % 30 == 0 {
+            let v = try? URL(fileURLWithPath: "/").resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey])
+            diskFree = v?.volumeAvailableCapacityForImportantUsage
+        }
         let pb = NSPasteboard.general
         if pb.changeCount != clipboardCount {
             clipboardCount = pb.changeCount
             clipboard = pb.string(forType: .string)?.trimmingCharacters(in: .whitespacesAndNewlines)
         }
         ticks += 1
+    }
+
+    /// the slower reads run only for widgets that are on the bar or in the open layout
+    private var wanted: [WidgetKind: Int] = [:]
+    private func wants(_ k: WidgetKind) -> Bool { wanted[k, default: 0] > 0 }
+
+    func setVisible(_ isVisible: Bool, kind: WidgetKind) {
+        wanted[kind, default: 0] = max(0, wanted[kind, default: 0] + (isVisible ? 1 : -1))
+        if isVisible { ticks = 0 }
+        setVisible(isVisible)
     }
 
     private func readCPU() {
@@ -127,6 +182,30 @@ final class WidgetData: ObservableObject {
         lastCPU = (busy, total)
     }
 
+    /// bytes received on Wi-Fi and Ethernet since the last read
+    private func readNetwork() {
+        var list: UnsafeMutablePointer<ifaddrs>?
+        guard getifaddrs(&list) == 0 else { return }
+        defer { freeifaddrs(list) }
+        var bytes: UInt64 = 0
+        var p = list
+        while let i = p {
+            let a = i.pointee
+            if let addr = a.ifa_addr, addr.pointee.sa_family == UInt8(AF_LINK), let d = a.ifa_data, String(cString: a.ifa_name).hasPrefix("en") {
+                bytes += UInt64(d.assumingMemoryBound(to: if_data.self).pointee.ifi_ibytes)
+            }
+            p = a.ifa_next
+        }
+        let now = Date()
+        // the counters are 32-bit and wrap; skip that read
+        if let last = lastNetwork, bytes >= last.bytes, now > last.at {
+            let perSecond = Double(bytes - last.bytes) / now.timeIntervalSince(last.at)
+            let s = perSecond >= 1_000_000 ? String(format: "%.1f MB/s", perSecond / 1_000_000) : "\(Int(perSecond / 1000)) KB/s"
+            if s != download { download = s }
+        }
+        lastNetwork = (bytes, now)
+    }
+
     private func readMemory() {
         var vm = vm_statistics64()
         var count = mach_msg_type_number_t(MemoryLayout<vm_statistics64>.stride / MemoryLayout<integer_t>.stride)
@@ -140,6 +219,56 @@ final class WidgetData: ObservableObject {
     }
 }
 
+enum Focus {
+    /// macOS keeps the active Focus in this file; apps without Full Disk Access can't read it
+    static func isOn() -> Bool? {
+        let u = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/DoNotDisturb/DB/Assertions.json")
+        guard let data = try? Data(contentsOf: u),
+              let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let list = root["data"] as? [[String: Any]] else { return nil }
+        return list.contains { !(($0["storeAssertionRecords"] as? [Any]) ?? []).isEmpty }
+    }
+}
+
+enum Headphones {
+    /// asks system_profiler, which needs no Bluetooth permission; answers on the main queue
+    static func read(_ done: @escaping (Int?) -> Void) {
+        DispatchQueue.global(qos: .utility).async {
+            let p = Process()
+            p.executableURL = URL(fileURLWithPath: "/usr/sbin/system_profiler")
+            p.arguments = ["SPBluetoothDataType", "-json"]
+            let out = Pipe()
+            p.standardOutput = out
+            p.standardError = FileHandle.nullDevice
+            var level: Int?
+            if (try? p.run()) != nil {
+                let data = out.fileHandleForReading.readDataToEndOfFile()
+                p.waitUntilExit()
+                level = lowest(data)
+            }
+            DispatchQueue.main.async { done(level) }
+        }
+    }
+
+    static func lowest(_ data: Data) -> Int? {
+        guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let bt = (root["SPBluetoothDataType"] as? [[String: Any]])?.first,
+              let connected = bt["device_connected"] as? [[String: Any]] else { return nil }
+        var levels: [Int] = []
+        for entry in connected {
+            for case let d as [String: Any] in entry.values {
+                let type = d["device_minorType"] as? String ?? ""
+                guard type == "Headphones" || type == "Headset" else { continue }
+                // the case is left out: it reports a level only while the lid is open
+                for k in ["device_batteryLevelLeft", "device_batteryLevelRight", "device_batteryLevelMain"] {
+                    if let v = d[k] as? String, let n = Int(v.filter(\.isNumber)) { levels.append(n) }
+                }
+            }
+        }
+        return levels.min()
+    }
+}
+
 /// Which widgets sit next to the Control Strip, and the world clock's city.
 final class WidgetSettings: ObservableObject {
     static let shared = WidgetSettings()
@@ -148,6 +277,15 @@ final class WidgetSettings: ObservableObject {
     @Published var strip = Defaults.stringArray("barWidgets") ?? [] { didSet { Defaults.set("barWidgets", strip) } }
     @Published var worldClockZone = Defaults.string("worldClockZone").nilIfEmpty ?? "Europe/London" {
         didSet { Defaults.set("worldClockZone", worldClockZone) }
+    }
+
+    @Published var timerMinutes = UserDefaults.standard.object(forKey: "timerMinutes") as? Int ?? 25 {
+        didSet { Defaults.set("timerMinutes", timerMinutes) }
+    }
+
+    /// where the widgets sit in the panel on Apple's Touch Bar: left, center or right
+    @Published var panelAlignment = Defaults.string("panelAlignment").nilIfEmpty ?? "left" {
+        didSet { Defaults.set("panelAlignment", panelAlignment) }
     }
 
     func toggle(_ k: String) {
@@ -173,6 +311,27 @@ private extension String {
     var nilIfEmpty: String? { isEmpty ? nil : self }
 }
 
+/// The timer widget's countdown. Nothing ticks here: the widget redraws itself once a second while it runs.
+final class Countdown: ObservableObject {
+    static let shared = Countdown()
+    @Published private(set) var end: Date?
+    private var alarm: Timer?
+
+    func toggle() {
+        alarm?.invalidate()
+        alarm = nil
+        if end != nil { end = nil; return }
+        let length = TimeInterval(WidgetSettings.shared.timerMinutes * 60)
+        end = Date().addingTimeInterval(length)
+        let t = Timer(timeInterval: length, repeats: false) { [weak self] _ in
+            self?.end = nil
+            NSSound(named: "Glass")?.play()
+        }
+        RunLoop.main.add(t, forMode: .common)
+        alarm = t
+    }
+}
+
 /// The widgets chosen in the Hub, left of the Control Strip.
 struct WidgetStrip: View {
     @ObservedObject var d: AppState
@@ -188,6 +347,63 @@ struct WidgetStrip: View {
     }
 }
 
+/// The Control Strip gives an app one button-wide slot. It shows the first widget; a tap opens them all over the app area.
+struct SystemBarWidgets: View {
+    @ObservedObject var d: AppState
+    @ObservedObject private var s = WidgetSettings.shared
+    @StateObject private var slot = Slot()
+
+    final class Slot: ObservableObject {
+        @Published var width: CGFloat = 0
+    }
+
+    static let slotWidth: CGFloat = 56
+
+    var body: some View {
+        if let id = s.strip.first {
+            AnyWidgetView(d: d, id: id)
+                .fixedSize()
+                .background(GeometryReader { g in
+                    Color.clear.onAppear { slot.width = g.size.width }.onChange(of: g.size.width) { _, w in slot.width = w }
+                })
+                .scaleEffect(slot.width > Self.slotWidth ? Self.slotWidth / slot.width : 1)
+                .frame(width: Self.slotWidth, height: Metrics.barHeight)
+                .id(id)
+                .overlay { Color.clear.contentShape(Rectangle()).onTapGesture { d.toggleWidgetPanel() } }
+                .environment(\.theme, bare)
+                .font(bare.font(15))
+        }
+    }
+
+    /// the slot already has the system's key behind it, so the widget draws only its icon and value
+    private var bare: Theme {
+        var t = d.theme
+        t.skin?.button?.fill = "#00000000"
+        t.skin?.button?.fill2 = nil
+        t.skin?.pressed?.fill = "#FFFFFF26"
+        return t
+    }
+}
+
+/// Every widget over the app area of Apple's Touch Bar, drawn as keys like the ones around them.
+struct SystemWidgetPanel: View {
+    @ObservedObject var d: AppState
+    @ObservedObject private var s = WidgetSettings.shared
+
+    var body: some View {
+        HStack(spacing: Metrics.spacing) {
+            if s.panelAlignment != "left" { Spacer(minLength: 0) }
+            WidgetStrip(d: d)
+            if s.panelAlignment != "right" { Spacer(minLength: 0) }
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: Metrics.barHeight)
+        .environment(\.theme, d.theme)
+        .font(d.theme.font(14))
+        .textCase(d.theme.letterCase)
+    }
+}
+
 /// One widget. `option` is a city's time zone for the world clock.
 struct WidgetView: View {
     @ObservedObject var d: AppState
@@ -195,6 +411,7 @@ struct WidgetView: View {
     var option: String? = nil
     @ObservedObject private var data = WidgetData.shared
     @ObservedObject private var settings = WidgetSettings.shared
+    @ObservedObject private var countdown = Countdown.shared
     @Environment(\.theme) private var theme
 
     var body: some View {
@@ -204,6 +421,30 @@ struct WidgetView: View {
                 TimelineView(.everyMinute) { t in
                     capsule(value: t.date.formatted(.dateTime.hour().minute()), role: nil, action: SystemControl.openNotificationCenter)
                 }
+            case .date:
+                TimelineView(.everyMinute) { t in
+                    capsule(value: t.date.formatted(.dateTime.day().month(.abbreviated).weekday(.abbreviated)), role: nil) {
+                        if let u = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.iCal") {
+                            NSWorkspace.shared.openApplication(at: u, configuration: .init())
+                        }
+                    }
+                }
+            case .disk:
+                if let free = data.diskFree {
+                    capsule(value: "\(free / 1_000_000_000) GB", role: free < 10_000_000_000 ? .warning : nil,
+                            action: { open("x-apple.systempreferences:com.apple.settings.Storage") })
+                }
+            case .network:
+                capsule(value: data.download, role: nil) {}
+            case .timer:
+                if let end = countdown.end {
+                    TimelineView(.periodic(from: .now, by: 1)) { t in
+                        let left = max(0, Int(end.timeIntervalSince(t.date).rounded()))
+                        capsule(value: String(format: "%d:%02d", left / 60, left % 60), role: .active, action: countdown.toggle)
+                    }
+                } else {
+                    capsule(value: "\(settings.timerMinutes):00", role: nil, action: countdown.toggle)
+                }
             case .worldClock:
                 let zone = option ?? settings.worldClockZone
                 TimelineView(.everyMinute) { t in
@@ -212,8 +453,20 @@ struct WidgetView: View {
             case .battery:
                 if let b = data.battery {
                     capsule(value: "\(b.percent)%", role: b.isCharging ? .success : b.percent <= 20 ? .warning : nil, symbol: b.symbol,
+                            iconColor: Battery.isLowPower ? Battery.lowPowerColor : nil,
                             action: { open("x-apple.systempreferences:com.apple.Battery-Settings.extension") })
                 }
+            case .headphones:
+                if let level = data.headphones {
+                    capsule(value: "\(level)%", role: level <= 20 ? .warning : nil,
+                            action: { open("x-apple.systempreferences:com.apple.BluetoothSettings") })
+                }
+            case .focus:
+                capsule(value: data.focusOn == true ? L("On") : data.focusOn == false ? L("Off") : "–", role: data.focusOn == true ? .active : nil,
+                        action: {
+                            open(data.focusOn == nil ? "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles"
+                                                     : "x-apple.systempreferences:com.apple.Focus-Settings.extension")
+                        })
             case .cpu:
                 capsule(value: "\(Int((data.cpu * 100).rounded()))%", role: data.cpu > 0.8 ? .warning : nil, action: activityMonitor)
             case .memory:
@@ -229,11 +482,11 @@ struct WidgetView: View {
                 DockRow(d: d)
             }
         }
-        .onAppear { if kind.readsData { data.setVisible(true) } }
-        .onDisappear { if kind.readsData { data.setVisible(false) } }
+        .onAppear { if kind.readsData { data.setVisible(true, kind: kind) } }
+        .onDisappear { if kind.readsData { data.setVisible(false, kind: kind) } }
     }
 
-    private func capsule(value: String, role: Role?, symbol: String? = nil, showsIcon: Bool = true, action: @escaping () -> Void) -> some View {
+    private func capsule(value: String, role: Role?, symbol: String? = nil, iconColor: Color? = nil, showsIcon: Bool = true, action: @escaping () -> Void) -> some View {
         let look = theme.widget?.looks[kind.rawValue]
         let isASCII = theme.isSkin && theme.layer(nil).border == "ascii"
         return GlassButton(width: nil, highlight: Role.named(look?.role) ?? role, action: action) {
@@ -241,7 +494,8 @@ struct WidgetView: View {
                 if let label = look?.label ?? (isASCII ? kind.shortName : nil) {
                     BarText(verbatim: label)
                 } else if showsIcon {
-                    Icon(look?.icon ?? symbol ?? kind.symbol)
+                    let icon = Icon(look?.icon ?? symbol ?? kind.symbol)
+                    if let iconColor { icon.foregroundStyle(iconColor) } else { icon }
                 }
                 BarText(verbatim: value, tabular: true)
             }
@@ -264,7 +518,7 @@ struct WidgetView: View {
 }
 
 private extension WidgetKind {
-    var readsData: Bool { [.battery, .cpu, .memory, .clipboard].contains(self) }
+    var readsData: Bool { [.battery, .headphones, .focus, .cpu, .memory, .disk, .network, .clipboard].contains(self) }
 }
 
 extension Role {
@@ -297,6 +551,18 @@ struct WidgetsPage: View {
                 Text(L("Widgets show a value and leave the look to your theme. Pick the ones you want left of the Control Strip, or add them to a layout."))
                     .foregroundStyle(.secondary)
                 if !s.strip.isEmpty { onTheBar }
+                if !s.strip.isEmpty && m.d.theme.id == "original" {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Picker(L("On Apple's Touch Bar"), selection: $s.panelAlignment) {
+                            Text(L("Left")).tag("left")
+                            Text(L("Center")).tag("center")
+                            Text(L("Right")).tag("right")
+                        }
+                        .pickerStyle(.segmented).frame(maxWidth: 420)
+                        Text(L("With the Original theme the first widget sits in the Control Strip. Tap it to see them all, in this order, over the app's controls; tap again to go back."))
+                            .font(.callout).foregroundStyle(.secondary)
+                    }
+                }
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: 14, alignment: .top)], spacing: 14) {
                     ForEach(WidgetKind.allCases) { card($0) }
                 }
@@ -343,6 +609,11 @@ struct WidgetsPage: View {
                     ForEach(WidgetSettings.zones, id: \.self) { Text(WidgetSettings.city($0)).tag($0) }
                 }
             }
+            if k == .timer {
+                Picker(L("Minutes"), selection: $s.timerMinutes) {
+                    ForEach([1, 5, 10, 15, 20, 25, 30, 45, 60], id: \.self) { Text(verbatim: "\($0)").tag($0) }
+                }
+            }
             Text(verbatim: "{ \"type\": \"widget\", \"widget\": \"\(k.rawValue)\" }")
                 .font(.caption.monospaced()).foregroundStyle(.secondary).textSelection(.enabled)
         }
@@ -355,6 +626,10 @@ struct WidgetsPage: View {
         return HStack {
             if k == .dock {
                 Text(L("Shown as its own bar: Touch Bar Shows → Dock")).font(.caption).foregroundStyle(.white.opacity(0.6))
+            } else if k == .clipboard && (NSPasteboard.general.string(forType: .string) ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Text(L("Appears after you copy text")).font(.caption).foregroundStyle(.white.opacity(0.6))
+            } else if k == .headphones && WidgetData.shared.headphones == nil {
+                Text(L("Appears while headphones are connected")).font(.caption).foregroundStyle(.white.opacity(0.6))
             } else if k == .nowPlaying && m.d.nowPlaying == nil {
                 Text(L("Appears while something plays")).font(.caption).foregroundStyle(.white.opacity(0.6))
             } else {
