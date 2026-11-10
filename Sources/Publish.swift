@@ -258,6 +258,22 @@ struct PublishView: View {
                         .foregroundStyle(c.ok ? Color.green : c.isWarning ? Color.orange : Color.red)
                 }
             }
+            Section(L("In the Package")) {
+                ForEach(m.s.files.keys.sorted(), id: \.self) { f in
+                    HStack {
+                        Text(verbatim: f).font(.callout.monospaced())
+                        Spacer()
+                        Text(ByteCountFormatter.string(fromByteCount: Int64(m.s.files[f]?.count ?? 0), countStyle: .file)).foregroundStyle(.secondary)
+                        Button { m.s.files[f] = nil } label: { Image(systemName: "minus.circle") }
+                            .buttonStyle(.borderless).help(L("Leave Out"))
+                            .opacity(f == m.s.kind.main ? 0 : 1).disabled(f == m.s.kind.main)
+                    }
+                }
+                if m.s.kind == .widgets, let w = try? JSONDecoder().decode(ScriptWidgetInfo.self, from: m.s.files["widget.json"] ?? Data()) {
+                    Text(w.permissionText).font(.caption).foregroundStyle(.secondary)
+                }
+                Text(L("Everything listed here becomes public.")).font(.caption).foregroundStyle(.secondary)
+            }
             Section(L("Publish")) {
                 step(1, L("Save the package"), done: m.written != nil) {
                     Button(L("Save Package…"), action: m.writePackage).disabled(!m.s.canPublish)

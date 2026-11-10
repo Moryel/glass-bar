@@ -55,7 +55,7 @@ final class AppState: ObservableObject {
     var buttonFrames: [Panel: CGRect] = [:]
 
     // MARK: settings
-    @Published var theme = ThemeStore.shared.theme(id: Defaults.string("theme")) ?? .classic { didSet { Defaults.set("theme", theme.id); Theme.current = theme } }
+    @Published var theme = ThemeStore.shared.theme(id: Defaults.string("theme")) ?? .classic { didSet { if !isPreview { Defaults.set("theme", theme.id); Theme.current = theme } } }
     /// Behind the glass; starts off if the old "Ambient light" setting was off
     @Published var colorTemperature = ColorTemperature(rawValue: Defaults.string("colorTemperature")) ?? .off {
         didSet { Defaults.set("colorTemperature", colorTemperature.rawValue) }
@@ -85,6 +85,8 @@ final class AppState: ObservableObject {
     let width = Hardware.width
     /// Shows the front app's own Touch Bar controls (GlassBar minimizes).
     var showAppOwnControls: () -> Void = {}
+    /// opens or closes the widgets over the app area of Apple's Touch Bar
+    var toggleWidgetPanel: () -> Void = {}
     /// Spotify player with album art (when off, a plain track bar like in Music).
     @Published var showsSpotifyPlayer = Defaults.bool("showsSpotifyPlayer", true) { didSet { Defaults.set("showsSpotifyPlayer", showsSpotifyPlayer) } }
     @Published var showsArtwork = Defaults.bool("showsArtwork", true) { didSet { Defaults.set("showsArtwork", showsArtwork) } }
@@ -266,6 +268,12 @@ final class AppState: ObservableObject {
         isNightShiftOn = NightShift.isOn
         inputSourceName = InputSource.shortName
         spaces = Spaces.state()
+    }
+
+    func refreshVolume() {
+        let v = Volume.level, m = Volume.isMuted
+        if abs(v - volume) > 0.001 { volume = v }
+        if m != isMuted { isMuted = m }
     }
 
     private func refreshSoon() {

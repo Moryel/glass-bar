@@ -22,6 +22,7 @@
     "pressed": { "fill": "#5C5C5F" },
     "group": { "fill": "#363638", "border": "none", "radius": 6 },
     "text": { "font": "system", "weight": "regular" },
-    "press": "none"
+    "press": "none",
+    "icons": { "siri": "orb" }
   }
 }

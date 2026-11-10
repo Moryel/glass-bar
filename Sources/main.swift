@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import ServiceManagement
 import SwiftUI
 
@@ -27,13 +28,13 @@ enum DFR {
         return nil
     }
 
-    /// placement 1: covers the whole bar (including the Control Strip).
-    static func present(_ tb: NSTouchBar, trayIdentifier: String) {
+    /// placement 1 covers the whole bar; 0 leaves the Control Strip to macOS
+    static func present(_ tb: NSTouchBar, trayIdentifier: String, placement: Int64 = 1) {
         guard let (sel, imp) = classMethod(NSTouchBar.self, ["presentSystemModalTouchBar:placement:systemTrayItemIdentifier:",
                                                               "presentSystemModalFunctionBar:placement:systemTrayItemIdentifier:"])
         else { return }
         typealias F = @convention(c) (AnyClass, Selector, NSTouchBar, Int64, NSString) -> Void
-        unsafeBitCast(imp, to: F.self)(NSTouchBar.self, sel, tb, 1, trayIdentifier as NSString)
+        unsafeBitCast(imp, to: F.self)(NSTouchBar.self, sel, tb, placement, trayIdentifier as NSString)
     }
 
     static func minimize(_ tb: NSTouchBar) { callClassMethod(NSTouchBar.self, ["minimizeSystemModalTouchBar:", "minimizeSystemModalFunctionBar:"], tb) }
@@ -60,8 +61,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
         o.view = b
         return o
     }()
+    private lazy var trayButton = trayItem.view
     var statusItem: NSStatusItem!
     var isMinimized = false
+    private var isPresented = false
+    let panelTouchBar = NSTouchBar()
+    let panelItemIdentifier = NSTouchBarItem.Identifier("com.yukselozge.glassbar.widgets")
+    // the system close box can dismiss the panel behind our back
+    private var isPanelOpen: Bool { panelTouchBar.isVisible }
+    private var watchers: [AnyCancellable] = []
+    private var panelWatch: NSKeyValueObservation?
+    /// Original hands the bar back to macOS; the widgets move into the Control Strip
+    var usesSystemBar: Bool { state.theme.id == "original" }
     var observers: [Any] = []
 
     func applicationDidFinishLaunching(_ n: Notification) {
@@ -69,6 +80,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
         state.observeNowPlaying()
         if !SystemControl.hasAccessibility { SystemControl.requestAccessibility() }
         state.refresh()
+        Volume.observe { [weak self] in self?.state.refreshVolume() }
         state.frontAppChanged(NSWorkspace.shared.frontmostApplication)
         state.showAppOwnControls = { [weak self] in self?.minimize() }
         AudioCapture.dynamicRange = state.sensitivity.dynamicRange
@@ -81,11 +93,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
         DFR.setControlStripPresence(trayIdentifier.rawValue, true)
         DFR.setShowsCloseBox(false)
         // the normal app dismisses its bar while quitting; present ours after that
-        if Edition.isBeta && Edition.quitReleaseApp() {
+        panelTouchBar.delegate = self
+        // closing the panel takes our Control Strip item with it; put it back
+        panelWatch = panelTouchBar.observe(\.isVisible, options: [.new]) { [weak self] _, change in
+            guard change.newValue == false else { return }
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.setTrayView(self.trayItem.view)
+                self.updateTray()
+            }
+        }
+        panelTouchBar.defaultItemIdentifiers = [panelItemIdentifier]
+        state.toggleWidgetPanel = { [weak self] in self?.toggleWidgetPanel() }
+        _ = trayButton
+        updateTray()
+        if usesSystemBar {
+            isMinimized = true
+        } else if Edition.isBeta && Edition.quitReleaseApp() {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in if self?.isMinimized == false { self?.show() } }
         } else {
             show()
         }
+        state.$theme.map(\.id).removeDuplicates().dropFirst().receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.updateTray(); self?.applyOwnBarApps() }.store(in: &watchers)
+        WidgetSettings.shared.$strip.dropFirst().receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.updateTray() }.store(in: &watchers)
 
         setUpStatusMenu()
         if !Edition.isBeta { UpdateChecker.shared.start() }
@@ -157,6 +189,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
         case "settings": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { Hub.open(self.state, .general) }
         case "stripSettings": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { Hub.open(self.state, .controlStrip) }
         case "studio": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { Hub.open(self.state, .studio) }
+        case "widgetPanel": DispatchQueue.main.asyncAfter(deadline: .now() + 2) { self.toggleWidgetPanel() }
         case "widgets": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { Hub.open(self.state, .widgets) }
         case "layoutEditor": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { Hub.open(self.state, .layoutEditor) }
         case "publish": DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
@@ -217,12 +250,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
     }
 
     func applicationWillTerminate(_ n: Notification) {
+        if isPanelOpen { DFR.dismiss(panelTouchBar) }
         DFR.dismiss(modalTouchBar)
         DFR.setControlStripPresence(trayIdentifier.rawValue, false)
         DFR.removeSystemTrayItem(trayItem)
     }
 
     func touchBar(_ tb: NSTouchBar, makeItemForIdentifier identifier: NSTouchBarItem.Identifier) -> NSTouchBarItem? {
+        if identifier == panelItemIdentifier {
+            let o = NSCustomTouchBarItem(identifier: identifier)
+            let v = NSHostingView(rootView: SystemWidgetPanel(d: state))
+            v.translatesAutoresizingMaskIntoConstraints = false
+            // wider than the app area can be, so the panel always fills it
+            let w = v.widthAnchor.constraint(equalToConstant: state.width)
+            w.priority = .defaultLow
+            NSLayoutConstraint.activate([w, v.heightAnchor.constraint(equalToConstant: Metrics.barHeight)])
+            o.view = v
+            return o
+        }
         guard identifier == mainItemIdentifier else { return nil }
         let o = NSCustomTouchBarItem(identifier: identifier)
         let hostingView = NSHostingView(rootView: TouchBarView(d: state))
@@ -235,19 +280,58 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
     }
 
     @objc func show() {
+        if usesSystemBar { isMinimized = true; return }
         isMinimized = false
+        isPresented = true
         state.refresh()
         DFR.present(modalTouchBar, trayIdentifier: trayIdentifier.rawValue)
     }
 
     @objc func minimize() {
         isMinimized = true
-        DFR.minimize(modalTouchBar)
+        if isPresented { DFR.minimize(modalTouchBar) }
+    }
+
+    /// The widgets take the app area while Apple's Control Strip stays; the same tap gives the app its controls back.
+    func toggleWidgetPanel() {
+        if isPanelOpen {
+            DFR.dismiss(panelTouchBar)
+        } else if usesSystemBar, !WidgetSettings.shared.strip.isEmpty {
+            DFR.present(panelTouchBar, trayIdentifier: trayIdentifier.rawValue, placement: 0)
+        }
+    }
+
+    /// the Control Strip keeps drawing the old view unless the item is added again
+    private func setTrayView(_ v: NSView) {
+        DFR.removeSystemTrayItem(trayItem)
+        trayItem.view = v
+        DFR.addSystemTrayItem(trayItem)
+    }
+
+    /// The Control Strip item: the button that brings GlassBar back, or the widgets while macOS draws the bar.
+    func updateTray() {
+        let hasWidgets = !WidgetSettings.shared.strip.isEmpty
+        if usesSystemBar && hasWidgets {
+            if !(trayItem.view is NSHostingView<SystemBarWidgets>) {
+                let v = NSHostingView(rootView: SystemBarWidgets(d: state))
+                v.translatesAutoresizingMaskIntoConstraints = false
+                v.heightAnchor.constraint(equalToConstant: Metrics.barHeight).isActive = true
+                setTrayView(v)
+            }
+        } else if trayItem.view !== trayButton {
+            setTrayView(trayButton)
+        }
+        if isPanelOpen && !(usesSystemBar && hasWidgets) { toggleWidgetPanel() }
+        DFR.setControlStripPresence(trayIdentifier.rawValue, !usesSystemBar || hasWidgets)
     }
 
     /// In apps on the "own Touch Bar" list GlassBar steps aside; it comes back when another app is in front.
     func applyOwnBarApps() {
-        if state.ownBarApps.contains(state.frontBundleID) {
+        if usesSystemBar {
+            // dismissed, not minimized: the widget panel is presented over the same area
+            if isPresented { DFR.dismiss(modalTouchBar); isPresented = false }
+            isMinimized = true
+        } else if state.ownBarApps.contains(state.frontBundleID) {
             if !isMinimized { minimize() }
         } else if isMinimized {
             show()

@@ -4,7 +4,7 @@
 #        ./build.sh beta [--ac]  → "GlassBar Beta" with its own bundle id, settings and themes, next to the normal app
 set -e
 cd "${0:A:h}"
-VERSION=2.0.2
+VERSION=2.1
 NAME=GlassBar EXE=GlassBar BUNDLE_ID=com.yukselozge.GlassBar ICON=GlassBar FLAGS=()
 if [[ "$1" == "beta" ]]; then
   shift

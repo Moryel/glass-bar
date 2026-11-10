@@ -102,6 +102,32 @@ final class HubModel: ObservableObject {
     @Published var busy: Set<String> = []
     @Published var message = ""
     @Published var comingSoon: ComingSoon?
+    /// the store theme whose page is open
+    @Published var openItem: StoreItem?
+    @Published var itemTheme: Theme? { didSet { if let t = itemTheme { itemState.theme = t } } }
+    @Published var itemScreen = StudioScreen.finder {
+        didSet { itemState.previewBundleID = itemScreen.bundleID; itemState.objectWillChange.send() }
+    }
+    lazy var itemState: AppState = {
+        let a = AppState()
+        a.isPreview = true
+        a.previewBundleID = itemScreen.bundleID
+        return a
+    }()
+
+    /// The page draws the theme itself: the installed copy, or theme.json straight from the store folder
+    /// (then without the package's fonts and images).
+    func open(_ item: StoreItem) {
+        guard kind == .themes else { return }
+        openItem = item
+        itemTheme = installedTheme(item)
+        guard itemTheme == nil else { return }
+        let url = HubModel.base(.themes).appendingPathComponent(item.id).appendingPathComponent("theme.json")
+        URLSession.shared.dataTask(with: url) { data, _, _ in
+            guard let data, data.count < 1_000_000, let t = try? JSONDecoder().decode(Theme.self, from: data) else { return }
+            DispatchQueue.main.async { if self.openItem?.id == item.id { self.itemTheme = t } }
+        }.resume()
+    }
 
     enum StoreState: Equatable { case idle, loading, loaded, failed }
 
@@ -242,7 +268,11 @@ final class HubModel: ObservableObject {
             }.resume()
             if !HubModel.isLocalStore { loadInstallCounts(k) }
         }
-        group.notify(queue: .main) { self.storeState = failed ? .failed : .loaded }
+        group.notify(queue: .main) {
+            self.storeState = failed ? .failed : .loaded
+            // screenshot testing: -hubItem <theme id>
+            if let id = UserDefaults.standard.string(forKey: "hubItem"), let i = self.catalog[.themes]?.first(where: { $0.id == id }) { self.open(i) }
+        }
     }
 
     /// GitHub counts downloads of release files, so every theme and layout is also a zip in the "themes" or "layouts"
@@ -279,10 +309,10 @@ final class HubModel: ObservableObject {
         }.resume()
     }
 
-    func installedTheme(_ item: StoreItem) -> Theme? { ThemeStore.shared.userThemes.first { $0.id == item.id } }
+    func installedTheme(_ item: StoreItem) -> Theme? { ThemeStore.shared.all.first { $0.id == item.id } }
 
     func installedVersion(_ item: StoreItem) -> Int? {
-        kind == .themes ? installedTheme(item)?.version : LayoutStore.shared.all.first { $0.id == item.id }?.version
+        kind == .themes ? installedTheme(item).map { $0.isBuiltIn ? max($0.version, item.version) : $0.version } : LayoutStore.shared.all.first { $0.id == item.id }?.version
     }
 
     /// Downloads the item (its release zip, or its files one by one) and installs it; a theme is also applied.
@@ -406,12 +436,22 @@ struct HubView: View {
                 case .studio: ThemeStudioView(m: m.studio)
                 case .widgets: WidgetsPage(m: m)
                 case .layoutEditor: LayoutEditorView(m: m.layoutEditor, d: m.d)
-                default: StorePage(m: m)
+                default: if let i = m.openItem, m.kind == .themes { ThemePage(m: m, item: i) } else { StorePage(m: m) }
                 }
             }
+            .onChange(of: m.page) { _, _ in m.openItem = nil }
+            .onChange(of: m.kind) { _, _ in m.openItem = nil }
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    Picker("", selection: Binding(get: { m.page == .widgets || m.page == .dock ? 1 : m.kind == .themes ? 0 : 2 }, set: { v in
+                    Picker("", selection: Binding(get: {
+                        switch m.page {
+                        case .widgets, .dock: 1
+                        case .studio: 0
+                        case .layoutEditor: 2
+                        case .general, .controlStrip: -1
+                        default: m.kind == .themes ? 0 : 2
+                        }
+                    }, set: { v in
                         switch v {
                         case 0: m.kind = .themes
                         case 2: m.kind = .layouts
@@ -429,7 +469,7 @@ struct HubView: View {
                 }
             }
             .searchable(text: $m.search, prompt: m.kind == .themes ? L("Search Themes") : L("Search Layouts"))
-            .onChange(of: m.search) { s in if !s.isEmpty && (m.page == .featured || m.page == .installed || m.page.isSettings) { m.page = .name } }
+            .onChange(of: m.search) { _, s in if !s.isEmpty && (m.page == .featured || m.page == .installed || m.page.isSettings) { m.page = .name } }
         }
         .alert(item: $m.comingSoon) { c in
             Alert(title: Text(String(format: L("%@ is in development"), c.title)),
@@ -472,6 +512,7 @@ private struct StorePage: View {
                         ForEach(m.categories, id: \.self) { c in
                             Shelf(m: m, title: L(c), items: Array(m.items(.category(c)).prefix(4))) { m.page = .category(c) }
                         }
+                        if m.kind == .themes { BuiltInThemes(m: m) }
                     } else {
                         Text(title).font(.largeTitle.bold())
                         let list = m.items(m.page)
@@ -520,6 +561,8 @@ private struct Hero: View {
             BarCrop(image: m.preview(item), fraction: m.kind == .themes ? 0.32 : 0.36, fromLeft: m.kind == .layouts)
                 .frame(maxWidth: 560)
                 .shadow(color: .black.opacity(0.6), radius: 14, y: 8)
+                .contentShape(Rectangle())
+                .onTapGesture { m.open(item) }
         }
         .padding(32)
         .frame(minHeight: 200)
@@ -559,6 +602,7 @@ private struct ItemGrid: View {
             ForEach(items) { item in
                 VStack(alignment: .leading, spacing: 10) {
                     Stage { BarCrop(image: m.preview(item), fraction: m.kind == .themes ? 0.22 : 0.27, fromLeft: m.kind == .layouts) }
+                        .onTapGesture { m.open(item) }
                     HStack(alignment: .center, spacing: 8) {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(item.name).font(.headline).lineLimit(1)
@@ -570,6 +614,57 @@ private struct ItemGrid: View {
                 }
                 .help(item.description)
             }
+        }
+    }
+}
+
+/// A store theme on its own page: what it is, and how GlassBar's bars look with it.
+private struct ThemePage: View {
+    @ObservedObject var m: HubModel
+    let item: StoreItem
+    private static let screens: [StudioScreen] = [.finder, .safari, .mail, .music, .calculator, .expanded]
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                Button { m.openItem = nil } label: { Label(L("Themes"), systemImage: "chevron.left") }.buttonStyle(.link)
+                HStack(alignment: .top, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(item.name).font(.largeTitle.bold())
+                        Text(byline(item, m)).foregroundStyle(.secondary)
+                        if !item.description.isEmpty { Text(item.description).padding(.top, 4) }
+                    }
+                    Spacer()
+                    GetButton(m: m, item: item, prominent: false)
+                }
+                if let i = m.preview(item) {
+                    Image(nsImage: i).resizable().aspectRatio(contentMode: .fit).clipShape(RoundedRectangle(cornerRadius: 6))
+                }
+                Divider()
+                Text(L("In Your Apps")).font(.title2.bold())
+                if let t = m.itemTheme {
+                    Picker("", selection: $m.itemScreen) {
+                        ForEach(Self.screens) { Text($0 == .expanded ? L("Control Strip") : $0.name).tag($0) }
+                    }
+                    .pickerStyle(.segmented).labelsHidden().fixedSize()
+                    GeometryReader { g in
+                        let w = m.itemState.width, scale = min(1, g.size.width / w)
+                        BarPreview(theme: t, state: m.itemState, screen: m.itemScreen)
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                            .scaleEffect(scale, anchor: .topLeading)
+                            .frame(width: w * scale, height: Metrics.barHeight * scale, alignment: .topLeading)
+                            .allowsHitTesting(false)
+                    }
+                    .frame(height: Metrics.barHeight)
+                    if m.installedTheme(item) == nil {
+                        Text(L("Drawn from the theme's settings. Its own fonts and images show once you get it."))
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                } else {
+                    ProgressView().controlSize(.small)
+                }
+            }
+            .padding(24)
         }
     }
 }
@@ -648,36 +743,31 @@ private struct BarCrop: View {
     }
 }
 
-private struct InstalledPage: View {
+/// The themes that come with the app, with the way back to the default one.
+private struct BuiltInThemes: View {
     @ObservedObject var m: HubModel
     @EnvironmentObject var d: AppState
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack {
-                    Text(L("Installed")).font(.largeTitle.bold())
-                    Spacer()
-                    Button(m.kind == .themes ? L("Open Themes Folder") : L("Open Layouts Folder")) { m.openFolder() }
-                    Button(L("Reload")) { m.refreshLocal(); d.theme = ThemeStore.shared.theme(id: d.theme.id) ?? .classic }
-                }
-                Text(m.kind == .themes ? L("Write your own theme as JSON in the themes folder. The guide is in docs/THEMES.md on GitHub.")
-                                       : L("Write your own layout as JSON in the layouts folder. The guide is in docs/LAYOUTS.md on GitHub."))
-                    .foregroundStyle(.secondary)
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 190), spacing: 16)], alignment: .leading, spacing: 20) {
-                    if m.kind == .themes {
-                        ForEach(m.themes) { t in themeCard(t) }
-                    } else {
-                        ForEach(m.layouts) { l in layoutCard(l) }
-                    }
-                }
-                if m.kind == .layouts && m.layouts.isEmpty { Text(L("No layouts installed yet.")).foregroundStyle(.secondary) }
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(L("Built in")).font(.title2.bold())
+                Spacer()
+                Button(L("Back to Default")) { m.apply(.classic) }.disabled(d.theme.id == Theme.classic.id)
             }
-            .padding(24)
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 190), spacing: 16)], alignment: .leading, spacing: 20) {
+                ForEach(m.themes.filter(\.isBuiltIn)) { t in ThemeCard(m: m, t: t) }
+            }
         }
     }
+}
 
-    private func themeCard(_ t: Theme) -> some View {
+private struct ThemeCard: View {
+    @ObservedObject var m: HubModel
+    let t: Theme
+    @EnvironmentObject var d: AppState
+
+    var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Stage {
                 if let i = m.previews["local:themes:" + t.id] { BarCrop(image: i, fraction: 0.22) } else { Swatch(theme: t) }
@@ -701,6 +791,42 @@ private struct InstalledPage: View {
                         .menuStyle(.borderlessButton).fixedSize()
                 }
             }
+        }
+    }
+}
+
+private struct InstalledPage: View {
+    @ObservedObject var m: HubModel
+    @EnvironmentObject var d: AppState
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    Text(L("Installed")).font(.largeTitle.bold())
+                    Spacer()
+                    Button(m.kind == .themes ? L("Open Themes Folder") : L("Open Layouts Folder")) { m.openFolder() }
+                    Button(L("Reload")) { m.refreshLocal(); d.theme = ThemeStore.shared.theme(id: d.theme.id) ?? .classic }
+                }
+                Text(m.kind == .themes ? L("Write your own theme as JSON in the themes folder. The guide is in docs/THEMES.md on GitHub.")
+                                       : L("Write your own layout as JSON in the layouts folder. The guide is in docs/LAYOUTS.md on GitHub."))
+                    .foregroundStyle(.secondary)
+                if m.kind == .themes {
+                    let mine = m.themes.filter { !$0.isBuiltIn }
+                    if !mine.isEmpty {
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 190), spacing: 16)], alignment: .leading, spacing: 20) {
+                            ForEach(mine) { t in ThemeCard(m: m, t: t) }
+                        }
+                    }
+                    BuiltInThemes(m: m)
+                } else {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 190), spacing: 16)], alignment: .leading, spacing: 20) {
+                        ForEach(m.layouts) { l in layoutCard(l) }
+                    }
+                }
+                if m.kind == .layouts && m.layouts.isEmpty { Text(L("No layouts installed yet.")).foregroundStyle(.secondary) }
+            }
+            .padding(24)
         }
     }
 

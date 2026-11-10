@@ -106,41 +106,18 @@ enum StudioScreen: String, CaseIterable, Identifiable {
     static let system: [StudioScreen] = [.expanded, .fKeys, .spaces, .quickActions, .dock, .emoji, .widgets]
 }
 
-/// A full bar at its real width, scaled down to fit the window.
-struct StudioCanvas: View {
-    @ObservedObject var m: StudioModel
-    @StateObject private var hover = HoverState()
+/// One of GlassBar's own bars drawn with a theme, at the bar's real size. Theme Studio and the store's theme page share it.
+struct BarPreview: View {
+    let theme: Theme
+    let state: AppState
+    let screen: StudioScreen
 
     var body: some View {
-        let t = m.draft
-        let p = m.previewState
-        GeometryReader { g in
-            let scale = m.zoom > 0 ? m.zoom : min(1, g.size.width / p.width)
-            ScrollView(.horizontal, showsIndicators: m.zoom > 0) {
-            bar(t, p)
-                .frame(width: p.width, height: Metrics.barHeight)
-                .coordinateSpace(name: "studioCanvas")
-                .background { if let b = t.skin?.bar { SkinBarBackground(style: b, theme: t) } else { Color.black } }
-                .overlay { if let b = t.skin?.bar { SkinBarOverlay(style: b).allowsHitTesting(false) } }
-                .environment(\.theme, t)
-                .environment(\.studioInspecting, true)
-                .font(t.font(14))
-                .textCase(t.letterCase)
-                .overlayPreferenceValue(StudioHitsKey.self) { hits in catcher(hits) }
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-                .scaleEffect(scale, anchor: .topLeading)
-                .frame(width: p.width * scale, height: Metrics.barHeight * scale, alignment: .topLeading)
-            }
-            .scrollDisabled(m.zoom == 0)
-        }
-        .frame(height: Metrics.barHeight * (m.zoom > 0 ? m.zoom : 1) + (m.zoom > 0 ? 12 : 0))
-    }
-
-    @ViewBuilder private func bar(_ t: Theme, _ p: AppState) -> some View {
+        let t = theme, p = state
         HStack(spacing: Metrics.spacing) {
             if p.showsEsc { GlassButton(width: Metrics.escWidth, action: {}) { Text("esc").kerning(0.3) } }
             Group {
-                switch m.screen {
+                switch screen {
                 case .expanded: ExpandedControlStrip(d: p, isClosable: false)
                 case .fKeys: FunctionKeysRow(d: p)
                 case .spaces: WithControlStrip(d: p) { SpacesRow(d: p) }
@@ -160,6 +137,37 @@ struct StudioCanvas: View {
             .frame(maxWidth: .infinity)
         }
         .padding(.horizontal, 3)
+        .frame(width: p.width, height: Metrics.barHeight)
+        .background { if let b = t.skin?.bar { SkinBarBackground(style: b, theme: t) } else { Color.black } }
+        .overlay { if let b = t.skin?.bar { SkinBarOverlay(style: b).allowsHitTesting(false) } }
+        .environment(\.theme, t)
+        .font(t.font(14))
+        .textCase(t.letterCase)
+    }
+}
+
+/// A full bar at its real width, scaled down to fit the window.
+struct StudioCanvas: View {
+    @ObservedObject var m: StudioModel
+    @StateObject private var hover = HoverState()
+
+    var body: some View {
+        let t = m.draft
+        let p = m.previewState
+        GeometryReader { g in
+            let scale = m.zoom > 0 ? m.zoom : min(1, g.size.width / p.width)
+            ScrollView(.horizontal, showsIndicators: m.zoom > 0) {
+            BarPreview(theme: t, state: p, screen: m.screen)
+                .coordinateSpace(name: "studioCanvas")
+                .environment(\.studioInspecting, true)
+                .overlayPreferenceValue(StudioHitsKey.self) { hits in catcher(hits) }
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .scaleEffect(scale, anchor: .topLeading)
+                .frame(width: p.width * scale, height: Metrics.barHeight * scale, alignment: .topLeading)
+            }
+            .scrollDisabled(m.zoom == 0)
+        }
+        .frame(height: Metrics.barHeight * (m.zoom > 0 ? m.zoom : 1) + (m.zoom > 0 ? 12 : 0))
     }
 
     /// Catches clicks, hovers and drops: the smallest element under the pointer wins, the bar itself when there's none.

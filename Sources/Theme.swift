@@ -315,7 +315,7 @@ final class ThemeStore {
 
     func encode(_ t: Theme) throws -> Data {
         let e = JSONEncoder()
-        e.outputFormatting = [.prettyPrinted, .sortedKeys]
+        e.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
         return try e.encode(t)
     }
 
@@ -497,11 +497,13 @@ extension Skin {
 
 extension BarStyle {
     mutating func check(_ log: (String) -> Void) {
-        for (k, p) in [("fill", \BarStyle.fill), ("fill2", \.fill2), ("patternColor", \.patternColor)] {
+        for (k, p) in [("fill", \BarStyle.fill), ("fill2", \.fill2), ("fill3", \.fill3), ("patternColor", \.patternColor)] {
             if let s = self[keyPath: p], Color(hexString: s) == nil { log("skin.bar.\(k) \"\(s)\" is not a hex color, ignored"); self[keyPath: p] = nil }
         }
-        if let p = pattern, !["stars", "grid", "none"].contains(p) { log("skin.bar.pattern \"\(p)\" is unknown, ignored"); pattern = nil }
-        if let o = overlay, !["scanlines", "none"].contains(o) { log("skin.bar.overlay \"\(o)\" is unknown, ignored"); overlay = nil }
+        if let p = pattern, !["stars", "grid", "dots", "stripes", "none"].contains(p) { log("skin.bar.pattern \"\(p)\" is unknown, ignored"); pattern = nil }
+        if let o = overlay, !["scanlines", "vignette", "none"].contains(o) { log("skin.bar.overlay \"\(o)\" is unknown, ignored"); overlay = nil }
+        if let g = gradient, !["linear", "radial"].contains(g) { log("skin.bar.gradient \"\(g)\" is unknown, ignored"); gradient = nil }
+        if let m = imageMode, !["fill", "stretch", "tile"].contains(m) { log("skin.bar.imageMode \"\(m)\" is unknown, ignored"); imageMode = nil }
     }
 }
 

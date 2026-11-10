@@ -7,7 +7,7 @@ import UniformTypeIdentifiers
 
 final class StudioModel: ObservableObject {
     enum Part: String, CaseIterable {
-        case general, look, text, effects
+        case general, look, text, effects, code
 
         var name: String {
             switch self {
@@ -15,6 +15,7 @@ final class StudioModel: ObservableObject {
             case .look: L("Appearance")
             case .text: L("Text and Icons")
             case .effects: L("Sound and Effects")
+            case .code: L("Code")
             }
         }
     }
@@ -26,6 +27,7 @@ final class StudioModel: ObservableObject {
         didSet {
             guard draft != oldValue else { return }
             d.apply(draft)
+            previewState.theme = draft
             // slider drags and typing make one undo step
             if !isUndoing && (Date().timeIntervalSince(lastChange) > 0.7 || undoStack.isEmpty) {
                 undoStack.append(oldValue)
@@ -54,6 +56,7 @@ final class StudioModel: ObservableObject {
         let a = AppState()
         a.isPreview = true
         a.previewBundleID = screen.bundleID
+        a.theme = draft
         return a
     }()
     @Published var saved: Theme
@@ -72,12 +75,13 @@ final class StudioModel: ObservableObject {
         if let k = UserDefaults.standard.string(forKey: "studioPick") {
             pick(["bar": .bar, "button": .button, "group": .group, "slider": .slider][k] ?? .role(k))
         }
+        if let s = UserDefaults.standard.string(forKey: "studioStarter").flatMap(Starter.init(rawValue:)) { newTheme(starter: s) }
         // screenshot testing: -studioPart look
         if let p = UserDefaults.standard.string(forKey: "studioPart").flatMap(Part.init(rawValue:)), parts.contains(p) { part = p }
     }
 
     var isDirty: Bool { draft != saved }
-    var parts: [Part] { draft.isSkin ? Part.allCases : [.general, .look, .text] }
+    var parts: [Part] { draft.isSkin ? Part.allCases : [.general, .look, .text, .code] }
 
     /// Called when the Hub closes: unsaved changes don't stay on the bar.
     func close() {
@@ -95,6 +99,115 @@ final class StudioModel: ObservableObject {
         selected = nil
         message = ""
         if !parts.contains(part) { part = .general }
+    }
+
+    /// The draft as theme.json, for the Code tab.
+    var code: String { (try? ThemeStore.shared.encode(draft)).flatMap { String(data: $0, encoding: .utf8) } ?? "" }
+
+    /// What the text would be as a theme, and the first thing wrong with it. The id and the package stay the draft's.
+    func decoded(_ s: String) -> (theme: Theme?, problem: String) {
+        do {
+            var t = try JSONDecoder().decode(Theme.self, from: Data(s.utf8))
+            t.id = draft.id
+            t.baseURL = draft.baseURL
+            var problems: [String] = []
+            t.check { problems.append($0) }
+            return (t, problems.first ?? "")
+        } catch {
+            return (nil, error.short)
+        }
+    }
+
+    /// A skin's colors from four picks: the pressed, group and role colors follow.
+    func applyPalette(bar: Color? = nil, button: Color? = nil, text: Color? = nil, accent: Color? = nil) {
+        var t = draft
+        var s = t.skin ?? Skin()
+        let p = palette
+        let button = button ?? p.button, text = text ?? p.text, accent = accent ?? p.accent
+        if let bar { var b = s.bar ?? BarStyle(); b.fill = bar.hexString; s.bar = b }
+        var b = s.button ?? LayerPatch()
+        b.fill = button.hexString
+        b.text = text.hexString
+        if b.border != nil && b.border != "none" { b.borderColor = button.mixed(text, 0.25).hexString }
+        s.button = b
+        var pressed = s.pressed ?? LayerPatch()
+        pressed.fill = button.mixed(text, 0.22).hexString
+        s.pressed = pressed
+        if s.group != nil { s.group?.fill = button.hexString }
+        t.skin = s
+        let onAccent = accent.isLight ? "#000000" : "#FFFFFF"
+        t.roles["active", default: LayerPatch()].fill = button.mixed(text, 0.35).hexString
+        for k in ["primary", "accent"] {
+            t.roles[k, default: LayerPatch()].fill = accent.hexString
+            t.roles[k, default: LayerPatch()].text = onAccent
+        }
+        t.sliderColor = accent.hexString
+        draft = t
+    }
+
+    var palette: (bar: Color, button: Color, text: Color, accent: Color) {
+        let s = draft.skin
+        return (s?.bar?.fill.flatMap(Color.init(hexString:)) ?? .black,
+                s?.button?.fill.flatMap(Color.init(hexString:)) ?? Color(hex: 0x26262C),
+                s?.button?.text.flatMap(Color.init(hexString:)) ?? .white,
+                draft.roles["primary"]?.fill.flatMap(Color.init(hexString:)) ?? Color(hex: 0x0A84FF))
+    }
+
+    /// A new skin from a starting look, already complete: every part has a color.
+    func newTheme(starter: Starter) {
+        newTheme(skin: true)
+        var t = draft
+        t.name = starter.name
+        t.id = ThemeStore.newID(t.name)
+        t.skin = starter.skin
+        saved = t
+        isUndoing = true
+        draft = t
+        isUndoing = false
+        let c = starter.colors
+        applyPalette(bar: Color(hex: c.0), button: Color(hex: c.1), text: Color(hex: c.2), accent: Color(hex: c.3))
+        saved = draft
+        undoStack = []
+        part = .look
+    }
+
+    enum Starter: String, CaseIterable {
+        case dark, light, outline, pixel, terminal
+
+        var name: String {
+            switch self {
+            case .dark: L("Dark")
+            case .light: L("Light")
+            case .outline: L("Outline")
+            case .pixel: L("Pixel")
+            case .terminal: L("Terminal")
+            }
+        }
+
+        /// bar, button, text, accent
+        var colors: (UInt32, UInt32, UInt32, UInt32) {
+            switch self {
+            case .dark: (0x101014, 0x26262C, 0xF2F2F2, 0x0A84FF)
+            case .light: (0xECECEF, 0x2C2C2E, 0xFFFFFF, 0x007AFF)
+            case .outline: (0x0B0B12, 0x0B0B12, 0x7DF9FF, 0xFF3EA5)
+            case .pixel: (0x1B1B3A, 0xF4C430, 0x1B1B3A, 0xE84855)
+            case .terminal: (0x000000, 0x000000, 0x33FF66, 0x33FF66)
+            }
+        }
+
+        var skin: Skin {
+            switch self {
+            case .dark: Skin(bar: BarStyle(), button: LayerPatch(border: "none", radius: 7), pressed: LayerPatch(), text: TextStyle(font: "system"))
+            case .light: Skin(bar: BarStyle(), button: LayerPatch(border: "none", radius: 9, shadow: 1), pressed: LayerPatch(),
+                              text: TextStyle(font: "rounded"))
+            case .outline: Skin(bar: BarStyle(), button: LayerPatch(border: "solid", borderWidth: 1.5, radius: 10, glow: 0.6), pressed: LayerPatch(),
+                                text: TextStyle(font: "rounded"), press: "pop")
+            case .pixel: Skin(bar: BarStyle(pattern: "grid"), button: LayerPatch(border: "pixel", borderWidth: 2, radius: 0, bevel: true),
+                              pressed: LayerPatch(), text: TextStyle(font: "mono", weight: "bold"), press: "pop")
+            case .terminal: Skin(bar: BarStyle(overlay: "scanlines"), button: LayerPatch(border: "ascii", chars: "[ ]"),
+                                 pressed: LayerPatch(invert: true), text: TextStyle(font: "mono"), press: "none")
+            }
+        }
     }
 
     func newTheme(skin: Bool) {
@@ -201,6 +314,7 @@ final class StudioModel: ObservableObject {
                 try? FileManager.default.removeItem(at: to)
                 try FileManager.default.copyItem(at: u, to: to)
             }
+            Theme.images = [:]
             objectWillChange.send()
             message = String(format: L("%d files added"), p.urls.count)
         } catch { message = error.localizedDescription }
@@ -263,7 +377,7 @@ struct ThemeStudioView: View {
                 .pickerStyle(.segmented)
                 .labelsHidden()
                 .padding(.horizontal, 14).padding(.vertical, 8)
-                StudioPartForm(m: m)
+                if m.selected == nil && m.part == .code { StudioCode(m: m) } else { StudioPartForm(m: m) }
                 Divider()
                 actions
             }
@@ -331,6 +445,8 @@ private struct StudioThemeList: View {
                 Menu(L("New")) {
                     Button(L("Glass Theme")) { m.newTheme(skin: false) }
                     Button(L("Skin")) { m.newTheme(skin: true) }
+                    Divider()
+                    ForEach(StudioModel.Starter.allCases, id: \.self) { s in Button(s.name) { m.newTheme(starter: s) } }
                 }
                 Button(L("Import…"), action: m.importFile)
             }
@@ -368,7 +484,6 @@ private struct StudioPreview: View {
     @ObservedObject var m: StudioModel
 
     var body: some View {
-        let t = m.draft
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Picker(L("Screen"), selection: $m.screen) {
@@ -445,12 +560,13 @@ private struct StudioPartForm: View {
                     info
                     if m.draft.isSkin { assets } else { glassShape }
                 case .look:
-                    if m.draft.isSkin { bar; buttons } else { glassColors }
+                    if m.draft.isSkin { palette; bar; buttons } else { glassColors }
                     roles
                 case .text:
                     text
                     if m.draft.isSkin { StudioIcons(m: m) }
                 case .effects: effects
+                case .code: EmptyView()
                 }
             }
         }
@@ -511,16 +627,68 @@ private struct StudioPartForm: View {
         Section(L("Bar")) {
             OptionalColorRow(title: L("Color"), value: b.fill)
             OptionalColorRow(title: L("Gradient to"), value: b.fill2)
+            if b.wrappedValue.fill2 != nil {
+                OptionalColorRow(title: L("Third color"), value: b.fill3)
+                Picker(L("Gradient"), selection: b.gradient) {
+                    Text(L("Linear")).tag(String?.none)
+                    Text(L("Radial")).tag(String?.some("radial"))
+                }
+                if b.wrappedValue.gradient != "radial" {
+                    NumberRow(title: L("Angle"), value: number(b.angle, 0), range: 0...360, format: "%.0f°")
+                }
+            }
+        }
+        Section(L("Bar image")) {
+            HStack {
+                Picker(L("Image"), selection: b.image) {
+                    Text(L("None")).tag(String?.none)
+                    ForEach(m.assets(["png", "jpg", "jpeg", "gif", "tiff", "heic", "pdf"]), id: \.self) { Text($0).tag(String?.some($0)) }
+                }
+                Button(L("Add…")) { m.addAssets() }
+            }
+            if b.wrappedValue.image != nil {
+                Picker(L("Placement"), selection: b.imageMode) {
+                    Text(L("Fill")).tag(String?.none)
+                    Text(L("Stretch")).tag(String?.some("stretch"))
+                    Text(L("Tile")).tag(String?.some("tile"))
+                }
+                NumberRow(title: L("Opacity"), value: number(b.imageOpacity, 1), range: 0...1)
+            }
+        }
+        Section(L("Pattern")) {
             Picker(L("Pattern"), selection: b.pattern) {
                 Text(L("None")).tag(String?.none)
                 Text(L("Stars")).tag(String?.some("stars"))
                 Text(L("Grid")).tag(String?.some("grid"))
+                Text(L("Dots")).tag(String?.some("dots"))
+                Text(L("Stripes")).tag(String?.some("stripes"))
             }
-            if b.wrappedValue.pattern != nil { OptionalColorRow(title: L("Pattern color"), value: b.patternColor) }
+            if b.wrappedValue.pattern != nil {
+                OptionalColorRow(title: L("Pattern color"), value: b.patternColor)
+                NumberRow(title: L("Opacity"), value: number(b.patternOpacity, 1), range: 0...1)
+                NumberRow(title: L("Spacing"), value: number(b.patternSize, 8), range: 3...40, format: "%.0f")
+            }
             Picker(L("Overlay"), selection: b.overlay) {
                 Text(L("None")).tag(String?.none)
                 Text(L("Scanlines")).tag(String?.some("scanlines"))
+                Text(L("Vignette")).tag(String?.some("vignette"))
             }
+            if b.wrappedValue.overlay != nil { NumberRow(title: L("Strength"), value: number(b.overlayOpacity, 0.4), range: 0...1) }
+        }
+    }
+
+    /// four colors that fill in the rest; the sections below fine-tune
+    @ViewBuilder private var palette: some View {
+        let p = m.palette
+        Section {
+            ColorPicker(L("Background"), selection: Binding(get: { p.bar }, set: { m.applyPalette(bar: $0) }), supportsOpacity: false)
+            ColorPicker(L("Buttons"), selection: Binding(get: { p.button }, set: { m.applyPalette(button: $0) }), supportsOpacity: false)
+            ColorPicker(L("Text"), selection: Binding(get: { p.text }, set: { m.applyPalette(text: $0) }), supportsOpacity: false)
+            ColorPicker(L("Accent"), selection: Binding(get: { p.accent }, set: { m.applyPalette(accent: $0) }), supportsOpacity: false)
+        } header: {
+            Text(L("Quick Colors"))
+        } footer: {
+            Text(L("Pick four colors; pressed, active and accent buttons follow. Fine-tune below.")).font(.caption).foregroundStyle(.secondary)
         }
     }
 
@@ -643,6 +811,10 @@ private struct StudioPartForm: View {
         case "png", "jpg", "jpeg", "gif", "pdf", "tiff": "photo"
         default: "speaker.wave.2"
         }
+    }
+
+    private func number(_ b: Binding<Double?>, _ initial: Double) -> Binding<Double> {
+        Binding(get: { b.wrappedValue ?? initial }, set: { b.wrappedValue = ($0 * 100).rounded() / 100 })
     }
 
     private func hex(_ k: WritableKeyPath<Theme, String>) -> Binding<Color> {
@@ -833,5 +1005,98 @@ extension Role {
         case "warning": L("Low battery and other warnings in widgets. Falls back to Operator.")
         default: L("Finished timers and other good news in widgets. Falls back to Active.")
         }
+    }
+}
+
+
+// MARK: code
+
+/// theme.json, live: what parses goes straight to the bar and the canvas, what doesn't is explained below.
+private struct StudioCode: View {
+    @ObservedObject var m: StudioModel
+    @StateObject private var c = CodeState()
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            CodeEditor(text: $c.text)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.secondary.opacity(0.25)))
+            HStack(spacing: 6) {
+                Image(systemName: c.isValid && c.problem.isEmpty ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                    .foregroundStyle(c.isValid ? (c.problem.isEmpty ? Color.green : .orange) : .red)
+                Text(c.isValid && c.problem.isEmpty ? L("The bar shows what you write.") : c.problem)
+                    .font(.caption).foregroundStyle(.secondary).lineLimit(2).textSelection(.enabled)
+                Spacer()
+                Button(L("Theme Guide")) { NSWorkspace.shared.open(URL(string: "https://github.com/Moryel/glass-bar/blob/main/docs/THEMES.md")!) }
+            }
+        }
+        .padding(12)
+        .onAppear { c.text = m.code }
+        .onChange(of: c.text) { _, s in
+            let r = m.decoded(s)
+            c.isValid = r.theme != nil
+            c.problem = r.problem
+            if let t = r.theme, t != m.draft { m.draft = t }
+        }
+        // undo, a color chip or another theme changed the draft: show it
+        .onChange(of: m.draft) { _, t in
+            if m.decoded(c.text).theme != t { c.text = m.code }
+        }
+    }
+}
+
+private final class CodeState: ObservableObject {
+    @Published var text = ""
+    @Published var problem = ""
+    @Published var isValid = true
+}
+
+/// A plain text view for JSON: fixed-width, no smart quotes or dashes.
+private struct CodeEditor: NSViewRepresentable {
+    @Binding var text: String
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    func makeNSView(context: Context) -> NSScrollView {
+        let scroll = NSTextView.scrollableTextView()
+        guard let v = scroll.documentView as? NSTextView else { return scroll }
+        v.delegate = context.coordinator
+        v.font = .monospacedSystemFont(ofSize: 12, weight: .regular)
+        v.isAutomaticQuoteSubstitutionEnabled = false
+        v.isAutomaticDashSubstitutionEnabled = false
+        v.isAutomaticTextReplacementEnabled = false
+        v.isAutomaticSpellingCorrectionEnabled = false
+        v.isContinuousSpellCheckingEnabled = false
+        v.isGrammarCheckingEnabled = false
+        v.allowsUndo = true
+        v.textContainerInset = NSSize(width: 6, height: 8)
+        return scroll
+    }
+
+    func updateNSView(_ scroll: NSScrollView, context: Context) {
+        guard let v = scroll.documentView as? NSTextView, v.string != text else { return }
+        let at = v.selectedRange()
+        v.string = text
+        v.setSelectedRange(NSRange(location: min(at.location, (text as NSString).length), length: 0))
+    }
+
+    final class Coordinator: NSObject, NSTextViewDelegate {
+        let parent: CodeEditor
+        init(_ p: CodeEditor) { parent = p }
+        func textDidChange(_ n: Notification) {
+            if let v = n.object as? NSTextView { parent.text = v.string }
+        }
+    }
+}
+
+extension Color {
+    func mixed(_ other: Color, _ fraction: CGFloat) -> Color {
+        guard let a = NSColor(self).usingColorSpace(.sRGB), let b = NSColor(other).usingColorSpace(.sRGB) else { return self }
+        return Color(a.blended(withFraction: fraction, of: b) ?? a)
+    }
+
+    var isLight: Bool {
+        guard let c = NSColor(self).usingColorSpace(.sRGB) else { return false }
+        return 0.299 * c.redComponent + 0.587 * c.greenComponent + 0.114 * c.blueComponent > 0.6
     }
 }

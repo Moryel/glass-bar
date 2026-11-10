@@ -169,7 +169,8 @@ struct SiriButton: View {
     var body: some View {
         GlassButton(width: Metrics.iconWidth, action: d.toggleSiri) {
             // skins show the icon map's "siri" (the glass orb belongs to the glass themes)
-            if !d.theme.isSkin { SiriOrb(isActive: d.isSiriActive) } else if d.theme.icon("siri") != nil { Icon("siri") } else { BarText("Siri") }
+            if !d.theme.isSkin || d.theme.skin?.icons?["siri"] == "orb" { SiriOrb(isActive: d.isSiriActive) }
+            else if d.theme.icon("siri") != nil { Icon("siri") } else { BarText("Siri") }
         }
     }
 }
@@ -227,7 +228,7 @@ struct ControlStripEditor: View {
             .padding(.horizontal, 4)
             .background(Capsule().fill(.white.opacity(0.08)))
             Text(L(d.stripButtons.count >= StripButton.maxCount ? "Strip full" : "Add:"))
-                .font(.bar(11)).foregroundStyle(.white.opacity(0.5)).padding(.leading, 6)
+                .font(.bar(11)).foregroundStyle(d.theme.barText.opacity(0.5)).padding(.leading, 6)
             ScrollingStrip {
                 ForEach(available, id: \.self) { t in
                     GlassButton(t.symbol, action: {
@@ -421,7 +422,7 @@ struct QuickActionsRow: View {
                 }
             } else {
                 Text(L(items == nil ? "Loading…" : "Nothing to choose right now"))
-                    .font(.bar(12)).foregroundStyle(.white.opacity(0.5)).padding(.leading, 6)
+                    .font(.bar(12)).foregroundStyle(d.theme.barText.opacity(0.5)).padding(.leading, 6)
                 Spacer(minLength: 0)
             }
         }
@@ -492,7 +493,7 @@ struct PlayerControls: View {
         if c.video {
             FilmstripView(d: d)
             Text(TimeFormat.typeText(Double(d.nowPlayingProgress) * c.duration) + " / " + TimeFormat.typeText(c.duration))
-                .font(.bar(10)).monospacedDigit().foregroundStyle(.white.opacity(0.6))
+                .font(.bar(10)).monospacedDigit().foregroundStyle(d.theme.barText.opacity(0.6))
                 .frame(width: TimeFormat.pairWidth(c.duration))
         } else {
             TrackProgress(d: d, c: c)
@@ -517,9 +518,9 @@ struct TrackProgress: View {
     var body: some View {
         VStack(spacing: 2) {
             HStack {
-                Text(c.name).fontWeight(.semibold) + Text(c.artist.isEmpty ? "" : "  ·  \(c.artist)").foregroundColor(.white.opacity(0.6))
+                Text(c.name).fontWeight(.semibold) + Text(c.artist.isEmpty ? "" : "  ·  \(c.artist)").foregroundColor(d.theme.barText.opacity(0.6))
                 Spacer()
-                Text("\(TimeFormat.typeText(Double(d.nowPlayingProgress) * c.duration)) / \(TimeFormat.typeText(c.duration))").monospacedDigit().foregroundStyle(.white.opacity(0.6))
+                Text("\(TimeFormat.typeText(Double(d.nowPlayingProgress) * c.duration)) / \(TimeFormat.typeText(c.duration))").monospacedDigit().foregroundStyle(d.theme.barText.opacity(0.6))
                     .frame(width: 80, alignment: .trailing)
             }
             .font(.bar(10))
@@ -645,11 +646,11 @@ struct ScreenshotBar: View {
                     }
                 }, buttonWidth: Metrics.iconWidth)
                 Spacer(minLength: 0)
-                BarText("Save to:", weight: .regular).foregroundStyle(.white.opacity(0.85))
+                BarText("Save to:", weight: .regular).foregroundStyle(d.theme.barText.opacity(0.85))
                 GlassButton(width: nil, action: { d.showsTargetList = true }) {
                     HStack(spacing: 6) {
                         Text(L(a.target)).lineLimit(1)
-                        Icon("chevron.right").font(.bar(10, .semibold)).foregroundStyle(.white.opacity(0.6))
+                        Icon("chevron.right").font(.bar(10, .semibold)).foregroundStyle(d.theme.buttonText.opacity(0.6))
                     }
                     .frame(minWidth: 90)
                 }
@@ -677,7 +678,7 @@ struct TabsBar: View {
                 Text(L(d.isLoadingTabs ? "Loading tabs…"
                      : d.isSafariAccessDenied ? "No access to Safari: System Settings → Privacy & Security → Automation"
                      : "No open Safari windows"))
-                    .font(.bar(12)).foregroundStyle(.white.opacity(0.5)).padding(.leading, 6)
+                    .font(.bar(12)).foregroundStyle(d.theme.barText.opacity(0.5)).padding(.leading, 6)
                 Spacer(minLength: 0)
             } else {
                 ScrollingStrip {
@@ -791,9 +792,8 @@ struct AppArea: View {
                     Spacer(minLength: 0)
                     SuggestionStrip(d: d)
                 } else {
-                    Text(d.frontApp?.localizedName ?? "")
-                        .font(.bar(12, .medium))
-                        .foregroundStyle(.white.opacity(0.55))
+                    BarText(verbatim: d.frontApp?.localizedName ?? "", size: 12)
+                        .foregroundStyle(d.theme.barText.opacity(0.55))
                         .padding(.leading, 6)
                     Spacer(minLength: 0)
                 }
@@ -847,7 +847,7 @@ struct MediaAppControls: View {
             }
         } else {
             Text(L(d.frontBundleID == NowPlaying.quickTime ? "No open video" : "Nothing playing"))
-                .font(.bar(12)).foregroundStyle(.white.opacity(0.5)).padding(.leading, 6)
+                .font(.bar(12)).foregroundStyle(d.theme.barText.opacity(0.5)).padding(.leading, 6)
             Spacer(minLength: 0)
         }
     }
@@ -871,7 +871,7 @@ struct SafariControls: View {
         GlassButton(width: nil, action: { d.shortcut(37, .maskCommand, "l") }) {
             HStack(spacing: 6) {
                 Icon("magnifyingglass")
-                Text(L("Search or enter website name")).font(.bar(12.5)).foregroundStyle(.white.opacity(0.6))
+                Text(L("Search or enter website name")).font(.bar(12.5)).foregroundStyle(d.theme.buttonText.opacity(0.6))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -893,7 +893,7 @@ struct SafariVideoBar: View {
              buttonWidth: Metrics.narrowWidth + 2)
         FilmstripView(d: d, source: .safari)
         Text(TimeFormat.typeText(v.elapsed) + " / " + TimeFormat.typeText(v.duration))
-            .font(.bar(10)).monospacedDigit().foregroundStyle(.white.opacity(0.6))
+            .font(.bar(10)).monospacedDigit().foregroundStyle(d.theme.barText.opacity(0.6))
             .frame(width: TimeFormat.pairWidth(v.duration))
         GlassButton("magnifyingglass") { d.shortcut(37, .maskCommand, "l") }
     }
@@ -1100,7 +1100,7 @@ struct PhotosControls: View {
             GlassButton("playpause.fill") { d.pressWindowButton("button_playPause") }
             FilmstripView(d: d, source: .photos)
             Text(v.elapsed + " / " + v.remaining.filter { $0 != "\u{200E}" })
-                .font(.bar(10)).monospacedDigit().foregroundStyle(.white.opacity(0.6)).fixedSize()
+                .font(.bar(10)).monospacedDigit().foregroundStyle(d.theme.barText.opacity(0.6)).fixedSize()
         } else {
             Spacer(minLength: 0)
         }
@@ -1144,9 +1144,8 @@ struct TypingControls: View {
             Spacer(minLength: 0)
             SuggestionStrip(d: d)
         } else {
-            Text(d.frontApp?.localizedName ?? "")
-                .font(.bar(12, .medium))
-                .foregroundStyle(.white.opacity(0.55))
+            BarText(verbatim: d.frontApp?.localizedName ?? "", size: 12)
+                .foregroundStyle(d.theme.barText.opacity(0.55))
                 .padding(.leading, 6)
             Spacer(minLength: 0)
         }

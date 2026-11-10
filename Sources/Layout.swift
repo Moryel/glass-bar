@@ -87,6 +87,15 @@ enum KeyNames {
         guard let key, let code = codes[key] else { return nil }
         return (code, flags, key.count == 1 ? key : nil)
     }
+
+    /// "cmd+shift+b" → "⌘⇧B"
+    static func symbols(_ s: String) -> String {
+        guard let (_, flags, _) = parse(s) else { return s }
+        let key = s.split(separator: "+").last.map { $0.trimmingCharacters(in: .whitespaces) } ?? ""
+        return (flags.contains(.maskControl) ? "⌃" : "") + (flags.contains(.maskAlternate) ? "⌥" : "")
+            + (flags.contains(.maskShift) ? "⇧" : "") + (flags.contains(.maskCommand) ? "⌘" : "")
+            + (key.count == 1 ? key.uppercased() : key.capitalized)
+    }
 }
 
 extension AppState {
@@ -230,7 +239,7 @@ struct LayoutBar: View {
             case "widget":
                 if let w = item.widget { AnyWidgetView(d: d, id: w, option: item.option) }
             case "text":
-                Text(item.label ?? "").font(.bar(12, .medium)).foregroundStyle(.white.opacity(0.7)).lineLimit(1).padding(.horizontal, 4)
+                Text(item.label ?? "").font(.bar(12, .medium)).foregroundStyle(theme.barText.opacity(0.7)).lineLimit(1).padding(.horizontal, 4)
             case "group":
                 ButtonGroup(buttons: (item.items ?? []).map { b in
                     GroupButton(symbol: b.label == nil ? b.icon : nil, text: b.label, highlight: role(b.role), isVerbatim: true) { d.run(b.action) }

@@ -69,6 +69,33 @@ final class AmbientView: NSView {
         CATransaction.setAnimationDuration(0.8)
         for (i, l) in blobs.enumerated() { setBlobColor(l, r[i % r.count]) }
         CATransaction.commit()
+        wake()
+    }
+
+    private var rest: Timer?
+
+    /// Even a few frames a second cost the Touch Bar's server about 4% CPU for as long as they run, so the lights
+    /// drift for a while after a touch or an app change and then hold still where they are.
+    func wake() {
+        guard let l = layer else { return }
+        if l.speed == 0 {
+            let paused = l.timeOffset
+            l.speed = 1
+            l.timeOffset = 0
+            l.beginTime = 0
+            l.beginTime = l.convertTime(CACurrentMediaTime(), from: nil) - paused
+        }
+        rest?.invalidate()
+        rest = Timer.scheduledTimer(withTimeInterval: 20, repeats: false) { [weak self] _ in
+            guard let l = self?.layer, l.speed != 0 else { return }
+            l.timeOffset = l.convertTime(CACurrentMediaTime(), from: nil)
+            l.speed = 0
+        }
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        if window == nil { rest?.invalidate() } else { wake() }
     }
 }
 

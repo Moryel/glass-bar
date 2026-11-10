@@ -301,12 +301,13 @@ struct BarText: View {
     init(_ text: String, size: CGFloat = 13, weight: NSFont.Weight = .medium) {
         self.text = L(text); self.size = size; self.weight = weight
     }
-    init(verbatim text: String) { self.text = text }
+    init(verbatim text: String, size: CGFloat = 13) { self.text = text; self.size = size }
     /// equal-width digits, for values that change (percentages, sizes)
     var tabular = false
     init(verbatim text: String, tabular: Bool) { self.text = text; self.tabular = tabular }
     var body: some View {
-        let s = theme.cased(text)
+        // Text clips a changing value to a width it gets wrong by a point or two; thin spaces give it room
+        let s = tabular ? "\u{2009}" + theme.cased(text) + "\u{2009}" : theme.cased(text)
         let measured = tabular ? String(s.map { $0.isNumber ? "0" : $0 }) : s
         let w = (measured as NSString).size(withAttributes: [.font: theme.nsFont(size, weight), .kern: theme.tracking]).width
         let f = theme.font(size, Font.Weight(weight))

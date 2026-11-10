@@ -25,10 +25,10 @@ struct PopoverView: View {
         HStack(spacing: Metrics.spacing) {
             GlassButton("xmark", width: Metrics.narrowWidth, action: d.closePopover)
             if let b = a.title {
-                BarText(b, size: 12).foregroundStyle(.white.opacity(0.6)).padding(.horizontal, 4)
+                BarText(b, size: 12).foregroundStyle(d.theme.barText.opacity(0.6)).padding(.horizontal, 4)
             }
             if a.items.isEmpty {
-                Text(L(a.placeholder ?? "")).font(.bar(12)).foregroundStyle(.white.opacity(0.5))
+                Text(L(a.placeholder ?? "")).font(.bar(12)).foregroundStyle(d.theme.barText.opacity(0.5))
                 Spacer(minLength: 0)
             } else if a.items.count > 8 {
                 // long lists (mailboxes) go in a scrolling strip; slide-to-pick only for short lists
@@ -74,7 +74,7 @@ struct PopoverButton<Label: View>: View {
             HStack(spacing: 3) {
                 label()
                 if onTap == nil {
-                    Icon("chevron.right").font(.bar(7, .bold)).foregroundStyle(.white.opacity(0.5))
+                    Icon("chevron.right").font(.bar(7, .bold)).foregroundStyle(d.theme.buttonText.opacity(0.5))
                 }
             }
         }

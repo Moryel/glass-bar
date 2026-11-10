@@ -241,6 +241,37 @@ enum Volume {
         }
     }
 
+    private static var observed: AudioDeviceID = 0
+    private static var onChange: AudioObjectPropertyListenerBlock?
+
+    /// Calls back when the volume or mute changes from anywhere (keyboard, menu bar, another output).
+    static func observe(_ change: @escaping () -> Void) {
+        let block: AudioObjectPropertyListenerBlock = { _, _ in change() }
+        onChange = block
+        var a = AudioObjectPropertyAddress(mSelector: kAudioHardwarePropertyDefaultOutputDevice,
+                                           mScope: kAudioObjectPropertyScopeGlobal,
+                                           mElement: kAudioObjectPropertyElementMain)
+        AudioObjectAddPropertyListenerBlock(AudioObjectID(kAudioObjectSystemObject), &a, .main) { _, _ in
+            follow()
+            change()
+        }
+        follow()
+    }
+
+    private static func follow() {
+        guard let block = onChange else { return }
+        let selectors = [kAudioDevicePropertyMute, kAudioHardwareServiceDeviceProperty_VirtualMainVolume]
+        for s in selectors where observed != 0 {
+            var a = address(s)
+            AudioObjectRemovePropertyListenerBlock(observed, &a, .main, block)
+        }
+        observed = device
+        for s in selectors {
+            var a = address(s)
+            AudioObjectAddPropertyListenerBlock(observed, &a, .main, block)
+        }
+    }
+
     static var isMuted: Bool {
         get {
             var a = address(kAudioDevicePropertyMute)
