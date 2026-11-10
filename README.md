@@ -34,6 +34,8 @@ Seven themes are built in. Classic, Minimal Liquid Glass, Graphite and Neon keep
 
 **Theme Studio** (in the Hub) makes a theme without writing anything. Start from a dark, light, outline, pixel or terminal starter, click a part on the preview bar and change its fill, text, border and shape. Quick Colors recolors the whole theme at once, the bar background takes any color, gradient, pattern or image, and the Code tab shows the same theme as JSON if you'd rather type. What you change shows on your Touch Bar right away.
 
+![Theme Studio](images/theme-studio.png)
+
 A theme is a JSON file underneath. To write one by hand, choose Theme > Open Themes Folder from the menu, add a `theme.json`, and use Theme > Reload Themes and Layouts after each save. Every field is described in [docs/THEMES.md](docs/THEMES.md). Bad values are skipped and written to `~/Library/Logs/GlassBar.log` instead of breaking the bar. The format is still alpha and may change.
 
 Made a theme you like? Send it with a pull request and it shows up in the store for everyone, see [themes/README.md](themes/README.md). Themes can also be shared as `.glasstheme` packages, which install with a double-click.
@@ -42,15 +44,23 @@ Made a theme you like? Send it with a pull request and it shows up in the store 
 
 Widgets sit left of the Control Strip or inside a layout: clock, date, battery, headphones battery, CPU, memory, disk, network speed, timer, Focus, world clock, clipboard and now playing. The battery follows the charger the moment you plug it in or pull it, and its icon turns yellow in Low Power Mode. A widget only gives a value and the theme draws it, so the same battery is a glass capsule in Classic and `[bat 87%]` in Terminal.
 
+![Widgets on the bar](images/widgets.png)
+
 Script widgets are small JavaScript files ([docs/WIDGETS.md](docs/WIDGETS.md)). They run without a browser, only while they are on the bar, and can use the network, open links or press shortcuts only if they ask for it. You see that list before installing. **Add Weather** in the Widgets page makes one for you to start from.
 
+![Widgets in the Hub](images/hub-widgets.png)
+
 The **Dock** puts your macOS Dock on the Touch Bar, with running dots, badges, a menu on long press and drag to reorder. An app bounces while it opens, the app in front scrolls into view, the Trash shows whether it's full, and the battery and clock can sit at the end.
+
+![The Dock on the Touch Bar](images/dock.png)
 
 ## Layouts
 
 A layout gives one app your own Touch Bar buttons: keyboard shortcuts, menu commands, web links, or opening another app. **Layout Studio** edits them on the real bar by dragging, and can start from one of the built-in bars. Pick the app, drag buttons, groups, spaces and widgets from the library, and choose what each one does. Xcode, VS Code, Terminal and Figma layouts are in the store to start with.
 
 ![Layouts in the Hub](images/hub-layouts.png)
+
+![Layout Studio](images/layout-studio.png)
 
 Layouts are JSON too. How to write one is in [docs/LAYOUTS.md](docs/LAYOUTS.md), and they're shared the same way as themes ([layouts/README.md](layouts/README.md)).
 
