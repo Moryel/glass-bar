@@ -17,6 +17,7 @@ enum SiriColors {
 struct SiriOrb: View {
     var isActive = false
     var size: CGFloat = 21
+    @AppStorage("siriStyle") private var style = SiriStyle.liquid
 
     private static let ribbons: [RibbonView.Ribbon] = [
         .init(color: NSColor(srgbRed: 1, green: 0.37, blue: 0.66, alpha: 1), x: -0.16, y: -0.12, w: 0.62, h: 0.34, angle: 25),
@@ -26,8 +27,25 @@ struct SiriOrb: View {
     ]
 
     var body: some View {
+        if style == .liquid { mark } else { ribbonOrb }
+    }
+
+    private static let image = Bundle.main.url(forResource: "SiriOrb", withExtension: "png").flatMap { NSImage(contentsOf: $0) }
+
+    /// The current logo, as an image.
+    @ViewBuilder private var mark: some View {
+        if let image = SiriOrb.image {
+            Image(nsImage: image).resizable().interpolation(.high)
+                .frame(width: size, height: size)
+                .brightness(isActive ? 0.08 : 0)
+        } else {
+            ribbonOrb
+        }
+    }
+
+    private var ribbonOrb: some View {
         let b = size
-        ZStack {
+        return ZStack {
             Circle().fill(RadialGradient(colors: [Color(hex: 0x1A1F45), Color(hex: 0x05060F)],
                                          center: .center, startRadius: 0, endRadius: b * 0.55))
             RibbonLayer(ribbons: SiriOrb.ribbons, isSpinning: isActive)
@@ -57,18 +75,42 @@ struct SiriPill: View {
     static let isDemo = UserDefaults.standard.string(forKey: "testPanel") == "siriDemo"
     @ObservedObject private var microphone = Microphone.shared
     @StateObject private var smoother = Smoother()
+    @StateObject private var motion = SiriMotion()
     @Environment(\.theme) private var theme
+    @AppStorage("siriStyle") private var style = SiriStyle.liquid
+    @AppStorage("siriBrightness") private var brightness = 1.0
+    @AppStorage("siriFringe") private var fringe = 1.0
+    @AppStorage("siriThinkingDots") private var thinkingDots = true
 
     var body: some View {
         TimelineView(.animation) { tl in
             let t = tl.date.timeIntervalSinceReferenceDate
             // -testPanel siriDemo: a level that imitates speech without the microphone (for the README GIF)
-            let target = SiriPill.isDemo ? max(0, 0.55 * sin(t * 2.1) + 0.35 * sin(t * 5.3 + 1) + 0.15)
+            // the demo goes quiet for a few seconds in every ten so the thinking dots show too
+            let target = SiriPill.isDemo ? (t.truncatingRemainder(dividingBy: 10) < 6.5 ? max(0, 0.55 * sin(t * 2.1) + 0.35 * sin(t * 5.3 + 1) + 0.15) : 0)
                 : microphone.isRunning ? microphone.level : 0.2 + 0.12 * sin(t * 1.6)
             // the microphone value arrives in steps; it's smoothed every frame so the lines don't jitter
-            let level = smoother.advance(target, t)
-            if theme.isSkin { skinned(t, level) } else { glass(t, level) }
+            if theme.isSkin {
+                skinned(t, smoother.advance(target, t))
+            } else if style == .classic {
+                glass(t, smoother.advance(target, t))
+            } else {
+                liquid(t, motion.advance(target, t, thinks: thinkingDots))
+            }
         }
+    }
+
+    private func liquid(_ t: Double, _ m: SiriMotion) -> some View {
+        ZStack {
+            GlassDrop()
+            SiriLiquid(t: t, level: m.level, open: m.open, pull: m.pull, glow: brightness, fringe: fringe)
+            Capsule().strokeBorder(LinearGradient(stops: [.init(color: .white.opacity(0.1), location: 0),
+                                                          .init(color: .white.opacity(0.28), location: 0.5),
+                                                          .init(color: .white.opacity(0.55), location: 1)],
+                                                  startPoint: .top, endPoint: .bottom), lineWidth: 0.7)
+        }
+        .frame(width: 300, height: Metrics.buttonHeight)
+        .shadow(color: .black.opacity(0.6), radius: 4, y: 1)
     }
 
     /// In a skin: the theme's button with waves in the theme's colors, no glass.
@@ -127,6 +169,162 @@ final class Smoother: ObservableObject {
         let k = target > value ? 9.0 : 3.5
         value += (target - value) * (1 - exp(-k * dt))
         return value
+    }
+}
+
+enum SiriStyle: String, MenuOption {
+    case liquid, classic
+    var name: String {
+        switch self {
+        case .liquid: L("New")
+        case .classic: L("Classic")
+        }
+    }
+}
+
+/// Level and state for the new drop. A spring follows the voice (quick rise with a little overshoot, quick fall);
+/// once speech was heard and then stays silent for a while, the light pulls into the thinking dots.
+final class SiriMotion: ObservableObject {
+    private(set) var level = 0.0
+    private(set) var open = 0.0
+    private(set) var pull = 0.0
+    private var velocity = 0.0, last = 0.0, start = 0.0, silence = 0.0
+    private var heard = false, isThinking = false
+
+    func advance(_ target: Double, _ t: Double, thinks: Bool) -> SiriMotion {
+        if last == 0 { start = t }
+        let dt = last == 0 ? 0 : min(0.1, max(0, t - last))
+        last = t
+        let n = max(1, Int((dt / 0.004).rounded(.up))), h = dt / Double(n)
+        for _ in 0..<n {
+            velocity += (900 * (target - level) - 24 * velocity) * h
+            level += velocity * h
+        }
+        level = min(1.25, max(0, level))
+        let e = min(1, max(0, (t - start - 0.15) / 0.25))
+        open = 1 - (1 - e) * (1 - e)
+
+        if target > 0.25 { heard = true; silence = 0; isThinking = false }
+        else if target < 0.06, heard { silence += dt }
+        if thinks, silence > 1.2 { isThinking = true }
+        pull += ((isThinking && thinks ? 1 : 0) - pull) * (1 - exp(-12 * dt))
+        return self
+    }
+}
+
+/// The inside of the new drop. Above the surface the glass is black, below it stays clear with a gray haze under the line.
+/// The light is three thin sheets that cross each other; red, green and blue are drawn a little apart, so the sheets
+/// are white where they overlap and get colored edges.
+struct SiriLiquid: View {
+    let t: Double
+    let level: Double
+    let open: Double
+    let pull: Double
+    var glow = 1.0
+    var fringe = 1.0
+
+    var body: some View {
+        Canvas { ctx, size in
+            let w = size.width, h = size.height, s = h * 1.6, mid = w / 2
+            let l = level * (1 - pull), a = open * (1 - pull)
+            let horizon = h * (0.56 + 0.05 * sin(2 * .pi * t / 6))
+            let span = w - h * 0.9
+            let cx = mid + span * 0.03 * sin(t * 0.55) * (1 - pull)
+            let half = span / 2 * (1 - 0.8 * pull)
+            let sag = h * 0.06
+
+            func surface(_ x: Double) -> Double {
+                let uu = (x - mid) / (w / 2), u = (x - cx) / half
+                let env = abs(u) < 1 ? pow(1 - u * u, 1.25) : 0
+                return horizon - sag * uu * uu + sag * 0.25 * uu * sin(t * 0.42) + s * 0.045 * l * sin(u * 2.4 + t * 3) * env
+            }
+
+            var line = Path()
+            for x in stride(from: 0.0, through: w, by: 5) {
+                let p = CGPoint(x: x, y: surface(x))
+                x == 0 ? line.move(to: p) : line.addLine(to: p)
+            }
+            var above = line, below = line
+            above.addLine(to: CGPoint(x: w, y: 0)); above.addLine(to: .zero); above.closeSubpath()
+            below.addLine(to: CGPoint(x: w, y: h)); below.addLine(to: CGPoint(x: 0, y: h)); below.closeSubpath()
+            ctx.fill(above, with: .color(.black.opacity(0.97)))
+            ctx.fill(below, with: .linearGradient(Gradient(colors: [.black.opacity(0.3), .black.opacity(0.12)]),
+                                                  startPoint: CGPoint(x: 0, y: horizon), endPoint: CGPoint(x: 0, y: h)))
+            ctx.blendMode = .plusLighter
+            let haze = 0.3 * open * (0.55 + 0.45 * a) * (1 - 0.75 * pull)
+            ctx.fill(below, with: .linearGradient(Gradient(colors: [Color(white: 0.8).opacity(haze), Color(white: 0.8).opacity(0)]),
+                                                  startPoint: CGPoint(x: 0, y: horizon - sag), endPoint: CGPoint(x: 0, y: horizon + s * 0.22)))
+
+            if a > 0.004 {
+                let turn = 2 * .pi * t / 3, sw = 0.5 + 0.5 * sin(turn)
+                let loud = min(1, l)
+                let n = 40
+                let ends = (CGPoint(x: cx - half, y: 0), CGPoint(x: cx + half, y: 0))
+
+                // glow around the line
+                let rx = half * 0.8, ry = s * (0.1 + 0.16 * l)
+                var g = ctx
+                g.translateBy(x: cx, y: horizon - ry * 0.15)
+                g.scaleBy(x: 1, y: ry / rx)
+                let tint = Color(red: 1 - 0.28 * sw, green: 0.86 + 0.02 * sw, blue: 0.7 + 0.3 * sw)
+                g.fill(Path(ellipseIn: CGRect(x: -rx, y: -rx, width: rx * 2, height: rx * 2)),
+                       with: .radialGradient(Gradient(colors: [tint.opacity(min(1, 0.22 * (1 + l) * a * glow)), tint.opacity(0)]),
+                                             center: .zero, startRadius: 0, endRadius: rx))
+                ctx.stroke(line, with: .color(.white.opacity(0.14 * a * glow)), lineWidth: 0.5)
+
+                ctx.drawLayer { k in
+                    k.addFilter(.blur(radius: 0.6))
+                    k.blendMode = .plusLighter
+                    for sheet in 0..<3 {
+                        let fk = Double(sheet)
+                        let phase = t * (1.7 + 0.5 * fk) + fk * 2.1
+                        let m = sheet == 0 ? sw : 1 - sw      // outer sheets: one warm, one cool, trading places
+                        let tints = sheet == 1 ? [1.0, 1, 1]
+                            : [1 - 0.8 * (0.42 * m), 1 - 0.8 * (0.2 - 0.04 * m), 1 - 0.8 * (0.42 * (1 - m))]
+                        for channel in 0..<3 {
+                            let j = Double(channel) - 1
+                            var top = [CGPoint](), bottom = [CGPoint](), stops = [Gradient.Stop]()
+                            let amount = (0.6 - 0.27 * loud) * tints[channel] * (1 + 0.25 * loud) * a * glow
+                            for i in 0...n {
+                                let u = -1 + 2 * Double(i) / Double(n), x = cx + u * half
+                                let env = pow(1 - u * u, 1.25), fat = pow(1 - u * u, 3.2 - loud)
+                                let sway = sin(u * (2 + 0.7 * fk) + phase)
+                                let swell = 0.5 + 0.5 * sin(u * 1.7 - phase * 0.7 + fk * 1.9)
+                                let width = (s * (0.013 * fat + l * (0.014 + 0.062 * swell) * env * env) + 0.35) * 0.85
+                                let c = surface(x) + s * (l * 0.06 * sway * env + (fk - 1) * l * 0.045 * sin(phase * 0.6) * env * env
+                                    + j * fringe * (0.005 + 0.022 * l) * sin(u * 2.6 + turn + fk * 1.3) * env)
+                                top.append(CGPoint(x: x, y: c - width)); bottom.append(CGPoint(x: x, y: c + width))
+                                if i % 5 == 0 {
+                                    let strength = pow(fat, 0.8) * (1 - loud) + env * loud
+                                    let color = Color(red: channel == 0 ? 1 : 0, green: channel == 1 ? 1 : 0, blue: channel == 2 ? 1 : 0)
+                                    stops.append(.init(color: color.opacity(min(1, amount * strength)), location: Double(i) / Double(n)))
+                                }
+                            }
+                            var p = Path()
+                            p.addLines(top + bottom.reversed())
+                            p.closeSubpath()
+                            k.fill(p, with: .linearGradient(Gradient(stops: stops), startPoint: ends.0, endPoint: ends.1))
+                        }
+                    }
+                }
+            }
+
+            // thinking: four dots floating up and down one after another
+            let dots = min(1, pull * 1.5) * glow
+            if dots > 0.004 {
+                let r = s * 0.04, y0 = h * 0.56
+                for j in 0..<4 {
+                    let fj = Double(j), beat = t * 4.2 - fj * 1.05
+                    let c = CGPoint(x: mid + (fj - 1.5) * r * 4.8 * min(1, pull * 1.5), y: y0 + r * 1.5 * sin(beat))
+                    let lift = (0.75 + 0.25 * cos(beat)) * min(1, dots)
+                    ctx.fill(Path(ellipseIn: CGRect(x: c.x - r * 3, y: c.y - r * 3, width: r * 6, height: r * 6)),
+                             with: .radialGradient(Gradient(colors: [.white.opacity(0.4 * lift), .white.opacity(0)]),
+                                                   center: c, startRadius: 0, endRadius: r * 3))
+                    ctx.fill(Path(ellipseIn: CGRect(x: c.x - r, y: c.y - r, width: r * 2, height: r * 2)), with: .color(.white.opacity(lift)))
+                }
+            }
+        }
+        .clipShape(Capsule())
     }
 }
 

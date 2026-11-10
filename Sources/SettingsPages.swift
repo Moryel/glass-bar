@@ -7,6 +7,10 @@ import SwiftUI
 struct GeneralSettingsView: View {
     @ObservedObject var d: AppState
     @AppStorage("themeSounds") private var themeSounds = false
+    @AppStorage("siriStyle") private var siriStyle = SiriStyle.liquid
+    @AppStorage("siriBrightness") private var siriBrightness = 1.0
+    @AppStorage("siriFringe") private var siriFringe = 1.0
+    @AppStorage("siriThinkingDots") private var siriThinkingDots = true
 
     var body: some View {
         Form {
@@ -32,6 +36,16 @@ struct GeneralSettingsView: View {
                 }
                 Picker(L("Color Temperature"), selection: $d.colorTemperature) {
                     ForEach(ColorTemperature.allCases, id: \.self) { Text($0.name).tag($0) }
+                }
+            }
+            Section(L("Siri")) {
+                Picker(L("Siri Animation"), selection: $siriStyle) {
+                    ForEach(SiriStyle.allCases, id: \.self) { Text($0.name).tag($0) }
+                }
+                if siriStyle == .liquid {
+                    Slider(value: $siriBrightness, in: 0.5...1.5) { Text(L("Brightness")) }
+                    Slider(value: $siriFringe, in: 0...2.5) { Text(L("Colored Edges")) }
+                    Toggle(L("Dots While Thinking"), isOn: $siriThinkingDots)
                 }
             }
             Section {
