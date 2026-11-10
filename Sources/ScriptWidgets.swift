@@ -17,9 +17,28 @@ struct ScriptWidgetInfo: Codable, Identifiable, Equatable {
     var refresh: Double? = nil
     /// network, openLinks, keys
     var permissions: [String]? = nil
+    /// the only shortcuts key() may press; without the list any shortcut goes
+    var shortcuts: [String]? = nil
     var baseURL: URL? = nil
 
-    enum CodingKeys: String, CodingKey { case id, name, author, version, description, script, refresh, permissions }
+    enum CodingKeys: String, CodingKey { case id, name, author, version, description, script, refresh, permissions, shortcuts }
+
+    func allowsShortcut(_ s: String) -> Bool {
+        guard allows("keys"), let k = KeyNames.parse(s) else { return false }
+        guard let shortcuts else { return true }
+        return shortcuts.contains { KeyNames.parse($0).map { $0.0 == k.0 && $0.1 == k.1 } ?? false }
+    }
+
+    /// "May: Use the internet, Press ⌘⇧B" for the install question and the list.
+    var permissionText: String {
+        let l = (permissions ?? []).compactMap { p -> String? in
+            guard let n = Self.permissionNames[p] else { return nil }
+            guard p == "keys" else { return L(n) }
+            guard let shortcuts else { return L("Press any keyboard shortcut") }
+            return L("Press") + " " + shortcuts.map(KeyNames.symbols).joined(separator: ", ")
+        }
+        return l.isEmpty ? L("Needs no permissions.") : L("May:") + " " + l.joined(separator: ", ")
+    }
 
     func allows(_ p: String) -> Bool { permissions?.contains(p) ?? false }
 
@@ -71,6 +90,47 @@ final class ScriptWidgetStore {
     }
 
     /// A small example to start from, opened in Finder.
+    /// a ready weather widget: wttr.in finds the place from the connection, no key and no account
+    func createWeather() throws -> URL {
+        let to = folder.appendingPathComponent("weather", isDirectory: true)
+        if FileManager.default.fileExists(atPath: to.path) { return to }
+        try FileManager.default.createDirectory(at: to, withIntermediateDirectories: true)
+        let json = """
+        {
+          "id": "weather",
+          "name": "Weather",
+          "author": "\(NSFullUserName())",
+          "version": 1,
+          "description": "Temperature where you are, from wttr.in. Tap to refresh.",
+          "script": "main.js",
+          "refresh": 900,
+          "permissions": ["network"]
+        }
+
+        """
+        let js = """
+        // %c is the condition as an emoji, %t the temperature. Add a city after the slash to pin the place: wttr.in/Izmir
+        const icons = { "☀": "sun.max", "⛅": "cloud.sun", "☁": "cloud", "🌫": "cloud.fog", "🌦": "cloud.sun.rain", "🌧": "cloud.rain",
+                        "⛈": "cloud.bolt.rain", "🌩": "cloud.bolt", "❄": "snowflake", "🌨": "cloud.snow" }
+
+        function update() {
+          glassbar.fetch("https://wttr.in/?format=%c|%t", t => {
+            const parts = (t || "").split("|")
+            if (parts.length < 2 || parts[1].length > 8) { glassbar.show({ text: "–", icon: "cloud" }); return }
+            const mark = parts[0].replace(/[\\uFE0F\\s]/g, "")
+            glassbar.show({ text: parts[1].trim().replace("+", ""), icon: icons[mark] || "cloud" })
+          })
+        }
+
+        function tap() { update() }
+
+        """
+        try json.write(to: to.appendingPathComponent("widget.json"), atomically: true, encoding: .utf8)
+        try js.write(to: to.appendingPathComponent("main.js"), atomically: true, encoding: .utf8)
+        reload()
+        return to
+    }
+
     func createSample() throws -> URL {
         let fm = FileManager.default
         var n = 1
@@ -238,7 +298,7 @@ final class ScriptRunner: ObservableObject {
             DispatchQueue.main.async { self?.d?.run(LayoutAction(open: s)) }
         }
         let key: @convention(block) (String) -> Void = { [weak self] s in
-            guard self?.info.allows("keys") == true else { SystemControl.log("widget \(id): key needs the keys permission"); return }
+            guard self?.info.allowsShortcut(s) == true else { SystemControl.log("widget \(id): \(s) is not among its allowed shortcuts"); return }
             DispatchQueue.main.async { self?.d?.run(LayoutAction(shortcut: s)) }
         }
         let storeKey = "scriptWidget." + id
@@ -277,19 +337,24 @@ final class ScriptRunner: ObservableObject {
         let c = URLSessionConfiguration.ephemeral
         c.httpCookieStorage = nil
         c.urlCache = nil
-        return URLSession(configuration: c)
+        return URLSession(configuration: c, delegate: RedirectGuard(), delegateQueue: nil)
     }()
+
+    /// A public address could answer with a redirect to the router or localhost.
+    private final class RedirectGuard: NSObject, URLSessionTaskDelegate {
+        func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse,
+                        newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) {
+            completionHandler(request.url.map(ScriptRunner.isPublicWeb) == true ? request : nil)
+        }
+    }
 
     /// https on a public host: no localhost, no home network (router pages, printers), no ports or user names.
     static func isPublicWeb(_ u: URL) -> Bool {
         guard u.scheme?.lowercased() == "https", u.user == nil, u.port == nil, let h = u.host?.lowercased(), h.contains(".") else { return false }
         if h == "localhost" || h.hasSuffix(".local") || h.hasSuffix(".localhost") || h.hasSuffix(".internal") || h.contains(":") { return false }
-        let n = h.split(separator: ".").compactMap { Int($0) }
-        if n.count == 4 {
-            // any bare IPv4: private ranges are the risk, and public services have names
-            return false
-        }
-        return true
+        // any bare IPv4, also written short or in hex (127.1, 0x7f.0.0.1): private ranges are the risk,
+        // and public services have names, whose last part never starts with a digit
+        return h.split(separator: ".").last?.first?.isLetter == true
     }
 }
 
@@ -342,6 +407,12 @@ struct ScriptWidgetsSection: View {
                 Button(L("New Script Widget")) {
                     if let u = try? ScriptWidgetStore.shared.createSample() { NSWorkspace.shared.activateFileViewerSelecting([u]); state.refresh() }
                 }
+                Button(L("Add Weather")) {
+                    if (try? ScriptWidgetStore.shared.createWeather()) != nil {
+                        state.refresh()
+                        if !s.strip.contains("script:weather") { s.strip.append("script:weather") }
+                    }
+                }
                 Button(L("Install…"), action: pick)
                 Button(L("Reload")) { state.refresh() }
             }
@@ -385,10 +456,7 @@ struct ScriptWidgetsSection: View {
         }
     }
 
-    private func permissions(_ w: ScriptWidgetInfo) -> String {
-        let l = (w.permissions ?? []).compactMap { ScriptWidgetInfo.permissionNames[$0].map { L($0) } }
-        return l.isEmpty ? L("Needs no permissions.") : L("May:") + " " + l.joined(separator: ", ")
-    }
+    private func permissions(_ w: ScriptWidgetInfo) -> String { w.permissionText }
 
     /// The permissions are shown before anything is copied.
     private func pick() {

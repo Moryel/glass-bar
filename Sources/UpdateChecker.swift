@@ -24,7 +24,7 @@ final class UpdateChecker {
         URLSession.shared.dataTask(with: request) { data, _, _ in
             let json = data.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
             let tag = (json?["tag_name"] as? String)?.trimmingCharacters(in: CharacterSet(charactersIn: "vV "))
-            let page = (json?["html_url"] as? String).flatMap(URL.init(string:))
+            let page = (json?["html_url"] as? String).flatMap(URL.init(string:)).flatMap { $0.scheme == "https" ? $0 : nil }
             DispatchQueue.main.async {
                 if let tag, tag.compare(Self.currentVersion, options: .numeric) == .orderedDescending {
                     self.latestVersion = tag
