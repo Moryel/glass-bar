@@ -6,14 +6,9 @@ A free, open-source replacement for the Touch Bar on MacBook Pros from 2018 on (
 
 ![GlassBar in Finder](images/finder.png)
 
-> **A personal note**
-> GlassBar is the result of about four months of work, and I've been using it every day on my own MacBook for the past two months. It took much longer than I expected, and it still needs more time: some features are missing or only partly working. If you run into any of them, I'd really appreciate it if you let me know.
->
-> I'm not fully happy with the design yet either, and I'll keep improving it.
->
-> I haven't been able to measure any direct impact on battery life; in my use, CPU usage stays around 1%.
->
-> Yüksel Özge
+[Download](#download) · [Themes](#themes) · [Widgets and the Dock](#widgets-and-the-dock) · [Layouts](#layouts) · [Hub](#glassbar-hub) · [Security](#security) · [Build](#build-from-source)
+
+**New in 2.1:** Theme Studio, Layout Studio, widgets you can write yourself, the Dock, and the Original theme. [Release notes](https://github.com/Moryel/glass-bar/releases/latest)
 
 ## Download
 
@@ -43,6 +38,22 @@ A theme is a JSON file underneath. To write one by hand, choose Theme > Open The
 
 Made a theme you like? Send it with a pull request and it shows up in the store for everyone, see [themes/README.md](themes/README.md). Themes can also be shared as `.glasstheme` packages, which install with a double-click.
 
+## Widgets and the Dock
+
+Widgets sit left of the Control Strip or inside a layout: clock, date, battery, headphones battery, CPU, memory, disk, network speed, timer, Focus, world clock, clipboard and now playing. The battery follows the charger the moment you plug it in or pull it, and its icon turns yellow in Low Power Mode. A widget only gives a value and the theme draws it, so the same battery is a glass capsule in Classic and `[bat 87%]` in Terminal.
+
+Script widgets are small JavaScript files ([docs/WIDGETS.md](docs/WIDGETS.md)). They run without a browser, only while they are on the bar, and can use the network, open links or press shortcuts only if they ask for it. You see that list before installing. **Add Weather** in the Widgets page makes one for you to start from.
+
+The **Dock** puts your macOS Dock on the Touch Bar, with running dots, badges, a menu on long press and drag to reorder. An app bounces while it opens, the app in front scrolls into view, the Trash shows whether it's full, and the battery and clock can sit at the end.
+
+## Layouts
+
+A layout gives one app your own Touch Bar buttons: keyboard shortcuts, menu commands, web links, or opening another app. **Layout Studio** edits them on the real bar by dragging, and can start from one of the built-in bars. Pick the app, drag buttons, groups, spaces and widgets from the library, and choose what each one does. Xcode, VS Code, Terminal and Figma layouts are in the store to start with.
+
+![Layouts in the Hub](images/hub-layouts.png)
+
+Layouts are JSON too. How to write one is in [docs/LAYOUTS.md](docs/LAYOUTS.md), and they're shared the same way as themes ([layouts/README.md](layouts/README.md)).
+
 ## GlassBar Hub
 
 Menu > **GlassBar Hub…** opens the store and your library. It has a featured pick, new and most installed themes, categories and search. One click installs a theme and puts it on the bar, and a theme's page shows it on Finder, Safari, Mail and other bars before you get it. The store is just the [themes](themes) and [layouts](layouts) folders of this repo, so there's no account or server.
@@ -54,24 +65,6 @@ Your installed themes and layouts are under Library, with updates when an author
 ![Installed themes](images/hub-installed.png)
 
 Settings live in the Hub too, so the menu bar menu stays short. **Publish…** on your own theme, layout or widget checks it, lists every file that would become public and opens the pull request page for you. The Hub window was built with AI assistance so I could spend more time on the theme engine and performance.
-
-## Widgets and the Dock
-
-Widgets sit left of the Control Strip or inside a layout: clock, date, battery, headphones battery, CPU, memory, disk, network speed, timer, Focus, world clock, clipboard and now playing. A widget only gives a value and the theme draws it, so the same battery is a glass capsule in Classic and `[bat 87%]` in Terminal.
-
-Script widgets are small JavaScript files ([docs/WIDGETS.md](docs/WIDGETS.md)). They run without a browser, only while they are on the bar, and can use the network, open links or press shortcuts only if they ask for it. You see that list before installing. **Add Weather** in the Widgets page makes one for you to start from.
-
-The **Dock** puts your macOS Dock on the Touch Bar, with running dots, badges, a menu on long press and drag to reorder. An app bounces while it opens, the app in front scrolls into view, the Trash shows whether it's full, and the battery and clock can sit at the end.
-
-The battery follows the charger the moment you plug it in or pull it, and its icon turns yellow in Low Power Mode.
-
-## Layouts
-
-A layout gives one app your own Touch Bar buttons: keyboard shortcuts, menu commands, web links, or opening another app. **Layout Studio** edits them on the real bar by dragging, and can start from one of the built-in bars. Pick the app, drag buttons, groups, spaces and widgets from the library, and choose what each one does. Xcode, VS Code, Terminal and Figma layouts are in the store to start with.
-
-![Layouts in the Hub](images/hub-layouts.png)
-
-Layouts are JSON too. How to write one is in [docs/LAYOUTS.md](docs/LAYOUTS.md), and they're shared the same way as themes ([layouts/README.md](layouts/README.md)).
 
 ## What it does
 
@@ -85,30 +78,38 @@ Layouts are JSON too. How to write one is in [docs/LAYOUTS.md](docs/LAYOUTS.md),
 - **Backgrounds.** The app's color, a few color styles, your wallpaper or your own image behind the glass.
 - **esc.** On Macs with a physical esc key (late 2019 and later) the bar is shorter and has no esc. Older models get esc on the bar.
 
+The full list, with what's still missing compared to Apple's Touch Bar, is in [FEATURES.md](FEATURES.md) (Turkish: [FEATURES.tr.md](FEATURES.tr.md)).
+
+## Screenshots
+
 **Siri**
 
 <p align="center"><img src="images/siri.gif" width="720" alt="Siri animation"></p>
 
 **Safari**
+
 ![Safari](images/safari.png)
 
 **Notes**
+
 ![Notes](images/notes.png)
 
 **Expanded Control Strip**
+
 ![Expanded Control Strip](images/expanded.png)
 
 **Brightness and volume**
+
 ![Brightness](images/brightness.png)
 ![Volume](images/volume.png)
 
 **fn: F1 to F12**
+
 ![F keys](images/fn.png)
 
 **Emoji**
-![Emoji](images/emoji.png)
 
-The full list, with what's still missing compared to Apple's Touch Bar, is in [FEATURES.md](FEATURES.md) (Turkish: [FEATURES.tr.md](FEATURES.tr.md)).
+![Emoji](images/emoji.png)
 
 ## Performance
 
@@ -134,6 +135,16 @@ Themes, layouts and widgets come from other people, so GlassBar treats them as u
 - **Updates are never installed for you.** GlassBar only tells you a new version is out and opens its GitHub page.
 
 Found a hole? Please open an issue, or write to me first if it's a serious one.
+
+## A personal note
+
+GlassBar is the result of about four months of work, and I've been using it every day on my own MacBook for the past two months. It took much longer than I expected, and it still needs more time: some features are missing or only partly working. If you run into any of them, I'd really appreciate it if you let me know.
+
+I'm not fully happy with the design yet either, and I'll keep improving it.
+
+I haven't been able to measure any direct impact on battery life; in my use, CPU usage stays around 1%.
+
+Yüksel Özge
 
 ## How it works
 
