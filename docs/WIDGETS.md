@@ -130,7 +130,7 @@ These are on purpose. A widget is code from someone else, running on your Mac al
 - **Half a second per call.** An `update()` or `tap()` that runs longer is stopped, and the widget shows "stopped" until it's shown again. Do slow work with `fetch` and its callback.
 - **Only while visible.** The script doesn't run when the widget isn't on the bar.
 - **No files, no shell, no AppleScript.** A script can't read or write anything on disk except its own `store`. This won't change for widgets from the store.
-- **`fetch` goes to public https addresses only.** No http, no `localhost`, no IP addresses (in any spelling), no `.local` names, no ports, no user names in the address. A site that redirects to one of those is cut off at the redirect, so a widget can't be used to reach your router or something running on your Mac. No cookies are sent or kept. One request at a time per widget, 10 seconds at most, answers over 1 MB are dropped.
+- **`fetch` goes to public https addresses only.** No http, no `localhost`, no IP addresses (in any spelling), no `.local` names, no ports, no user names in the address. A site that redirects to one of those is cut off at the redirect. The name is looked up before every request and refused if any of its addresses is private (loopback, 10.x, 192.168.x, link-local and so on), and an answer that still came from a private address is thrown away. So a widget can't be used to reach your router or something running on your Mac. No cookies are sent or kept. One request at a time per widget, 10 seconds at most, answers over 1 MB are dropped.
 - **Unknown permissions are ignored**, with a line in the log.
 
 ### How a theme draws your widget

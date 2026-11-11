@@ -285,13 +285,27 @@ final class ScriptRunner: ObservableObject {
             guard let u = URL(string: s), ScriptRunner.isPublicWeb(u) else { SystemControl.log("widget \(id): fetch only goes to https web addresses"); return }
             guard !self.isFetching else { return }
             self.isFetching = true
-            var r = URLRequest(url: u, timeoutInterval: 10)
-            r.httpShouldHandleCookies = false
-            ScriptRunner.session.dataTask(with: r) { data, _, _ in
-                // a megabyte is plenty for a widget; bigger answers are dropped
-                let text = data.flatMap { $0.count <= 1_000_000 ? String(data: $0, encoding: .utf8) : nil }
-                self.queue.async { self.isFetching = false; _ = callback.call(withArguments: [text ?? NSNull()]) }
-            }.resume()
+            let done = { (text: String?) in self.queue.async { self.isFetching = false; _ = callback.call(withArguments: [text ?? NSNull()]) } }
+            // the lookup can take a while, and a script only gets half a second
+            DispatchQueue.global(qos: .utility).async {
+                guard ScriptRunner.resolvesPublic(u.host ?? "") else {
+                    SystemControl.log("widget \(id): \(u.host ?? "") doesn't lead to a public address")
+                    return done(nil)
+                }
+                var r = URLRequest(url: u, timeoutInterval: 10)
+                r.httpShouldHandleCookies = false
+                let taskID = TaskID()
+                let task = ScriptRunner.session.dataTask(with: r) { data, _, _ in
+                    if ScriptRunner.fetchGuard.cameFromPrivate(taskID.value) {
+                        SystemControl.log("widget \(id): answer from a private address dropped")
+                        return done(nil)
+                    }
+                    // a megabyte is plenty for a widget; bigger answers are dropped
+                    done(data.flatMap { $0.count <= 1_000_000 ? String(data: $0, encoding: .utf8) : nil })
+                }
+                taskID.value = task.taskIdentifier
+                task.resume()
+            }
         }
         let open: @convention(block) (String) -> Void = { [weak self] s in
             guard self?.info.allows("openLinks") == true else { SystemControl.log("widget \(id): open needs the openLinks permission"); return }
@@ -333,18 +347,42 @@ final class ScriptRunner: ObservableObject {
 
     private var isFetching = false
 
+    private final class TaskID: @unchecked Sendable { var value = -1 }
+    static let fetchGuard = FetchGuard()
     static let session: URLSession = {
         let c = URLSessionConfiguration.ephemeral
         c.httpCookieStorage = nil
         c.urlCache = nil
-        return URLSession(configuration: c, delegate: RedirectGuard(), delegateQueue: nil)
+        return URLSession(configuration: c, delegate: fetchGuard, delegateQueue: nil)
     }()
 
-    /// A public address could answer with a redirect to the router or localhost.
-    private final class RedirectGuard: NSObject, URLSessionTaskDelegate {
+    /// A public address could answer with a redirect to the router or localhost, and a public name can point at
+    /// a private address. The name is looked up before each request; since it can change between that lookup and
+    /// the connection, the address that really answered is checked too.
+    final class FetchGuard: NSObject, URLSessionTaskDelegate {
+        private let lock = NSLock()
+        private var bad = Set<Int>()
+
         func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse,
                         newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) {
-            completionHandler(request.url.map(ScriptRunner.isPublicWeb) == true ? request : nil)
+            guard let u = request.url, ScriptRunner.isPublicWeb(u) else { return completionHandler(nil) }
+            DispatchQueue.global(qos: .utility).async {
+                completionHandler(ScriptRunner.resolvesPublic(u.host ?? "") ? request : nil)
+            }
+        }
+
+        // arrives before the task's completion handler; behind a proxy the address is the proxy's, so it says nothing
+        func urlSession(_ session: URLSession, task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics) {
+            let hit = metrics.transactionMetrics.contains {
+                !$0.isProxyConnection && $0.remoteAddress.map(ScriptRunner.isPublicAddress) == false
+            }
+            guard hit else { return }
+            lock.lock(); bad.insert(task.taskIdentifier); lock.unlock()
+        }
+
+        func cameFromPrivate(_ id: Int) -> Bool {
+            lock.lock(); defer { lock.unlock() }
+            return bad.remove(id) != nil
         }
     }
 
@@ -355,6 +393,65 @@ final class ScriptRunner: ObservableObject {
         // any bare IPv4, also written short or in hex (127.1, 0x7f.0.0.1): private ranges are the risk,
         // and public services have names, whose last part never starts with a digit
         return h.split(separator: ".").last?.first?.isLetter == true
+    }
+
+    /// Every address the name points at has to be public, so a name with one private record is refused.
+    static func resolvesPublic(_ host: String) -> Bool {
+        // a lookup that hangs would keep the widget from fetching anything else
+        let answer = Lookup()
+        DispatchQueue.global(qos: .utility).async { answer.isPublic = lookUp(host); answer.done.signal() }
+        return answer.done.wait(timeout: .now() + 8) == .success && answer.isPublic
+    }
+
+    private final class Lookup: @unchecked Sendable {
+        var isPublic = false
+        let done = DispatchSemaphore(value: 0)
+    }
+
+    private static func lookUp(_ host: String) -> Bool {
+        var hints = addrinfo()
+        hints.ai_socktype = SOCK_STREAM
+        var list: UnsafeMutablePointer<addrinfo>?
+        guard getaddrinfo(host, nil, &hints, &list) == 0, let first = list else { return false }
+        defer { freeaddrinfo(list) }
+        for a in sequence(first: first, next: { $0.pointee.ai_next }) {
+            guard let sa = a.pointee.ai_addr else { return false }
+            let bytes: [UInt8]
+            switch Int32(sa.pointee.sa_family) {
+            case AF_INET:
+                bytes = sa.withMemoryRebound(to: sockaddr_in.self, capacity: 1) { withUnsafeBytes(of: $0.pointee.sin_addr) { Array($0) } }
+            case AF_INET6:
+                bytes = sa.withMemoryRebound(to: sockaddr_in6.self, capacity: 1) { withUnsafeBytes(of: $0.pointee.sin6_addr) { Array($0) } }
+            default: return false
+            }
+            if !isPublic(bytes) { return false }
+        }
+        return true
+    }
+
+    static func isPublicAddress(_ s: String) -> Bool {
+        var a4 = in_addr(), a6 = in6_addr()
+        if inet_pton(AF_INET, s, &a4) == 1 { return isPublic(withUnsafeBytes(of: a4) { Array($0) }) }
+        if inet_pton(AF_INET6, s, &a6) == 1 { return isPublic(withUnsafeBytes(of: a6) { Array($0) }) }
+        return false
+    }
+
+    /// Loopback, home and company networks, link-local, carrier NAT (Tailscale lives there) and multicast are out.
+    static func isPublic(_ b: [UInt8]) -> Bool {
+        if b.count == 4 {
+            switch (b[0], b[1]) {
+            case (0, _), (10, _), (127, _), (169, 254), (192, 168), (100, 64...127), (172, 16...31), (224..., _): return false
+            case (192, 0): return b[2] != 0
+            default: return true
+            }
+        }
+        guard b.count == 16 else { return false }
+        // IPv4 inside IPv6: mapped (::ffff:a.b.c.d) and NAT64 (64:ff9b::a.b.c.d)
+        if b[..<10].allSatisfy({ $0 == 0 }), b[10] == 0xff, b[11] == 0xff { return isPublic(Array(b[12...])) }
+        if Array(b[..<12]) == [0, 0x64, 0xff, 0x9b, 0, 0, 0, 0, 0, 0, 0, 0] { return isPublic(Array(b[12...])) }
+        if b[..<12].allSatisfy({ $0 == 0 }) { return false }
+        if b[0] & 0xfe == 0xfc || b[0] == 0xff || (b[0] == 0xfe && b[1] & 0xc0 == 0x80) { return false }
+        return true
     }
 }
 

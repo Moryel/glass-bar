@@ -140,7 +140,7 @@ Themes, layouts and widgets come from other people, so GlassBar treats them as u
 - **Themes and layouts are data.** They can't run code. A layout can press keys and menu items, open http and https links and open apps, nothing else.
 - **Files stay in their package.** A theme or layout can only use fonts, images and sounds inside its own folder. Paths with `../`, symlinks that lead elsewhere and ids that aren't plain folder names are refused, both on install and on every read.
 - **Script widgets run in a sandbox.** Plain JavaScript without a browser, no file access, no shell, no AppleScript. Each call gets half a second. Network, links and shortcuts each need a permission you see before installing.
-- **Widget network access is public https only.** No localhost, no IP addresses, no home network names, no ports, and a redirect to any of those is stopped. No cookies.
+- **Widget network access is public https only.** No localhost, no IP addresses, no home network names, no ports, and a redirect to any of those is stopped. A name that points at a private address (127.0.0.1, 192.168.x.x and the like) is refused too, and the address that really answered is checked again. No cookies.
 - **Publishing shows you everything first.** Hidden files and symlinks never go into a package.
 - **Updates are never installed for you.** GlassBar only tells you a new version is out and opens its GitHub page.
 
