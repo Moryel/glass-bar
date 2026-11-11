@@ -276,9 +276,13 @@ final class ScriptRunner: ObservableObject {
                 let x = v.objectForKeyedSubscript(k)
                 return x == nil || x!.isUndefined || x!.isNull ? nil : x!.toString()
             }
-            self?.publish(text: s("text") ?? "", icon: s("icon"), role: s("role"))
+            // the bar has room for a few words; a huge text would only slow the layout down
+            self?.publish(text: String((s("text") ?? "").prefix(80)), icon: s("icon").map { String($0.prefix(80)) }, role: s("role").map { String($0.prefix(20)) })
         }
-        let log: @convention(block) (String) -> Void = { SystemControl.log("widget \(id): \($0)") }
+        let log: @convention(block) (String) -> Void = { [weak self] s in
+            guard let self, self.mayLog() else { return }
+            SystemControl.log("widget \(id): \(s.prefix(500))")
+        }
         let fetch: @convention(block) (String, JSValue) -> Void = { [weak self] s, callback in
             guard let self else { return }
             guard self.info.allows("network") else { SystemControl.log("widget \(id): fetch needs the network permission"); return }
@@ -294,17 +298,7 @@ final class ScriptRunner: ObservableObject {
                 }
                 var r = URLRequest(url: u, timeoutInterval: 10)
                 r.httpShouldHandleCookies = false
-                let taskID = TaskID()
-                let task = ScriptRunner.session.dataTask(with: r) { data, _, _ in
-                    if ScriptRunner.fetchGuard.cameFromPrivate(taskID.value) {
-                        SystemControl.log("widget \(id): answer from a private address dropped")
-                        return done(nil)
-                    }
-                    // a megabyte is plenty for a widget; bigger answers are dropped
-                    done(data.flatMap { $0.count <= 1_000_000 ? String(data: $0, encoding: .utf8) : nil })
-                }
-                taskID.value = task.taskIdentifier
-                task.resume()
+                ScriptRunner.fetchGuard.get(r, id) { data in done(data.flatMap { String(data: $0, encoding: .utf8) }) }
             }
         }
         let open: @convention(block) (String) -> Void = { [weak self] s in
@@ -319,7 +313,7 @@ final class ScriptRunner: ObservableObject {
         let get: @convention(block) (String) -> Any = { k in (UserDefaults.standard.dictionary(forKey: storeKey)?[k] as? String) ?? NSNull() }
         let set: @convention(block) (String, String) -> Void = { k, v in
             var dict = UserDefaults.standard.dictionary(forKey: storeKey) ?? [:]
-            guard dict.count < 50 || dict[k] != nil, v.count < 2000 else { return }
+            guard dict.count < 50 || dict[k] != nil, k.count <= 100, v.count < 2000 else { return }
             dict[k] = v
             UserDefaults.standard.set(dict, forKey: storeKey)
         }
@@ -347,21 +341,49 @@ final class ScriptRunner: ObservableObject {
 
     private var isFetching = false
 
-    private final class TaskID: @unchecked Sendable { var value = -1 }
+    // 30 lines a minute is enough to debug with, and a script in a loop can't fill the disk
+    private var logCount = 0, logMinute = 0
+    private func mayLog() -> Bool {
+        let m = Int(Date().timeIntervalSince1970 / 60)
+        if m != logMinute { logMinute = m; logCount = 0 }
+        logCount += 1
+        return logCount <= 30
+    }
+
     static let fetchGuard = FetchGuard()
-    static let session: URLSession = {
-        let c = URLSessionConfiguration.ephemeral
-        c.httpCookieStorage = nil
-        c.urlCache = nil
-        return URLSession(configuration: c, delegate: fetchGuard, delegateQueue: nil)
-    }()
 
     /// A public address could answer with a redirect to the router or localhost, and a public name can point at
     /// a private address. The name is looked up before each request; since it can change between that lookup and
-    /// the connection, the address that really answered is checked too.
-    final class FetchGuard: NSObject, URLSessionTaskDelegate {
+    /// the connection, the address that really answered is checked too. An answer is cut off at a megabyte
+    /// (plenty for a widget) and at 15 seconds, so a server can't fill memory or keep a widget waiting.
+    final class FetchGuard: NSObject, URLSessionDataDelegate {
+        private final class Job {
+            let widget: String, done: (Data?) -> Void
+            var data = Data(), refused: String?
+            init(_ widget: String, _ done: @escaping (Data?) -> Void) { self.widget = widget; self.done = done }
+        }
         private let lock = NSLock()
-        private var bad = Set<Int>()
+        private var jobs: [Int: Job] = [:]
+        private lazy var session: URLSession = {
+            let c = URLSessionConfiguration.ephemeral
+            c.httpCookieStorage = nil
+            c.urlCache = nil
+            c.timeoutIntervalForResource = 15
+            return URLSession(configuration: c, delegate: self, delegateQueue: nil)
+        }()
+
+        func get(_ r: URLRequest, _ widget: String, done: @escaping (Data?) -> Void) {
+            lock.lock()
+            let task = session.dataTask(with: r)
+            jobs[task.taskIdentifier] = Job(widget, done)
+            lock.unlock()
+            task.resume()
+        }
+
+        private func job(_ task: URLSessionTask, remove: Bool = false) -> Job? {
+            lock.lock(); defer { lock.unlock() }
+            return remove ? jobs.removeValue(forKey: task.taskIdentifier) : jobs[task.taskIdentifier]
+        }
 
         func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse,
                         newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) {
@@ -371,18 +393,28 @@ final class ScriptRunner: ObservableObject {
             }
         }
 
-        // arrives before the task's completion handler; behind a proxy the address is the proxy's, so it says nothing
+        // the delegate queue is serial, so a job is only touched by one of these at a time
+        func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
+            guard let j = job(dataTask), j.refused == nil else { return }
+            j.data.append(data)
+            guard j.data.count > 1_000_000 else { return }
+            j.refused = "answer over 1 MB dropped"
+            j.data = Data()
+            dataTask.cancel()
+        }
+
+        // behind a proxy the address is the proxy's, so it says nothing
         func urlSession(_ session: URLSession, task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics) {
             let hit = metrics.transactionMetrics.contains {
                 !$0.isProxyConnection && $0.remoteAddress.map(ScriptRunner.isPublicAddress) == false
             }
-            guard hit else { return }
-            lock.lock(); bad.insert(task.taskIdentifier); lock.unlock()
+            if hit, let j = job(task), j.refused == nil { j.refused = "answer from a private address dropped" }
         }
 
-        func cameFromPrivate(_ id: Int) -> Bool {
-            lock.lock(); defer { lock.unlock() }
-            return bad.remove(id) != nil
+        func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+            guard let j = job(task, remove: true) else { return }
+            if let r = j.refused { SystemControl.log("widget \(j.widget): \(r)") }
+            j.done(error == nil && j.refused == nil ? j.data : nil)
         }
     }
 
