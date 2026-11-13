@@ -22,6 +22,7 @@ A widget only gives a value. The theme draws it, so the same widget is a glass c
 | `clipboard` | What's on the clipboard. | |
 | `nowPlaying` | The current track. | |
 | `dock` | Your Dock. | |
+| `menuBar` | A button for the menu bar. | The app's menus and the menu bar icons, on the Touch Bar |
 
 Widgets sit left of the Control Strip, or inside a layout with `{ "type": "widget", "widget": "cpu" }` (see [LAYOUTS.md](LAYOUTS.md#widgets)). They read their values only while they are on the bar.
 

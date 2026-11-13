@@ -4,7 +4,7 @@ import SwiftUI
 // State of the bar and the actions behind its buttons.
 final class AppState: ObservableObject {
     /// Temporary panels; while `.app`, the bar follows the configured bar mode.
-    enum Panel { case app, expanded, brightness, volume, nowPlaying, emoji, tabs }
+    enum Panel { case app, expanded, brightness, volume, nowPlaying, emoji, tabs, menuBar }
 
     @Published var panel = Panel.app
     @Published var fn = false
@@ -22,6 +22,11 @@ final class AppState: ObservableObject {
     @Published var emojiCategory = 1
     @Published var spaces = (count: 1, current: 0)
     @Published var tabs: [SafariTab] = []
+    @Published var menuBarMenus: [MenuBarEntry] = []
+    @Published var menuBarExtras: [MenuBarEntry] = []
+    /// the open menu and its submenus; empty while the menu bar itself shows
+    @Published var menuPath: [MenuLevel] = []
+    var menuBarTimer: Timer?
     /// Safari window shown in the tab strip (1 = frontmost)
     @Published var selectedWindow = 1
     @Published var isLoadingTabs = false
@@ -130,7 +135,7 @@ final class AppState: ObservableObject {
         return barMode
     }
 
-    var animationKey: String { "\(activeBarMode)\(panel)\(isSiriActive)\(frontBundleID)\(showsEsc)\(showsControlStrip)\(liveSlider.map { "\($0)" } ?? "")\(nowPlaying != nil)\(suggestions.isActive)\(suggestionsHidden)\(emojiCategory)\(popover != nil)\(isEditingControlStrip)" }
+    var animationKey: String { "\(activeBarMode)\(panel)\(isSiriActive)\(frontBundleID)\(showsEsc)\(showsControlStrip)\(liveSlider.map { "\($0)" } ?? "")\(nowPlaying != nil)\(suggestions.isActive)\(suggestionsHidden)\(emojiCategory)\(popover != nil)\(isEditingControlStrip)\(menuPath.count)" }
 
     // MARK: esc, fn
     func esc() {
@@ -146,6 +151,7 @@ final class AppState: ObservableObject {
         if screenshotTool != nil { SystemControl.workQueue.async { ScreenshotTool.close() } }
         if isSiriActive { stopSiri() }
         if panel != .app && panel != .expanded { panel = .app }
+        menuPath = []
     }
 
     func pressFunctionKey(_ i: Int) {
@@ -314,6 +320,7 @@ final class AppState: ObservableObject {
         appColor = Color(nsColor: a.icon?.dominantColor ?? .systemBlue)
         if a.bundleIdentifier != "com.apple.Siri" { stopSiri() }
         if panel == .emoji || panel == .tabs { panel = .app }
+        if isMenuBarVisible { menuPath = []; refreshMenuBar() }
         suggestions = Suggestions()
         refreshNowPlaying()
     }

@@ -179,6 +179,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
         case "siriDemo": DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { self.state.isSiriActive = true }
         case "fn": state.fn = true
         case "emoji": state.panel = .emoji
+        case "menuBar": state.showMenuBar()
+        case "menuBarMenu":
+            state.showMenuBar()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                if self.state.menuBarMenus.count > 2 { let m = self.state.menuBarMenus[2]; self.state.openMenu(m.title, m.element) }
+            }
         case "nowPlaying": state.panel = .nowPlaying
         case "stripEditor": state.isEditingControlStrip = true
         case "hub": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { Hub.open(self.state, .installed) }

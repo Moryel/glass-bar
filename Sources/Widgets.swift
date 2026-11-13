@@ -6,7 +6,7 @@ import SwiftUI
 // Nothing is read until a widget is on the bar, and the timer stops when the last one goes away.
 
 enum WidgetKind: String, CaseIterable, Identifiable {
-    case clock, date, battery, headphones, cpu, memory, disk, network, timer, focus, worldClock, clipboard, nowPlaying, dock
+    case clock, date, battery, headphones, cpu, memory, disk, network, timer, focus, worldClock, clipboard, nowPlaying, dock, menuBar
 
     var id: String { rawValue }
 
@@ -26,6 +26,7 @@ enum WidgetKind: String, CaseIterable, Identifiable {
         case .clipboard: L("Clipboard")
         case .nowPlaying: L("Now Playing")
         case .dock: L("Dock")
+        case .menuBar: L("Menu Bar")
         }
     }
 
@@ -45,6 +46,7 @@ enum WidgetKind: String, CaseIterable, Identifiable {
         case .clipboard: L("The last text you copied. Tap to paste it.")
         case .nowPlaying: L("The song that is playing, while something plays.")
         case .dock: L("Your Dock. Shown as a bar of its own or inside a layout.")
+        case .menuBar: L("A button that puts the menu bar on the Touch Bar: the app's menus and the icons from the right side.")
         }
     }
 
@@ -64,6 +66,7 @@ enum WidgetKind: String, CaseIterable, Identifiable {
         case .clipboard: "doc.on.clipboard"
         case .nowPlaying: "music.note"
         case .dock: "dock.rectangle"
+        case .menuBar: "menubar.rectangle"
         }
     }
 
@@ -84,11 +87,12 @@ enum WidgetKind: String, CaseIterable, Identifiable {
         case .clipboard: "clip"
         case .nowPlaying: "play"
         case .dock: "dock"
+        case .menuBar: "menu"
         }
     }
 
     /// widgets that can sit next to the Control Strip
-    static let stripKinds: [WidgetKind] = [.clock, .date, .battery, .headphones, .cpu, .memory, .disk, .network, .timer, .focus, .worldClock, .clipboard, .nowPlaying]
+    static let stripKinds: [WidgetKind] = [.clock, .date, .battery, .headphones, .cpu, .memory, .disk, .network, .timer, .focus, .worldClock, .clipboard, .nowPlaying, .menuBar]
 }
 
 /// The values behind the widgets, read on one shared timer while any widget is visible.
@@ -480,6 +484,8 @@ struct WidgetView: View {
                 if let c = d.nowPlaying { NowPlayingButton(d: d, c: c) }
             case .dock:
                 DockRow(d: d)
+            case .menuBar:
+                capsule(value: "", role: d.panel == .menuBar ? .active : nil, action: d.showMenuBar)
             }
         }
         .onAppear { if kind.readsData { data.setVisible(true, kind: kind) } }
@@ -497,7 +503,7 @@ struct WidgetView: View {
                     let icon = Icon(look?.icon ?? symbol ?? kind.symbol)
                     if let iconColor { icon.foregroundStyle(iconColor) } else { icon }
                 }
-                BarText(verbatim: value, tabular: true)
+                if !value.isEmpty { BarText(verbatim: value, tabular: true) }
             }
         }
     }

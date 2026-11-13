@@ -50,6 +50,8 @@ Script widgets are small JavaScript files ([docs/WIDGETS.md](docs/WIDGETS.md)). 
 
 ![Widgets in the Hub](images/hub-widgets.png)
 
+The **Menu Bar** widget is a button that brings the menu bar down to the Touch Bar: the front app's menus on the left, then Wi-Fi, battery, the clock and other apps' icons. Tap a menu and its items take over the bar, with their shortcuts and submenus, and a tap on an icon opens its own menu on screen. It can also be the whole bar: Touch Bar Shows > Menu Bar. In a full-screen app, where macOS hides the menu bar, other apps' icons are dimmed because they can't be pressed then.
+
 The **Dock** puts your macOS Dock on the Touch Bar, with running dots, badges, a menu on long press and drag to reorder. An app bounces while it opens, the app in front scrolls into view, the Trash shows whether it's full, and the battery and clock can sit at the end.
 
 ![The Dock on the Touch Bar](images/dock.png)

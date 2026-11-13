@@ -96,6 +96,7 @@ Menü komutları öndeki uygulamanın menüsünden Erişilebilirlik ile çalış
 | İzinli JavaScript widget'ları; hava durumu örneği | ✅ |
 | Layout Studio | ✅ |
 | Touch Bar'da Dock: açılırken zıplama, dolu Çöp Sepeti, öndeki uygulama görünür yere kayar | ✅ |
+| Touch Bar'da menü çubuğu: uygulama menüleri ve öğeleri, menü çubuğu simgeleri | ✅ |
 | Pil şarj takılıp çıkarılınca anında güncellenir, Düşük Güç Modu'nda simge sarı | ✅ |
 | Mağazada tema sayfası, uygulamalara göre canlı önizleme | ✅ |
 | Uygulamadan mağazaya yayınlama | ✅ (pull request sayfasını açar) |

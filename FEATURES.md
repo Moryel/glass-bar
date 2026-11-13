@@ -94,6 +94,7 @@ Menu commands run from the front app's menu through Accessibility (`AXHelpers.sw
 | Script widgets in JavaScript with permissions; weather sample | ✅ |
 | Layout Studio | ✅ |
 | Dock on the Touch Bar: launch bounce, full Trash, front app scrolls into view | ✅ |
+| Menu bar on the Touch Bar: app menus with their items, menu bar icons | ✅ |
 | Battery follows the charger at once, yellow icon in Low Power Mode | ✅ |
 | Theme page in the store with a live preview per app | ✅ |
 | Publish to the store from the app | ✅ (opens the pull request page) |

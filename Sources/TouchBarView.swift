@@ -16,7 +16,7 @@ struct TouchBarView: View {
             HStack(spacing: Metrics.spacing) {
                 if d.showsEsc {
                     // while a temporary panel (emoji, tabs, Now Playing…) is open, "Done" like the original: closes the panel, sends no key
-                    let showsDone = d.panel == .emoji || d.panel == .tabs || d.panel == .nowPlaying
+                    let showsDone = d.panel == .emoji || d.panel == .tabs || d.panel == .nowPlaying || d.panel == .menuBar
                     GlassButton(width: Metrics.escWidth, highlight: showsDone ? .active : nil, action: showsDone ? d.handleEsc : d.esc) {
                         if showsDone { BarText("Done") } else { Text("esc").kerning(0.3) }
                     }
@@ -71,6 +71,7 @@ struct MainArea: View {
         case .nowPlaying: NowPlayingBar(d: d).transition(.focusIn)
         case .tabs: TabsBar(d: d).transition(.focusIn)
         case .emoji: EmojiBar(d: d).transition(.focusIn)
+        case .menuBar: MenuBarRow(d: d, isClosable: true).transition(.focusIn)
         case .app, .brightness, .volume:
             if d.screenshotTool != nil && !d.fn {
                 WithControlStrip(d: d) { ScreenshotBar(d: d) }.transition(.focusIn)
@@ -82,6 +83,7 @@ struct MainArea: View {
             case .quickActions: WithControlStrip(d: d) { QuickActionsRow(d: d) }.transition(.focusIn)
             case .app: WithControlStrip(d: d) { AppArea(d: d) }.transition(.focusIn)
             case .dock: DockBar(d: d).transition(.focusIn)
+            case .menuBar: WithControlStrip(d: d) { MenuBarRow(d: d) }.transition(.focusIn)
             }
             }
         }

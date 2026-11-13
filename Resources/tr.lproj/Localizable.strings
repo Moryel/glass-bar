@@ -621,3 +621,6 @@
 "Siri Animation" = "Siri Animasyonu";
 "Colored Edges" = "Renkli Kenarlar";
 "Dots While Thinking" = "Düşünürken Noktalar";
+"Menu Bar" = "Menü Çubuğu";
+"A button that puts the menu bar on the Touch Bar: the app's menus and the icons from the right side." = "Menü çubuğunu Touch Bar’a getiren düğme: uygulamanın menüleri ve sağ taraftaki simgeler.";
+"The menu bar needs Accessibility: System Settings → Privacy & Security → Accessibility" = "Menü çubuğu için Erişilebilirlik izni gerekli: Sistem Ayarları → Gizlilik ve Güvenlik → Erişilebilirlik";
