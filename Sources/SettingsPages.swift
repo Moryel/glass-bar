@@ -54,6 +54,11 @@ struct GeneralSettingsView: View {
                     d.objectWillChange.send()
                 }))
             }
+            Section {
+                LabeledContent(L("Found a bug or have an idea?")) {
+                    Button(L("Send Feedback…")) { FeedbackWindow.open() }
+                }
+            }
         }
         .formStyle(.grouped)
     }

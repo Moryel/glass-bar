@@ -187,6 +187,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
             }
         case "nowPlaying": state.panel = .nowPlaying
         case "stripEditor": state.isEditingControlStrip = true
+        case "feedback": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { FeedbackWindow.open() }
         case "hubClose":
             // memory testing: the Hub opens and closes again
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) { Hub.open(self.state, .featured) }
@@ -458,6 +459,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
         if !Edition.isBeta {
             m.addItem(withTitle: L("Check for Updates…"), action: #selector(checkForUpdates), keyEquivalent: "").target = self
         }
+        m.addItem(withTitle: L("Send Feedback…"), action: #selector(sendFeedback), keyEquivalent: "").target = self
         m.addItem(withTitle: L("Quit"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
     }
 
@@ -522,6 +524,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
         if let t = ThemeStore.shared.theme(id: o.representedObject as? String ?? "") { state.apply(t) }
     }
     @objc func openHub() { Hub.open(state) }
+    @objc func sendFeedback() { FeedbackWindow.open() }
     @objc func switchToRelease() { Edition.switchToReleaseApp() }
     @objc func openDockSettings() { Hub.open(state, .dock) }
     @objc func openSettings() { Hub.open(state, .general) }

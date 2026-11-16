@@ -624,3 +624,15 @@
 "Menu Bar" = "Menü Çubuğu";
 "A button that puts the menu bar on the Touch Bar: the app's menus and the icons from the right side." = "Menü çubuğunu Touch Bar’a getiren düğme: uygulamanın menüleri ve sağ taraftaki simgeler.";
 "The menu bar needs Accessibility: System Settings → Privacy & Security → Accessibility" = "Menü çubuğu için Erişilebilirlik izni gerekli: Sistem Ayarları → Gizlilik ve Güvenlik → Erişilebilirlik";
+"Send Feedback" = "Geri Bildirim Gönder";
+"Send Feedback…" = "Geri Bildirim Gönder…";
+"Found a bug or have an idea?" = "Bir hata mı buldun, ya da bir fikrin mi var?";
+"Something's wrong" = "Bir şey yanlış";
+"An idea" = "Bir fikir";
+"What happened, and what did you expect?" = "Ne oldu, ne bekliyordun?";
+"What would you like the Touch Bar to show or do?" = "Touch Bar ne göstersin ya da ne yapsın istersin?";
+"How to make it happen (optional)" = "Nasıl tekrarlanır (isteğe bağlı)";
+"Add the last lines of the log" = "Günlüğün son satırlarını ekle";
+"Added: %@, %@, GlassBar %@." = "Eklenecek: %@, %@, GlassBar %@.";
+"GitHub opens with this filled in. You see everything there before posting, and you need a GitHub account to post." = "GitHub bunlar doldurulmuş olarak açılır. Göndermeden önce her şeyi orada görürsün; göndermek için GitHub hesabı gerekir.";
+"Continue on GitHub" = "GitHub'da Devam Et";

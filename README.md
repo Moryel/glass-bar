@@ -180,6 +180,10 @@ For screenshots: `open ~/Applications/GlassBar.app --args -testPanel expanded|br
 
 The code is in `Sources/`: `main.swift` (app delegate and menu), `TouchBarView.swift` (the bar and the app bars), `Glass.swift` (buttons, groups, sliders), `Theme.swift` and `Skin.swift` (themes), `Layout.swift` (layouts), `Hub.swift` (Hub and store), `ThemeStudio.swift`, `LayoutEditor.swift`, `Widgets.swift`, `ScriptWidgets.swift`, `Dock.swift`, `Publish.swift`, `Siri.swift`, `NowPlaying.swift`, `SpotifyPlayer.swift`, `Suggestions.swift`, `SystemControl.swift` and a few smaller files.
 
+## Feedback
+
+Menu > **Send Feedback…** (also in the Hub's General settings) opens a short form. It fills in a GitHub issue with your Mac model, macOS and GlassBar version, and the last log lines if you tick that box. Nothing is sent from the app: you see the issue on GitHub and post it from there.
+
 ## Roadmap
 
 2.1 brought Theme Studio, widgets and script widgets, Layout Studio, the Dock, the Original theme and publishing from the app. Bundles (a theme with its own layouts and widgets) and more widgets come next. Spotify sign-in with playlists, search and device picking is planned too. Everything is in [ROADMAP.md](ROADMAP.md).
