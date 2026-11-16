@@ -17,6 +17,8 @@ enum Hub {
     private static var delegate: HubWindowDelegate?
     private static var model: HubModel?
 
+    static func close() { window?.performClose(nil) }
+
     static func open(_ d: AppState, _ page: Page = .featured, _ kind: Kind = .themes) {
         NSApp.activate(ignoringOtherApps: true)
         if let window, let model {
@@ -33,7 +35,13 @@ enum Hub {
         w.contentMinSize = NSSize(width: 860, height: 520)
         w.isReleasedWhenClosed = false
         w.center()
-        delegate = HubWindowDelegate { model?.studioModel?.close(); window = nil; delegate = nil; model = nil }
+        delegate = HubWindowDelegate { [weak w] in
+            model?.studioModel?.close()
+            window = nil; delegate = nil; model = nil
+            // a closed window keeps its views until AppKit lets go of it, and the Hub's are some 30 MB
+            // (the app still points at it as its key window, and the window at the view as its first responder)
+            DispatchQueue.main.async { w?.initialFirstResponder = nil; w?.makeFirstResponder(nil); w?.contentView = nil }
+        }
         w.delegate = delegate
         window = w
         model = m

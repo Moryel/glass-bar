@@ -187,6 +187,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
             }
         case "nowPlaying": state.panel = .nowPlaying
         case "stripEditor": state.isEditingControlStrip = true
+        case "hubClose":
+            // memory testing: the Hub opens and closes again
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { Hub.open(self.state, .featured) }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 12) { Hub.close() }
         case "hub": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { Hub.open(self.state, .installed) }
         case "store": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { Hub.open(self.state, .featured) }
         case "layouts": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { Hub.open(self.state, .featured, .layouts) }
