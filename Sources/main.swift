@@ -65,6 +65,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
     var statusItem: NSStatusItem!
     var isMinimized = false
     private var isPresented = false
+    private var barRestore: DispatchWorkItem?
     let panelTouchBar = NSTouchBar()
     let panelItemIdentifier = NSTouchBarItem.Identifier("com.yukselozge.glassbar.widgets")
     // the system close box can dismiss the panel behind our back
@@ -163,7 +164,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
         }
         for (name, center) in [(NSWorkspace.screensDidWakeNotification, ws), (NSWorkspace.sessionDidBecomeActiveNotification, ws),
                                (Notification.Name("com.apple.screenIsUnlocked"), DistributedNotificationCenter.default())] {
-            observers.append(center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in self?.startTimers() })
+            observers.append(center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                self?.startTimers()
+                self?.restoreBarSoon()
+            })
         }
         applyOwnBarApps()
 
@@ -187,6 +191,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
             }
         case "nowPlaying": state.panel = .nowPlaying
         case "stripEditor": state.isEditingControlStrip = true
+        case "wake":
+            // the bar goes away, then a wake brings it back
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) { DFR.dismiss(self.modalTouchBar) }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 7) { NSWorkspace.shared.notificationCenter.post(name: NSWorkspace.screensDidWakeNotification, object: nil) }
         case "feedback": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { FeedbackWindow.open() }
         case "hubClose":
             // memory testing: the Hub opens and closes again
@@ -296,6 +304,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
         isPresented = true
         state.refresh()
         DFR.present(modalTouchBar, trayIdentifier: trayIdentifier.rawValue)
+    }
+
+    /// After sleep or a locked screen the bar can stay black until GlassBar is restarted, so it's put up again with
+    /// a new view. Waking sends several notifications at once and the Touch Bar needs a moment of its own.
+    private func restoreBarSoon() {
+        barRestore?.cancel()
+        let work = DispatchWorkItem { [weak self] in self?.restoreBar() }
+        barRestore = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: work)
+    }
+
+    private func restoreBar() {
+        guard isPresented, !isMinimized, !usesSystemBar else { return }
+        SystemControl.log("bar: put back after wake (was visible: \(modalTouchBar.isVisible))")
+        DFR.dismiss(modalTouchBar)
+        modalTouchBar.defaultItemIdentifiers = []
+        modalTouchBar.defaultItemIdentifiers = [mainItemIdentifier]
+        show()
     }
 
     @objc func minimize() {
