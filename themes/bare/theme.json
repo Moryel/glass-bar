@@ -1,0 +1,24 @@
+{
+  "id": "bare",
+  "name": "Bare",
+  "author": "GlassBar",
+  "version": 1,
+  "backdrop": "off",
+  "sliderColor": "#FFFFFF",
+  "roles": {
+    "active": { "text": "#0A84FF" },
+    "primary": { "text": "#0A84FF" },
+    "accent": { "text": "#0A84FF" },
+    "operator": { "text": "#FF9F0A" },
+    "suggestions": { "fill": "none" }
+  },
+  "skin": {
+    "bar": { "fill": "#000000" },
+    "button": { "fill": "none", "text": "#FFFFFF", "border": "none", "radius": 6 },
+    "pressed": { "fill": "#FFFFFF26" },
+    "group": { "fill": "none", "border": "none" },
+    "text": { "font": "system", "weight": "regular" },
+    "press": "none",
+    "icons": { "siri": "orb" }
+  }
+}

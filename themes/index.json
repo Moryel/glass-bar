@@ -1,6 +1,20 @@
 {
   "themes": [
     {
+      "id": "bare",
+      "name": "Bare",
+      "author": "Moryel",
+      "version": 1,
+      "description": "Just the icons, no buttons behind them.",
+      "files": [
+        "theme.json",
+        "preview.png"
+      ],
+      "category": "Minimal",
+      "added": "2026-11-22",
+      "updated": "2026-11-22"
+    },
+    {
       "id": "paper",
       "name": "Paper",
       "author": "Moryel",
