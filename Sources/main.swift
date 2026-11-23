@@ -196,6 +196,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
             DispatchQueue.main.asyncAfter(deadline: .now() + 3) { DFR.dismiss(self.modalTouchBar) }
             DispatchQueue.main.asyncAfter(deadline: .now() + 7) { NSWorkspace.shared.notificationCenter.post(name: NSWorkspace.screensDidWakeNotification, object: nil) }
         case "feedback": DispatchQueue.main.asyncAfter(deadline: .now() + 1) { FeedbackWindow.open() }
+        case "themeZip":
+            // a theme zipped for sharing and installed back from that zip (-testTheme <id>)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                guard let t = ThemeStore.shared.theme(id: UserDefaults.standard.string(forKey: "testTheme") ?? "") else { return }
+                do {
+                    let zip = try ThemeStore.shared.zip(t)
+                    let back = try ThemeStore.shared.installZip(zip)
+                    SystemControl.log("test: zipped \(t.id) to \(zip.path), installed back as \(back.id)")
+                } catch { SystemControl.log("test: theme zip failed: \(error)") }
+            }
         case "hubClose":
             // memory testing: the Hub opens and closes again
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) { Hub.open(self.state, .featured) }

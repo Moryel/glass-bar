@@ -637,3 +637,7 @@
 "Added: %@, %@, GlassBar %@." = "Eklenecek: %@, %@, GlassBar %@.";
 "GitHub opens with this filled in. You see everything there before posting, and you need a GitHub account to post." = "GitHub bunlar doldurulmuş olarak açılır. Göndermeden önce her şeyi orada görürsün; göndermek için GitHub hesabı gerekir.";
 "Continue on GitHub" = "GitHub'da Devam Et";
+"Share as File…" = "Dosya Olarak Paylaş…";
+"Saves the theme as one zip file you can send anywhere." = "Temayı her yere gönderebileceğin tek bir zip dosyası olarak kaydeder.";
+"Send this file as it is. Opening it on a Mac with GlassBar installs the theme." = "Dosyayı olduğu gibi gönder. GlassBar olan bir Mac'te açılınca tema kurulur.";
+"Install from File…" = "Dosyadan Kur…";

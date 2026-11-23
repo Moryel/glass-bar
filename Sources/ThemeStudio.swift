@@ -261,25 +261,15 @@ final class StudioModel: ObservableObject {
     func revert() { draft = saved }
 
     func export() {
-        let p = NSSavePanel()
-        p.allowedContentTypes = [.glassTheme]
-        p.nameFieldStringValue = draft.displayName + ".glasstheme"
-        NSApp.activate(ignoringOtherApps: true)
-        guard p.runModal() == .OK, let url = p.url else { return }
-        do { try ThemeStore.shared.export(draft, to: url); message = L("Exported") } catch { message = error.localizedDescription }
+        if let s = ThemeFile.save(draft) { message = s }
     }
 
     func importFile() {
-        let p = NSOpenPanel()
-        p.allowedContentTypes = [.glassTheme, .json]
-        p.allowsMultipleSelection = false
-        NSApp.activate(ignoringOtherApps: true)
-        guard p.runModal() == .OK, let url = p.url else { return }
-        install(url)
+        if let url = ThemeFile.pick() { install(url) }
     }
 
     func install(_ url: URL) {
-        do { select(try ThemeStore.shared.install(url)); themes = ThemeStore.shared.all } catch { message = L("Could not read the theme file.") }
+        do { select(try ThemeFile.install(url)); themes = ThemeStore.shared.all } catch { message = L("Could not read the theme file.") }
     }
 
     // MARK: assets
@@ -385,7 +375,7 @@ struct ThemeStudioView: View {
         .onDrop(of: [.fileURL], isTargeted: nil) { providers in
             for p in providers {
                 _ = p.loadObject(ofClass: URL.self) { url, _ in
-                    guard let url, url.pathExtension == "glasstheme" || url.pathExtension == "json" else { return }
+                    guard let url, ["glasstheme", "json", "zip"].contains(url.pathExtension.lowercased()) else { return }
                     DispatchQueue.main.async { m.install(url) }
                 }
             }
@@ -404,7 +394,8 @@ struct ThemeStudioView: View {
                 .keyboardShortcut("z", modifiers: [.command, .shift]).disabled(m.redoStack.isEmpty).help(L("Redo"))
             Button(L("Revert"), action: m.revert).disabled(!m.isDirty)
             Button(L("Duplicate"), action: m.duplicate)
-            Button(L("Export…"), action: m.export)
+            Button(L("Share as File…"), action: m.export)
+                .help(L("Saves the theme as one zip file you can send anywhere."))
             Button(L("Publish…")) { if let s = try? Submission.theme(m.saved) { PublishWindow.open(s) } }
                 .disabled(m.isDirty || m.draft.isBuiltIn || ThemeStore.shared.theme(id: m.draft.id) == nil)
                 .help(L("Save the theme first. Built-in themes can’t be published."))
@@ -1098,5 +1089,39 @@ extension Color {
     var isLight: Bool {
         guard let c = NSColor(self).usingColorSpace(.sRGB) else { return false }
         return 0.299 * c.redComponent + 0.587 * c.greenComponent + 0.114 * c.blueComponent > 0.6
+    }
+}
+
+/// A theme as one file to send to someone, and opening one that came that way.
+enum ThemeFile {
+    /// Asks where to save the zip and shows it in Finder. Returns the message to show, nil when cancelled.
+    static func save(_ t: Theme) -> String? {
+        let p = NSSavePanel()
+        p.allowedContentTypes = [.zip]
+        p.nameFieldStringValue = t.displayName + ".glasstheme.zip"
+        p.message = L("Send this file as it is. Opening it on a Mac with GlassBar installs the theme.")
+        NSApp.activate(ignoringOtherApps: true)
+        guard p.runModal() == .OK, let url = p.url else { return nil }
+        do {
+            let zip = try ThemeStore.shared.zip(t)
+            try? FileManager.default.removeItem(at: url)
+            try FileManager.default.moveItem(at: zip, to: url)
+            NSWorkspace.shared.activateFileViewerSelecting([url])
+            return L("Saved")
+        } catch {
+            return error.localizedDescription
+        }
+    }
+
+    static func pick() -> URL? {
+        let p = NSOpenPanel()
+        p.allowedContentTypes = [.glassTheme, .json, .zip]
+        p.allowsMultipleSelection = false
+        NSApp.activate(ignoringOtherApps: true)
+        return p.runModal() == .OK ? p.url : nil
+    }
+
+    static func install(_ url: URL) throws -> Theme {
+        url.pathExtension.lowercased() == "zip" ? try ThemeStore.shared.installZip(url) : try ThemeStore.shared.install(url)
     }
 }

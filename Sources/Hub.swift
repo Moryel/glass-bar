@@ -212,6 +212,19 @@ final class HubModel: ObservableObject {
         refreshLocal()
     }
 
+    func installThemeFile() {
+        guard let url = ThemeFile.pick() else { return }
+        do {
+            let t = try ThemeFile.install(url)
+            d.apply(t)
+            refreshLocal()
+            message = String(format: L("%@ is installed and on your Touch Bar."), t.name)
+        } catch {
+            SystemControl.log("theme: could not install \(url.lastPathComponent): \(error.short)")
+            message = L("Could not read the theme file.")
+        }
+    }
+
     func reveal(_ url: URL?) {
         if let url { NSWorkspace.shared.activateFileViewerSelecting([url]) }
     }
@@ -793,6 +806,7 @@ private struct ThemeCard: View {
                 }
                 if !t.isBuiltIn {
                     Menu {
+                        Button(L("Share as File…")) { if let s = ThemeFile.save(t) { m.message = s } }
                         Button(L("Show in Finder")) { m.reveal(ThemeStore.shared.locations[t.id]) }
                         Button(L("Move to Trash"), role: .destructive) { m.delete(t) }
                     } label: { Image(systemName: "ellipsis.circle") }
@@ -813,12 +827,17 @@ private struct InstalledPage: View {
                 HStack {
                     Text(L("Installed")).font(.largeTitle.bold())
                     Spacer()
+                    if m.kind == .themes { Button(L("Install from File…")) { m.installThemeFile() } }
                     Button(m.kind == .themes ? L("Open Themes Folder") : L("Open Layouts Folder")) { m.openFolder() }
                     Button(L("Reload")) { m.refreshLocal(); d.theme = ThemeStore.shared.theme(id: d.theme.id) ?? .classic }
                 }
                 Text(m.kind == .themes ? L("Write your own theme as JSON in the themes folder. The guide is in docs/THEMES.md on GitHub.")
                                        : L("Write your own layout as JSON in the layouts folder. The guide is in docs/LAYOUTS.md on GitHub."))
                     .foregroundStyle(.secondary)
+                if !m.message.isEmpty {
+                    Text(m.message).font(.callout).padding(.horizontal, 12).padding(.vertical, 8)
+                        .background(Capsule().fill(Color.accentColor.opacity(0.15)))
+                }
                 if m.kind == .themes {
                     let mine = m.themes.filter { !$0.isBuiltIn }
                     if !mine.isEmpty {

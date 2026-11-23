@@ -45,7 +45,9 @@ A theme can be:
 - a single file, `my-theme.json` or `my-theme.glasstheme`
 - a folder with a `theme.json` inside, plus any fonts, images or sounds it uses. If the folder is named `my-theme.glasstheme`, Finder shows it as one file and double-clicking it installs it.
 
-Double-clicking a `.glasstheme` file or package anywhere on your Mac copies it into the themes folder and switches to it. That's the easiest way to give a theme to someone else.
+Double-clicking a `.glasstheme` file or package anywhere on your Mac copies it into the themes folder and switches to it.
+
+To give a theme to someone, use **Share as File…** in Theme Studio or in the theme's menu (…) under Installed. It saves one `.glasstheme.zip` that you can post anywhere a file goes: Discord, Reddit, Mail, AirDrop. Opening the zip gives the `.glasstheme` back, and double-clicking that installs it. **Install from File…** under Installed takes the zip as it is, and so does dropping it on Theme Studio.
 
 Use a folder as soon as your theme needs a font, an image or a sound. File paths in `theme.json` are relative to that folder. A `preview.png` in the folder (a screenshot of the bar, `screencapture -b preview.png`) is shown on the theme's card in GlassBar Hub.
 
@@ -330,4 +332,6 @@ A theme is data, not code. It can't run anything, and the files it names (fonts,
 
 ## Sharing your theme
 
-Themes are shared through pull requests to this repo. **Publish…** on your theme in GlassBar Hub checks it, lists every file that would become public and opens the pull request page. Every theme in the [themes](../themes) folder shows up in the Store page of GlassBar Hub, where people can install it with one click. See [themes/README.md](../themes/README.md) for how to submit one.
+The quick way is a file: **Share as File…**, see [Where themes live](#where-themes-live). No account needed.
+
+To get it into the store, themes go through pull requests to this repo. **Publish…** on your theme in GlassBar Hub checks it, lists every file that would become public and opens the pull request page. Every theme in the [themes](../themes) folder shows up in the Store page of GlassBar Hub, where people can install it with one click. See [themes/README.md](../themes/README.md) for how to submit one.

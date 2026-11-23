@@ -346,18 +346,6 @@ final class ThemeStore {
         return t
     }
 
-    /// Writes a theme where the user chose: a package folder with its files, or a single file.
-    func export(_ t: Theme, to url: URL) throws {
-        let fm = FileManager.default
-        try? fm.removeItem(at: url)
-        if let from = t.baseURL {
-            try fm.copyItem(at: from, to: url)
-            try encode(t).write(to: url.appendingPathComponent("theme.json"), options: .atomic)
-        } else {
-            try encode(t).write(to: url, options: .atomic)
-        }
-    }
-
     /// Moves a user theme to the Trash.
     func delete(_ id: String) {
         guard let u = locations[id] ?? (isSafeID(id) ? target(id) : nil) else { return }
@@ -386,6 +374,53 @@ final class ThemeStore {
         if t.isBuiltIn { t.id = ThemeStore.newID(t.name) }
         if t.name.isEmpty { t.name = url.deletingPathExtension().lastPathComponent }
         return try save(t)
+    }
+
+    /// The theme zipped into one file, so it can go wherever a file can (Discord, Reddit, Mail). Unzipped it's a
+    /// .glasstheme package again, which installs on double-click. The caller moves or deletes the zip.
+    func zip(_ t: Theme) throws -> URL {
+        let fm = FileManager.default
+        let dir = fm.temporaryDirectory.appendingPathComponent("GlassBar-share-\(UUID().uuidString)")
+        try fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? fm.removeItem(at: dir) }
+        let name = t.displayName.replacingOccurrences(of: "/", with: "-").replacingOccurrences(of: ":", with: "-")
+        let package = dir.appendingPathComponent((name.isEmpty ? t.id : name) + ".glasstheme")
+        if let from = t.baseURL { try fm.copyItem(at: from, to: package) } else { try fm.createDirectory(at: package, withIntermediateDirectories: false) }
+        try encode(t).write(to: package.appendingPathComponent("theme.json"), options: .atomic)
+        let zip = fm.temporaryDirectory.appendingPathComponent("GlassBar-\(UUID().uuidString).zip")
+        try ThemeStore.ditto(["-c", "-k", "--norsrc", "--noextattr", "--noqtn", "--keepParent", package.path, zip.path])
+        return zip
+    }
+
+    /// Installs a theme someone sent as a zip: the first package, folder with a theme.json or .json file inside.
+    @discardableResult func installZip(_ url: URL) throws -> Theme {
+        let fm = FileManager.default
+        let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
+        guard size <= 20_000_000 else { throw CocoaError(.fileReadTooLarge) }
+        let dir = fm.temporaryDirectory.appendingPathComponent("GlassBar-zip-\(UUID().uuidString)")
+        try fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? fm.removeItem(at: dir) }
+        try ThemeStore.ditto(["-x", "-k", url.path, dir.path])
+        func candidates(_ f: URL) -> [URL] {
+            ThemeStore.entries(f).filter { !$0.lastPathComponent.hasPrefix(".") && !$0.lastPathComponent.hasPrefix("__") }
+                .filter { (try? $0.resourceValues(forKeys: [.isSymbolicLinkKey]))?.isSymbolicLink != true }
+        }
+        // a zipped package, a zipped plain folder, or a zip of the package's contents
+        var found = candidates(dir).first { u in
+            u.pathExtension == "glasstheme" || u.pathExtension == "json" || fm.fileExists(atPath: u.appendingPathComponent("theme.json").path)
+        }
+        if fm.fileExists(atPath: dir.appendingPathComponent("theme.json").path) { found = dir }
+        guard let found else { throw CocoaError(.fileReadCorruptFile) }
+        return try install(found)
+    }
+
+    private static func ditto(_ args: [String]) throws {
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
+        p.arguments = args
+        try p.run()
+        p.waitUntilExit()
+        guard p.terminationStatus == 0 else { throw CocoaError(.fileWriteUnknown) }
     }
 }
 
