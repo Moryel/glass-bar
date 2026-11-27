@@ -660,3 +660,5 @@
 "After 30 seconds" = "30 saniye sonra";
 "After 1 minute" = "1 dakika sonra";
 "Never" = "Hiçbir zaman";
+"Install Updates Automatically" = "Güncellemeleri Otomatik Kur";
+"GlassBar downloads a new version from GitHub, checks that it's signed like this one, and restarts with it. Off: the menu tells you, and you download it yourself." = "GlassBar yeni sürümü GitHub'dan indirir, bununla aynı şekilde imzalandığını kontrol eder ve onunla yeniden açılır. Kapalıyken menü haber verir, sen indirirsin.";

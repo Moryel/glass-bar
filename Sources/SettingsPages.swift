@@ -11,6 +11,7 @@ struct GeneralSettingsView: View {
     @AppStorage("siriBrightness") private var siriBrightness = 1.0
     @AppStorage("siriFringe") private var siriFringe = 1.0
     @AppStorage("siriThinkingDots") private var siriThinkingDots = true
+    @AppStorage("autoUpdate") private var autoUpdate = false
 
     var body: some View {
         Form {
@@ -53,6 +54,14 @@ struct GeneralSettingsView: View {
                     if on { try? SMAppService.mainApp.register() } else { try? SMAppService.mainApp.unregister() }
                     d.objectWillChange.send()
                 }))
+            }
+            if !Edition.isBeta {
+                Section {
+                    Toggle(L("Install Updates Automatically"), isOn: $autoUpdate)
+                } footer: {
+                    Text(L("GlassBar downloads a new version from GitHub, checks that it's signed like this one, and restarts with it. Off: the menu tells you, and you download it yourself."))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
             }
             Section {
                 LabeledContent(L("Found a bug or have an idea?")) {

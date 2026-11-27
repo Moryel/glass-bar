@@ -23,7 +23,7 @@ A free, open-source replacement for the Touch Bar on MacBook Pros from 2018 on (
 3. Give GlassBar **Accessibility** permission when asked (see [Permissions](#permissions)).
 4. A GlassBar icon appears in the menu bar. Turn on **Launch at Login** there to have it start with your Mac.
 
-GlassBar checks for updates itself and tells you when a new version is out.
+GlassBar checks for updates itself and tells you when a new version is out. If you'd rather not download it yourself, turn on **Install Updates Automatically** in the Hub's General settings: GlassBar then downloads the new version from GitHub, installs it only if it's signed with the same certificate as the copy you have, and restarts with it. It's off by default and works from 2.3 on.
 
 ## Themes
 
@@ -52,7 +52,7 @@ Script widgets are small JavaScript files ([docs/WIDGETS.md](docs/WIDGETS.md)). 
 
 The **Menu Bar** widget is a button that brings the menu bar down to the Touch Bar: the front app's menus on the left, then Wi-Fi, battery, the clock and other apps' icons. Tap a menu and its items take over the bar, with their shortcuts and submenus, and a tap on an icon opens its own menu on screen. It can also be the whole bar: Touch Bar Shows > Menu Bar. In a full-screen app, where macOS hides the menu bar, other apps' icons are dimmed because they can't be pressed then.
 
-The **Dock** puts your macOS Dock on the Touch Bar, with running dots, badges, a menu on long press and drag to reorder. An app bounces while it opens, the app in front scrolls into view, the Trash shows whether it's full, and the battery and clock can sit at the end.
+The **Dock** puts your macOS Dock on the Touch Bar, with running dots, badges, a menu on long press and drag to reorder. An app bounces while it opens, the app in front scrolls into view (and, if you like, the Dock goes back to it a few seconds after you scroll away), the Trash shows whether it's full, and the battery and clock can sit at the end.
 
 ![The Dock on the Touch Bar](images/dock.png)
 

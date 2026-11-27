@@ -122,6 +122,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSTouchBarDelegate, NS
 
         setUpStatusMenu()
         if !Edition.isBeta { UpdateChecker.shared.start() }
+        if let z = UserDefaults.standard.string(forKey: "testUpdateZip"), let v = UserDefaults.standard.string(forKey: "testUpdateVersion") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { UpdateChecker.shared.installLocal(URL(fileURLWithPath: z), version: v) }
+        }
 
         let ws = NSWorkspace.shared.notificationCenter
         observers.append(ws.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { [weak self] n in
