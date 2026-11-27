@@ -654,3 +654,9 @@
 "Text on accent buttons is hard to read." = "Vurgu butonlarındaki yazı zor okunuyor.";
 "Text on switched-on buttons is hard to read." = "Açık durumdaki butonlarda yazı zor okunuyor.";
 "Cancel" = "Vazgeç";
+"After scrolling, go back to the app in front" = "Kaydırdıktan sonra öndeki uygulamaya dön";
+"After 5 seconds" = "5 saniye sonra";
+"After 10 seconds" = "10 saniye sonra";
+"After 30 seconds" = "30 saniye sonra";
+"After 1 minute" = "1 dakika sonra";
+"Never" = "Hiçbir zaman";

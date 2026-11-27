@@ -43,7 +43,7 @@ struct DockRow: View {
     }
 
     private func strip(_ items: [DockApp], _ recents: [DockApp], _ others: [DockApp], _ style: DockIconStyle) -> some View {
-        ScrollingStrip(isLocked: { [drag] in drag.id != nil }, fadesEdges: true) {
+        ScrollingStrip(isLocked: { [drag] in drag.id != nil }, fadesEdges: true, returnDelay: { DockSettings.shared.returnDelay }) {
             Color.clear.frame(width: 2)
             ForEach(items) { a in item(a, style, items: items) }
             if !recents.isEmpty {

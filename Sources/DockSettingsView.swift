@@ -81,6 +81,13 @@ struct DockSettingsView: View {
                     Text(L("Does nothing")).tag(DockFrontTap.nothing)
                 }
                 Toggle(L("Long press opens the app menu"), isOn: $s.longPressMenu)
+                Picker(L("After scrolling, go back to the app in front"), selection: $s.returnDelay) {
+                    Text(L("Never")).tag(0.0)
+                    Text(L("After 5 seconds")).tag(5.0)
+                    Text(L("After 10 seconds")).tag(10.0)
+                    Text(L("After 30 seconds")).tag(30.0)
+                    Text(L("After 1 minute")).tag(60.0)
+                }
                 HStack {
                     Text(L("Press and hold an icon, then slide to move it.")).foregroundStyle(.secondary)
                     Spacer()

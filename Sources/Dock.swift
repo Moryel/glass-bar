@@ -363,6 +363,10 @@ final class DockSettings: ObservableObject {
     @Published var alignment = DockAlignment(rawValue: Defaults.string("dockAlignment")) ?? .leading { didSet { Defaults.set("dockAlignment", alignment.rawValue) } }
     @Published var spacing = DockSpacing(rawValue: Defaults.string("dockSpacing")) ?? .auto { didSet { Defaults.set("dockSpacing", spacing.rawValue) } }
     @Published var order = Defaults.stringArray("dockOrder") ?? [] { didSet { Defaults.set("dockOrder", order) } }
+    /// seconds after scrolling by hand before the Dock goes back to the app in front; 0 stays where it was left
+    @Published var returnDelay = UserDefaults.standard.object(forKey: "dockReturnDelay") as? Double ?? 0 {
+        didSet { Defaults.set("dockReturnDelay", returnDelay) }
+    }
 
     var recentsShown: Bool { showsRecents ?? DockModel.shared.dockShowsRecents }
 

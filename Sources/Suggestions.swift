@@ -115,6 +115,18 @@ final class ScrollState: ObservableObject {
     var contentWidth: CGFloat = 0
     var width: CGFloat = 0
     var selectedFrame: CGRect?
+    private var goBack: DispatchWorkItem?
+
+    /// After the user scrolled: back to the selected item once `delay` seconds pass without touching the strip.
+    func returnLater(_ delay: TimeInterval) {
+        goBack?.cancel()
+        guard delay > 0, selectedFrame != nil else { return }
+        let w = DispatchWorkItem { [weak self] in self?.clampOffset(animated: true, reveal: true) }
+        goBack = w
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: w)
+    }
+
+    func cancelReturn() { goBack?.cancel(); goBack = nil }
 
     /// No empty space when the content shrinks. The selected item is scrolled into view only when it changes
     /// (another app comes to the front): a redraw (a badge, the clock) mustn't undo the user's own scrolling.
@@ -151,12 +163,16 @@ struct ScrollingStrip<Content: View>: View {
     var isLocked: () -> Bool = { false }
     /// content running past an edge fades out there
     var fadesEdges = false
+    /// seconds after a scroll before the selected item comes back into view; 0 never
+    var returnDelay: () -> TimeInterval = { 0 }
     @ViewBuilder var content: () -> Content
     @StateObject private var k = ScrollState()
 
-    init(isLocked: @escaping () -> Bool = { false }, fadesEdges: Bool = false, @ViewBuilder content: @escaping () -> Content) {
+    init(isLocked: @escaping () -> Bool = { false }, fadesEdges: Bool = false, returnDelay: @escaping () -> TimeInterval = { 0 },
+         @ViewBuilder content: @escaping () -> Content) {
         self.isLocked = isLocked
         self.fadesEdges = fadesEdges
+        self.returnDelay = returnDelay
         self.content = content
     }
 
@@ -182,7 +198,7 @@ struct ScrollingStrip<Content: View>: View {
                 .simultaneousGesture(DragGesture(minimumDistance: 6)
                     .onChanged { e in
                         guard k.isDragging || !isLocked() else { return }
-                        if !k.isDragging { k.isDragging = true; k.startOffset = k.offset }
+                        if !k.isDragging { k.isDragging = true; k.startOffset = k.offset; k.cancelReturn() }
                         var x = k.startOffset + e.translation.width
                         // rubber-band resistance at the edges
                         if x > 0 { x = x / 3 } else if x < minOffset { x = minOffset + (x - minOffset) / 3 }
@@ -193,6 +209,7 @@ struct ScrollingStrip<Content: View>: View {
                         k.isDragging = false
                         let target = min(0, max(minOffset, k.startOffset + e.predictedEndTranslation.width))
                         withAnimation(.spring(response: 0.7, dampingFraction: 0.86)) { k.offset = target }
+                        k.returnLater(returnDelay())
                     })
         }
         .mask {
