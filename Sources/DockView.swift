@@ -139,7 +139,12 @@ struct DockRow: View {
                 move(a, in: items)
             }
             .onEnded { _ in
-                guard drag.didMove else { return }
+                guard drag.didMove else {
+                    // a long press that ended away from the icon never reaches release(), and the strip would stay
+                    // locked against scrolling; the tap runs first when it does
+                    DispatchQueue.main.async { if drag.id == a.id { withAnimation(.spring(response: 0.3)) { drag.id = nil } } }
+                    return
+                }
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { drag.id = nil; drag.didMove = false }
             })
     }
