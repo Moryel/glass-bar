@@ -131,6 +131,8 @@ GlassBar only redraws the bar when something on it changes, so it sits at about 
 
 **Accessibility** is required (System Settings > Privacy & Security > Accessibility > GlassBar). GlassBar uses it for esc, F1 to F12, shortcuts, media keys, typing suggestions, fn and menu commands. The permission status at launch is written to `~/Library/Logs/GlassBar.log`.
 
+Releases from 2.3 on are signed with the same certificate every time, so the permission stays when you update. Versions up to 2.2 were signed ad hoc and lost it on every update; coming from one of those, you grant it one last time.
+
 Other permissions are asked for only when a feature needs them: Automation for Music, Spotify, Safari, Photos and Finder tags, the microphone for the Siri waves, and system audio recording for the Spotify sound bar (only the level is measured, nothing is recorded). The Focus widget can only tell whether a Focus is on with Full Disk Access; without it the widget just opens Focus settings.
 
 Switching desktop spaces uses ⌃1 to ⌃9, so turn on "Switch to Desktop N" in System Settings > Keyboard > Keyboard Shortcuts > Mission Control.
@@ -174,7 +176,7 @@ Requires the Xcode command line tools.
 ./build.sh release   # universal build and build/GlassBar.zip
 ```
 
-If a code-signing certificate named "TouchBar2 Yerel Imza" is in your keychain, `build.sh` signs with it so the Accessibility permission survives rebuilds. Without it the app is signed ad hoc, and you have to grant the permission again after every build.
+If a code-signing certificate named "TouchBar2 Yerel Imza" is in your keychain, `build.sh` signs with it so the Accessibility permission survives rebuilds. Without it the app is signed ad hoc, and you have to grant the permission again after every build. `./build.sh release` stops without it, so a release is never signed ad hoc. A build you make yourself has a different signature from the releases, so switching between the two asks for the permission again.
 
 For screenshots: `open ~/Applications/GlassBar.app --args -testPanel expanded|brightness|volume|siri|siriDemo|fn|emoji|nowPlaying|stripEditor|tabs|hub|store|layouts` (add `-testPressed YES` for the pressed look), then `screencapture -b bar.png`.
 

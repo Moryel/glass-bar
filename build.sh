@@ -1,6 +1,6 @@
 #!/bin/zsh
 # Builds GlassBar.app and installs it to ~/Applications.
-# Usage: ./build.sh [--ac]   ·   ./build.sh release  → Intel + Apple Silicon, ad-hoc signed, build/GlassBar.zip (doesn't install)
+# Usage: ./build.sh [--ac]   ·   ./build.sh release  → Intel + Apple Silicon, signed with the local certificate, build/GlassBar.zip (doesn't install)
 #        ./build.sh beta [--ac]  → "GlassBar Beta" with its own bundle id, settings and themes, next to the normal app
 set -e
 cd "${0:A:h}"
@@ -84,10 +84,16 @@ if [[ "$EXE" != GlassBar ]]; then
     "$APP/Contents/Info.plist"
 fi
 
+# The local signing certificate keeps the app's identity the same from one build to the next, so macOS keeps the
+# Accessibility permission across updates. Without it the signature is ad hoc and the permission resets every time.
+IDENTITY=$(security find-identity -p codesigning 2>/dev/null | awk '/"TouchBar2 Yerel Imza"/ {print $2; exit}')
+
 if [[ "$1" == "release" ]]; then
-  # ad-hoc signature so it runs on any Mac (the personal certificate isn't distributed)
+  # a release signed ad hoc would make everyone grant Accessibility again
+  [[ -n "$IDENTITY" ]] || { echo "No signing certificate, release not built"; exit 1; }
   xattr -cr "$APP"
-  codesign --force --sign - "$APP"
+  codesign --force --sign "$IDENTITY" "$APP"
+  codesign --verify --strict "$APP"
   rm -f build/GlassBar.zip
   ditto -c -k --norsrc --noextattr --noqtn --keepParent "$APP" build/GlassBar.zip
   echo "Ready: build/GlassBar.zip ($(lipo -archs "$APP/Contents/MacOS/GlassBar"), version $VERSION)"
@@ -103,9 +109,6 @@ cp -R "$APP" ~/Applications/
 rm -rf "$APP"
 # extended attributes from the iCloud folder break the signature; clean the installed copy and sign it
 xattr -cr ~/Applications/"$NAME.app"
-# Sign with the local signing certificate if present: the identity stays the same across builds, so the Accessibility permission sticks.
-# Otherwise ad-hoc; the permission then has to be granted again after each build.
-IDENTITY=$(security find-identity -p codesigning 2>/dev/null | awk '/"TouchBar2 Yerel Imza"/ {print $2; exit}')
 codesign --force --sign "${IDENTITY:--}" ~/Applications/"$NAME.app"
 echo "Installed: ~/Applications/$NAME.app"
 [[ "$1" == "--ac" ]] && open ~/Applications/"$NAME.app"
