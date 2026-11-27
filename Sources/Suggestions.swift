@@ -116,12 +116,13 @@ final class ScrollState: ObservableObject {
     var width: CGFloat = 0
     var selectedFrame: CGRect?
 
-    /// No empty space when the content shrinks; the selected item (if any) stays visible.
-    func clampOffset(animated: Bool = false) {
+    /// No empty space when the content shrinks. The selected item is scrolled into view only when it changes
+    /// (another app comes to the front): a redraw (a badge, the clock) mustn't undo the user's own scrolling.
+    func clampOffset(animated: Bool = false, reveal: Bool = false) {
         guard !isDragging, width > 0 else { return }
         let minOffset = min(0, width - contentWidth)
         var x = min(0, max(minOffset, offset))
-        if let r = selectedFrame {
+        if reveal, let r = selectedFrame {
             if r.maxX + x > width { x = width - r.maxX - 8 }
             if r.minX + x < 0 { x = -r.minX + 8 }
             x = min(0, max(minOffset, x))
@@ -167,11 +168,15 @@ struct ScrollingStrip<Content: View>: View {
                 .coordinateSpace(.named("stripContent"))
                 .background(GeometryReader { ig in
                     Color.clear
-                        .onAppear { k.contentWidth = ig.size.width; k.width = g.size.width; k.clampOffset() }
+                        .onAppear { k.contentWidth = ig.size.width; k.width = g.size.width; k.clampOffset(reveal: true) }
                         .onChange(of: ig.size.width) { _, w in k.contentWidth = w; k.clampOffset(animated: true) }
                         .onChange(of: g.size.width) { _, w in k.width = w; k.clampOffset(animated: true) }
                 })
-                .onPreferenceChange(SelectedFrameKey.self) { r in k.selectedFrame = r; k.clampOffset(animated: true) }
+                .onPreferenceChange(SelectedFrameKey.self) { r in
+                    let moved = r.map { n in k.selectedFrame.map { abs($0.minX - n.minX) > 1 } ?? true } ?? false
+                    k.selectedFrame = r
+                    k.clampOffset(animated: true, reveal: moved)
+                }
                 .offset(x: k.offset)
                 .frame(maxHeight: .infinity)
                 .simultaneousGesture(DragGesture(minimumDistance: 6)

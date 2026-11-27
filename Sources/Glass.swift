@@ -45,6 +45,8 @@ final class PressState: ObservableObject {
     var frameInBar: CGRect = .zero
     /// press-and-slide in progress
     var isSliding = false
+    /// how far the finger went sideways on the bar itself; in a scrolling strip the button moves along with it
+    var travel: CGFloat = 0
 }
 
 /// The ambient light behind the glass lights up where touched, too.
@@ -224,6 +226,7 @@ struct LiquidPress: ViewModifier {
                 .onChanged { e in
                     if !b.isPressed {
                         b.isPressed = true
+                        b.travel = 0
                         b.ripple = 0
                         withAnimation(.easeOut(duration: 0.6)) { b.ripple = 1 }
                         withAnimation(.easeOut(duration: 0.12)) { b.glow = 1 }
@@ -244,7 +247,9 @@ struct LiquidPress: ViewModifier {
                 }
                 .onEnded { e in
                     var isInside = CGRect(origin: .zero, size: b.size).insetBy(dx: -14, dy: -24).contains(e.location)
-                    if isScrollable && abs(e.translation.width) > 8 { isInside = false }
+                    // the strip scrolls under the finger, so the button's own coordinates barely see the slide
+                    if isScrollable && (abs(e.translation.width) > 8 || b.travel > 8) { isInside = false }
+                    b.travel = 0
                     if b.isSliding { b.isSliding = false; onSlideEnd?(); isInside = false }
                     b.isPressed = false
                     b.dragOffset = .zero
@@ -252,6 +257,9 @@ struct LiquidPress: ViewModifier {
                     withAnimation(.easeOut(duration: 0.7)) { TouchLight.shared.intensity = 0 }
                     if isInside { action() }
                 })
+            .simultaneousGesture(DragGesture(minimumDistance: 0, coordinateSpace: .global)
+                .onChanged { e in b.travel = max(b.travel, abs(e.translation.width)) },
+                including: isScrollable ? .all : .subviews)
     }
 }
 
