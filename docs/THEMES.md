@@ -2,13 +2,11 @@
 
 A GlassBar theme is a JSON file. You can make one in Theme Studio without typing anything, or write the file yourself. This guide covers both and lists every field.
 
-> **The theme format is alpha.** Field names and defaults may still change before it settles. I'll try to keep old files loading, but if something breaks after an update, check this page again.
-
 ## Theme Studio
 
 GlassBar Hub > **Theme Studio** edits a theme on a preview of the bar, and on your real Touch Bar at the same time.
 
-1. **Pick a starter**: dark, light, outline, pixel or terminal. Or open one of your installed themes. A built-in theme is saved as a copy with a new id, so the original stays as it was.
+1. **New Theme…** asks three things: a look to start from (dark, light, outline, pixel or terminal), four colors and a name. Your Touch Bar shows it while you pick, and it warns when text gets hard to read. Save, or choose More Options to keep going in the studio. You can also open one of your installed themes. A built-in theme is saved as a copy with a new id, so the original stays as it was.
 2. **Click a part** on the preview: a button, a group, the bar itself, or a button in a role (active, primary, operator…). Its fill, text, border, shape and shadow open next to it. The preview can show any of the app bars, so check Calculator for `operator` and Safari for `accent`.
 3. **Quick Colors** recolors the whole theme from a few colors, which is the fast way to get a first version.
 4. **The bar background** takes a color, a two or three color gradient (linear or radial), a pattern, or an image from your Mac. The image is copied into the theme.
@@ -61,7 +59,7 @@ A theme only changes how the bar looks: colors, borders, fonts, what an icon is 
 
 **Skinned themes** have a `skin` key and draw every button themselves, without glass: flat colors, gradients, ASCII brackets, pixel borders. Terminal and 8-Bit Arcade are skinned themes.
 
-As soon as a theme has `skin`, the glass fields (`style`, `glassColor`, `glass`, `edge`, `glow`, `shadow`, `cornerRadius`) stop mattering.
+As soon as a theme has `skin`, the glass fields (`style`, `glassColor`, `glass`, `edge`, `glow`, `shadow`) stop mattering. `cornerRadius`, `fontDesign`, `fontWeight` and `textColor` work in both kinds: in a skin they fill in `skin.button.radius`, `skin.text.font`, `skin.text.weight` and the button text when the skin doesn't set those itself.
 
 ## A complete example
 
@@ -115,11 +113,11 @@ Copy this into `~/Library/Application Support/GlassBar/Themes/my-paper/theme.jso
 | `glow` | 0 to 2.5 | `1` | Glow under your finger. |
 | `shadow` | 0 to 2 | `1` | Button shadow. |
 | `bounce` | 0 to 2 | `1` | How much a button squishes when pressed (only with the `liquid` press effect). |
-| `cornerRadius` | 0 or more | `13` | Button corner radius in points. 13 and up is a capsule. Glass themes only, skins use `radius`. |
+| `cornerRadius` | 0 or more | `13` | Button corner radius in points. 13 and up is a capsule. In a skin it's used when `skin.button.radius` isn't set. |
 | `textColor` | hex color | `#FFFFFF` | Text and icon color. In a skin it's also the default border color. |
 | `accent` | hex color or `""` | `""` | Tint of the main action in some bars (the + in Safari). Empty means none. |
 | `sliderColor` | hex color or `""` | `""` | Filled part of sliders and the Spotify sound bar. Empty keeps each slider's own color. |
-| `fontDesign` | `standard`, `rounded`, `monospaced`, `serif` | `standard` | System font design. A skin's `text.font` wins over this. |
+| `fontDesign` | `standard`, `rounded`, `monospaced`, `serif` | `standard` | System font design. In a skin it's used when `text.font` isn't set. |
 | `fontWeight` | `regular`, `medium`, `semibold`, `bold` | `medium` | A skin's `text.weight` wins over this. |
 | `backdrop` | `off`, `app`, `aurora`, `sunset`, `ocean`, `siri`, `wallpaper` or `""` | `""` | Switches the Background menu when the theme is chosen. Empty leaves the user's choice alone. A skin with `bar` covers the background anyway. |
 | `roles` | object | `{}` | See [Roles](#roles). |
@@ -298,7 +296,7 @@ A good way to start is copying one of them into your themes folder, changing the
 - **Font glyphs.** Many fun fonts only cover A to Z. Check that yours has the letters your users will see, including accented and Turkish letters (ç ğ ı İ ö ş ü). App names, track titles and suggestions can contain anything.
 - **No endless animations.** The Touch Bar is drawn by a system process, TouchBarServer. Anything that keeps moving makes it redraw at 60 fps and costs real CPU and battery. Themes can't add animations on their own right now, and that's on purpose. Patterns and overlays are static.
 - **Text on the Dock's shelf.** The battery and clock at the end of the Dock sit on the shelf when the theme draws one, and straight on the bar when it doesn't. They take the right text color for each case, so check both the Dock and a normal bar.
-- **Text straight on the bar.** The app name, track titles and times aren't on a button. They use the button `fill` color (or the button `text` color when buttons have no fill), so the bar `fill` has to contrast with the button fill.
+- **Text straight on the bar.** The app name, track titles and times aren't on a button. They use the button `fill` color, or the button `text` color when buttons have no fill or their fill is too close to the bar's.
 - **ASCII brackets in narrow places.** Brackets take width. Short labels and icon text work best (`<` instead of `back`), long icon text makes buttons wide.
 - **`text.scale`** below about 0.6 gets hard to read. Pixel fonts look big, which is why Arcade scales them down.
 - **Fill `"none"` with no border** leaves only the label, which is fine for Terminal but can make buttons look like plain text elsewhere.
@@ -324,7 +322,7 @@ The log starts fresh every time GlassBar launches. Open it in Console or with `t
 
 If a theme doesn't show up in the menu at all, it usually means the JSON itself is broken (a missing comma or a trailing one) or the `id` clashes with a built-in theme.
 
-If a field has the wrong type (`"scale": "big"` instead of a number), that field is skipped. Inside `skin`, a wrong type currently drops the whole skin, and the log says which field it was.
+If a field has the wrong type (`"scale": "big"` instead of a number), only that field is skipped, and the log says which one (`skin.text.scale: expected Double, ignored`).
 
 ## What a theme can't do
 

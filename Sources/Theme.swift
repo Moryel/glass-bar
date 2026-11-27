@@ -119,12 +119,53 @@ extension Theme {
         read(.author, \.author); read(.version, \.version); read(.style, \.style); read(.glassColor, \.glassColor)
         read(.glass, \.glass); read(.edge, \.edge); read(.glow, \.glow); read(.shadow, \.shadow); read(.bounce, \.bounce)
         read(.cornerRadius, \.cornerRadius); read(.textColor, \.textColor); read(.accent, \.accent); read(.sliderColor, \.sliderColor)
-        read(.fontDesign, \.fontDesign); read(.fontWeight, \.fontWeight); read(.backdrop, \.backdrop); read(.roles, \.roles)
+        read(.fontDesign, \.fontDesign); read(.fontWeight, \.fontWeight); read(.backdrop, \.backdrop)
         read(.widget, \.widget)
-        if c.contains(.skin) {
-            do { t.skin = try c.decode(Skin.self, forKey: .skin) } catch { SystemControl.log("theme \(t.id): skin ignored: \(error.short)") }
+        let problems = ThemeProblems.collect {
+            if c.contains(.roles) {
+                if let n = try? c.nestedContainer(keyedBy: AnyKey.self, forKey: .roles) {
+                    for k in n.allKeys { if let p: LayerPatch = n.lenient(k) { t.roles[k.stringValue] = p } }
+                } else { ThemeProblems.add("roles: expected an object, ignored") }
+            }
+            t.skin = c.lenient(.skin)
+        }
+        problems.forEach { SystemControl.log("theme \(t.id): \($0)") }
+        // the top-level corner radius and font work in a skin too, unless the skin sets its own
+        if var s = t.skin {
+            if c.contains(.cornerRadius), t.cornerRadius != Theme.classic.cornerRadius, s.button?.radius == nil {
+                s.button = s.button ?? LayerPatch()
+                s.button?.radius = t.cornerRadius
+            }
+            let font: String? = switch t.fontDesign { case .standard: nil; case .rounded: "rounded"; case .monospaced: "mono"; case .serif: "serif" }
+            if let font, s.text?.font == nil {
+                s.text = s.text ?? TextStyle()
+                s.text?.font = font
+            }
+            t.skin = s
         }
         self = t
+    }
+
+    /// Only what differs from the defaults is written, so a saved theme.json stays short.
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        let d = Theme(id: id, name: name)
+        try c.encode(id, forKey: .id); try c.encode(name, forKey: .name)
+        try c.encode(author, forKey: .author); try c.encode(version, forKey: .version)
+        func put<T: Encodable & Equatable>(_ k: CodingKeys, _ p: KeyPath<Theme, T>) throws {
+            if self[keyPath: p] != d[keyPath: p] { try c.encode(self[keyPath: p], forKey: k) }
+        }
+        try put(.textColor, \.textColor); try put(.accent, \.accent); try put(.sliderColor, \.sliderColor)
+        try put(.fontDesign, \.fontDesign); try put(.fontWeight, \.fontWeight); try put(.backdrop, \.backdrop)
+        if skin == nil {
+            // glass only; a skin draws without them
+            try put(.style, \.style); try put(.glassColor, \.glassColor); try put(.glass, \.glass); try put(.edge, \.edge)
+            try put(.glow, \.glow); try put(.shadow, \.shadow); try put(.cornerRadius, \.cornerRadius)
+        }
+        try put(.bounce, \.bounce)
+        if !roles.isEmpty { try c.encode(roles, forKey: .roles) }
+        try c.encodeIfPresent(skin, forKey: .skin)
+        try c.encodeIfPresent(widget, forKey: .widget)
     }
 }
 

@@ -64,6 +64,10 @@ final class StudioModel: ObservableObject {
     @Published var part = Part.general
     @Published var role = "active"
     @Published var previewValue: Float = 0.6
+    /// the three-step New Theme sheet; holds the theme that was open before it
+    @Published var quickStart: Theme?
+    @Published var quickStarter = Starter.dark
+    @Published var quickName = ""
 
     init(_ d: AppState) {
         self.d = d
@@ -76,6 +80,7 @@ final class StudioModel: ObservableObject {
             pick(["bar": .bar, "button": .button, "group": .group, "slider": .slider][k] ?? .role(k))
         }
         if let s = UserDefaults.standard.string(forKey: "studioStarter").flatMap(Starter.init(rawValue:)) { newTheme(starter: s) }
+        if UserDefaults.standard.bool(forKey: "studioQuick") { DispatchQueue.main.async { self.openQuickStart() } }
         // screenshot testing: -studioPart look
         if let p = UserDefaults.standard.string(forKey: "studioPart").flatMap(Part.init(rawValue:)), parts.contains(p) { part = p }
     }
@@ -347,6 +352,168 @@ extension ThemeStore {
     }
 }
 
+// MARK: quick start
+
+extension StudioModel {
+    func openQuickStart() {
+        quickStart = saved
+        quickName = ""
+        pickStarter(.dark)
+    }
+
+    func pickStarter(_ s: Starter) {
+        quickStarter = s
+        newTheme(starter: s)
+        if !quickName.isEmpty { draft.name = quickName }
+    }
+
+    func cancelQuickStart() {
+        if let t = quickStart { select(ThemeStore.shared.theme(id: t.id) ?? t) }
+        quickStart = nil
+    }
+
+    /// Saves the new theme; "More Options" keeps it open in the studio instead.
+    func finishQuickStart(save: Bool) {
+        let name = quickName.trimmingCharacters(in: .whitespaces)
+        if !name.isEmpty { draft.name = name; draft.id = ThemeStore.newID(name) }
+        quickStart = nil
+        if save { self.save() } else { part = .look }
+    }
+
+    /// Text that would be hard to read on the Touch Bar, in plain words.
+    var contrastProblems: [String] {
+        let t = draft
+        guard t.isSkin else { return [] }
+        let bar = t.skin?.bar?.fill.flatMap(Color.init(hexString:)) ?? .black
+        var l: [String] = []
+        let b = t.layer(nil)
+        if Color.contrast(b.text, b.fill ?? bar) < 3 { l.append(L("Button text is hard to read on the buttons.")) }
+        if b.fill != nil, Color.contrast(t.barText, bar) < 2 { l.append(L("Song titles and times are hard to read on the background.")) }
+        let p = t.layer(.primary)
+        if Color.contrast(p.text, p.fill ?? bar) < 3 { l.append(L("Text on accent buttons is hard to read.")) }
+        let a = t.layer(.active)
+        if Color.contrast(a.text, a.fill ?? bar) < 3 { l.append(L("Text on switched-on buttons is hard to read.")) }
+        return l
+    }
+}
+
+extension Color {
+    /// WCAG contrast ratio, 1 (none) to 21 (black on white).
+    static func contrast(_ a: Color, _ b: Color) -> Double {
+        func lum(_ c: Color) -> Double {
+            guard let n = NSColor(c).usingColorSpace(.sRGB) else { return 0 }
+            func ch(_ v: CGFloat) -> Double { let v = Double(v); return v <= 0.03928 ? v / 12.92 : pow((v + 0.055) / 1.055, 2.4) }
+            return 0.2126 * ch(n.redComponent) + 0.7152 * ch(n.greenComponent) + 0.0722 * ch(n.blueComponent)
+        }
+        let x = lum(a), y = lum(b)
+        return (max(x, y) + 0.05) / (min(x, y) + 0.05)
+    }
+}
+
+struct QuickStartSheet: View {
+    @ObservedObject var m: StudioModel
+
+    var body: some View {
+        let p = m.palette
+        VStack(alignment: .leading, spacing: 18) {
+            Text(L("New Theme")).font(.title2.bold())
+
+            step(1, L("Pick a look")) {
+                HStack(spacing: 10) {
+                    ForEach(StudioModel.Starter.allCases, id: \.self) { s in
+                        Button { m.pickStarter(s) } label: {
+                            VStack(spacing: 6) {
+                                ThemeSwatch(t: sample(s)).frame(width: 54, height: 34)
+                                Text(s.name).font(.caption)
+                            }
+                            .padding(6)
+                            .background(RoundedRectangle(cornerRadius: 8).fill(m.quickStarter == s ? Color.accentColor.opacity(0.25) : .clear))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+
+            step(2, L("Pick four colors")) {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 18) {
+                        ColorPicker(L("Background"), selection: Binding(get: { p.bar }, set: { m.applyPalette(bar: $0) }), supportsOpacity: false)
+                        ColorPicker(L("Buttons"), selection: Binding(get: { p.button }, set: { m.applyPalette(button: $0) }), supportsOpacity: false)
+                        ColorPicker(L("Text"), selection: Binding(get: { p.text }, set: { m.applyPalette(text: $0) }), supportsOpacity: false)
+                        ColorPicker(L("Accent"), selection: Binding(get: { p.accent }, set: { m.applyPalette(accent: $0) }), supportsOpacity: false)
+                    }
+                    SampleBar(t: m.draft)
+                    ForEach(m.contrastProblems, id: \.self) { s in
+                        Label(s, systemImage: "exclamationmark.triangle.fill").font(.caption).foregroundStyle(.orange)
+                    }
+                    Text(L("Your Touch Bar shows it while you pick.")).font(.caption).foregroundStyle(.secondary)
+                }
+            }
+
+            step(3, L("Name it")) {
+                TextField(m.quickStarter.name, text: $m.quickName).textFieldStyle(.roundedBorder).frame(maxWidth: 260)
+                    .onChange(of: m.quickName) { _, v in if !v.isEmpty { m.draft.name = v } }
+            }
+
+            HStack {
+                Button(L("Cancel")) { m.cancelQuickStart() }.keyboardShortcut(.cancelAction)
+                Spacer()
+                Button(L("More Options")) { m.finishQuickStart(save: false) }
+                    .help(L("Keeps editing in Theme Studio: borders, fonts, patterns, icons and sounds."))
+                Button(L("Save")) { m.finishQuickStart(save: true) }.keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(22)
+        .frame(width: 600)
+    }
+
+    private func step<C: View>(_ n: Int, _ title: String, @ViewBuilder _ content: () -> C) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Text("\(n)").font(.headline).frame(width: 24, height: 24).background(Circle().fill(Color.accentColor.opacity(0.2)))
+            VStack(alignment: .leading, spacing: 8) {
+                Text(title).font(.headline)
+                content()
+            }
+        }
+    }
+
+    private func sample(_ s: StudioModel.Starter) -> Theme {
+        var t = Theme(id: "starter-" + s.rawValue, name: s.name, skin: s.skin)
+        let c = s.colors
+        t.skin?.bar?.fill = Color(hex: c.0).hexString
+        t.skin?.button?.fill = Color(hex: c.1).hexString
+        t.skin?.button?.text = Color(hex: c.2).hexString
+        t.roles["operator"] = LayerPatch(fill: Color(hex: c.3).hexString)
+        return t
+    }
+}
+
+/// A few buttons in the draft's look: normal, switched on and the main action.
+private struct SampleBar: View {
+    let t: Theme
+
+    var body: some View {
+        HStack(spacing: 6) {
+            button("Aa", nil); button("Mute", .active); button("Done", .primary)
+            Text("2:14").font(t.font(12)).foregroundStyle(t.barText).padding(.horizontal, 6)
+        }
+        .padding(6)
+        .background {
+            Group { if let b = t.skin?.bar { SkinBarBackground(style: b, theme: t) } else { Color.black } }
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+        }
+        .environment(\.theme, t)
+    }
+
+    private func button(_ s: String, _ role: Role?) -> some View {
+        let l = t.layer(role)
+        return Text(l.border == "ascii" ? "\(l.opening)\(t.cased(s))\(l.closing)" : t.cased(s))
+            .font(t.font(13)).foregroundStyle(l.text)
+            .padding(.horizontal, 10).frame(height: Metrics.buttonHeight)
+            .background(SkinBackground(role: role, isPressed: false))
+    }
+}
+
 // MARK: views
 
 struct ThemeStudioView: View {
@@ -371,6 +538,9 @@ struct ThemeStudioView: View {
                 Divider()
                 actions
             }
+        }
+        .sheet(isPresented: Binding(get: { m.quickStart != nil }, set: { if !$0 && m.quickStart != nil { m.cancelQuickStart() } })) {
+            QuickStartSheet(m: m)
         }
         .onDrop(of: [.fileURL], isTargeted: nil) { providers in
             for p in providers {
@@ -433,11 +603,10 @@ private struct StudioThemeList: View {
             }
             Divider()
             VStack(alignment: .leading, spacing: 6) {
-                Menu(L("New")) {
+                Button(L("New Theme…"), action: m.openQuickStart).buttonStyle(.borderedProminent)
+                Menu(L("Start Blank")) {
                     Button(L("Glass Theme")) { m.newTheme(skin: false) }
                     Button(L("Skin")) { m.newTheme(skin: true) }
-                    Divider()
-                    ForEach(StudioModel.Starter.allCases, id: \.self) { s in Button(s.name) { m.newTheme(starter: s) } }
                 }
                 Button(L("Import…"), action: m.importFile)
             }

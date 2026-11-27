@@ -129,7 +129,13 @@ extension Theme {
     var isSkin: Bool { skin != nil }
     /// Text drawn straight on the bar (track names, times): in a skin the button fill (the button text is meant for the fill),
     /// or the button text when buttons have no fill.
-    var barText: Color { isSkin ? (layer(nil).fill ?? layer(nil).text) : text }
+    /// Falls back to the button text when the fill is too close to the bar to read.
+    var barText: Color {
+        guard isSkin else { return text }
+        let l = layer(nil), bar = skin?.bar?.fill.flatMap(Color.init(hexString:)) ?? .black
+        if let f = l.fill, Color.contrast(f, bar) >= 2 { return f }
+        return l.text
+    }
     /// Text on a group's shelf (the Dock's status, separators): bar text only when the shelf isn't drawn.
     var shelfText: Color { splitsGroups ? barText : buttonText }
     /// Text inside a plain button.
@@ -532,5 +538,90 @@ struct ShakeEffect: GeometryEffect {
     }
     func effectValue(size: CGSize) -> ProjectionTransform {
         ProjectionTransform(CGAffineTransform(translationX: 2.5 * sin(amount * .pi * 6), y: 0))
+    }
+}
+
+// MARK: reading
+
+// A wrong value in theme.json (a word where a number goes) drops only that field. The problems are collected per
+// thread while a theme is read and logged with the theme's id.
+enum ThemeProblems {
+    private static let key = "GlassBar.themeProblems"
+
+    static func collect(_ read: () throws -> Void) rethrows -> [String] {
+        let l = NSMutableArray()
+        Thread.current.threadDictionary[key] = l
+        defer { Thread.current.threadDictionary[key] = nil }
+        try read()
+        return l.compactMap { $0 as? String }
+    }
+
+    static func add(_ s: String) { (Thread.current.threadDictionary[key] as? NSMutableArray)?.add(s) }
+}
+
+extension KeyedDecodingContainer {
+    /// The value, or nil when it's missing or has the wrong type (noted for the log).
+    func lenient<T: Decodable>(_ k: Key) -> T? {
+        guard contains(k) else { return nil }
+        do { return try decode(T.self, forKey: k) } catch {
+            ThemeProblems.add("\(error.short.contains(":") ? error.short : (codingPath + [k]).map(\.stringValue).joined(separator: ".") + ": " + error.short), ignored")
+            return nil
+        }
+    }
+}
+
+/// Dictionary keys read one by one, so a bad entry doesn't take the others with it.
+struct AnyKey: CodingKey {
+    var stringValue: String
+    var intValue: Int? { nil }
+    init(stringValue: String) { self.stringValue = stringValue }
+    init?(intValue: Int) { nil }
+}
+
+extension LayerPatch {
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        fill = c.lenient(.fill); fill2 = c.lenient(.fill2); text = c.lenient(.text); border = c.lenient(.border)
+        borderWidth = c.lenient(.borderWidth); borderColor = c.lenient(.borderColor); radius = c.lenient(.radius)
+        glow = c.lenient(.glow); glowColor = c.lenient(.glowColor); shadow = c.lenient(.shadow); bevel = c.lenient(.bevel)
+        chars = c.lenient(.chars); invert = c.lenient(.invert)
+    }
+}
+
+extension Skin {
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        bar = c.lenient(.bar); button = c.lenient(.button); pressed = c.lenient(.pressed); group = c.lenient(.group)
+        text = c.lenient(.text); press = c.lenient(.press)
+        icons = Skin.strings(c, .icons); sounds = Skin.strings(c, .sounds)
+    }
+
+    private static func strings(_ c: KeyedDecodingContainer<CodingKeys>, _ k: CodingKeys) -> [String: String]? {
+        guard c.contains(k) else { return nil }
+        guard let n = try? c.nestedContainer(keyedBy: AnyKey.self, forKey: k) else {
+            ThemeProblems.add("skin.\(k.stringValue): expected an object, ignored")
+            return nil
+        }
+        var d: [String: String] = [:]
+        for key in n.allKeys { if let v: String = n.lenient(key) { d[key.stringValue] = v } }
+        return d
+    }
+}
+
+extension BarStyle {
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        fill = c.lenient(.fill); fill2 = c.lenient(.fill2); fill3 = c.lenient(.fill3); gradient = c.lenient(.gradient)
+        angle = c.lenient(.angle); image = c.lenient(.image); imageMode = c.lenient(.imageMode); imageOpacity = c.lenient(.imageOpacity)
+        pattern = c.lenient(.pattern); patternColor = c.lenient(.patternColor); patternOpacity = c.lenient(.patternOpacity)
+        patternSize = c.lenient(.patternSize); overlay = c.lenient(.overlay); overlayOpacity = c.lenient(.overlayOpacity)
+    }
+}
+
+extension TextStyle {
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        font = c.lenient(.font); scale = c.lenient(.scale); weight = c.lenient(.weight)
+        letterCase = c.lenient(.letterCase); tracking = c.lenient(.tracking)
     }
 }

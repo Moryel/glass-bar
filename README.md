@@ -36,7 +36,7 @@ Seven themes are built in. Classic, Minimal Liquid Glass, Graphite and Neon keep
 
 ![Theme Studio](images/theme-studio.png)
 
-A theme is a JSON file underneath. To write one by hand, choose Theme > Open Themes Folder from the menu, add a `theme.json`, and use Theme > Reload Themes and Layouts after each save. Every field is described in [docs/THEMES.md](docs/THEMES.md). Bad values are skipped and written to `~/Library/Logs/GlassBar.log` instead of breaking the bar. The format is still alpha and may change.
+The quickest start is Theme Studio > New Theme…: pick a look, four colors and a name. A theme is a JSON file underneath. To write one by hand, choose Theme > Open Themes Folder from the menu, add a `theme.json`, and use Theme > Reload Themes and Layouts after each save. Every field is described in [docs/THEMES.md](docs/THEMES.md). Bad values are skipped and written to `~/Library/Logs/GlassBar.log` instead of breaking the bar.
 
 Made a theme you like? Send it with a pull request and it shows up in the store for everyone, see [themes/README.md](themes/README.md). Themes can also be shared as `.glasstheme` packages, which install with a double-click.
 

@@ -641,3 +641,16 @@
 "Saves the theme as one zip file you can send anywhere." = "Temayı her yere gönderebileceğin tek bir zip dosyası olarak kaydeder.";
 "Send this file as it is. Opening it on a Mac with GlassBar installs the theme." = "Dosyayı olduğu gibi gönder. GlassBar olan bir Mac'te açılınca tema kurulur.";
 "Install from File…" = "Dosyadan Kur…";
+"Pick a look" = "Bir görünüm seç";
+"Pick four colors" = "Dört renk seç";
+"Name it" = "Ad ver";
+"More Options" = "Daha Fazla Seçenek";
+"Keeps editing in Theme Studio: borders, fonts, patterns, icons and sounds." = "Tema Stüdyosu'nda düzenlemeye devam eder: kenarlıklar, yazı tipleri, desenler, simgeler ve sesler.";
+"Start Blank" = "Boştan Başla";
+"New Theme…" = "Yeni Tema…";
+"Your Touch Bar shows it while you pick." = "Seçerken Touch Bar'ında görünür.";
+"Button text is hard to read on the buttons." = "Butonlardaki yazı zor okunuyor.";
+"Song titles and times are hard to read on the background." = "Şarkı adları ve süreler arka planda zor okunuyor.";
+"Text on accent buttons is hard to read." = "Vurgu butonlarındaki yazı zor okunuyor.";
+"Text on switched-on buttons is hard to read." = "Açık durumdaki butonlarda yazı zor okunuyor.";
+"Cancel" = "Vazgeç";

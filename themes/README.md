@@ -36,5 +36,3 @@ themes/
 After a merge, a GitHub workflow zips each new theme version into the [themes release](https://github.com/Moryel/glass-bar/releases/tag/themes). The store installs from those zips, and their download counts are the install numbers you see in GlassBar Hub.
 
 One theme per pull request please. I'll look at contrast and whether it reads well on the real bar, and may ask for small changes before merging.
-
-The theme format is still alpha, so a theme may need small updates later. I'll try to fix the ones here myself when the format changes.
